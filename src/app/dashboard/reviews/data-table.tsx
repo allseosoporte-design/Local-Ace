@@ -24,7 +24,7 @@ export function DataTable<TData, TValue>({
         <TableHeader>
           <TableRow>
             {columns.map((column) => (
-              <TableHead key={column.header}>{column.header}</TableHead>
+              <TableHead key={column.accessorKey || column.id}>{column.header}</TableHead>
             ))}
           </TableRow>
         </TableHeader>
