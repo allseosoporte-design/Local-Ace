@@ -23,19 +23,21 @@ export default function DashboardLayout({
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    // Don't run auth logic until Firebase is ready
-    if (isUserLoading || !firestore) {
-      return; 
+    if (isUserLoading) {
+      return;
     }
 
-    // If there's no user, redirect to login page
     if (!user) {
       router.replace('/login');
       return;
     }
 
-    // User is logged in, now check for role and handle routing
     const checkAdminAndRoute = async () => {
+      if (!firestore) {
+        setAuthChecked(true); // Can't check role, proceed with caution
+        return;
+      }
+
       try {
         const adminDocRef = doc(firestore, 'superAdmins', user.uid);
         const adminDoc = await getDoc(adminDocRef);
@@ -43,24 +45,21 @@ export default function DashboardLayout({
 
         const onAdminPath = pathname.startsWith('/dashboard/admin');
 
-        // Redirect logic:
-        // 1. If user is admin but not on admin path, redirect to admin dashboard.
         if (isSuperAdmin && !onAdminPath) {
           router.replace('/dashboard/admin');
-        // 2. If user is NOT admin but IS on admin path, redirect to user dashboard.
         } else if (!isSuperAdmin && onAdminPath) {
           router.replace('/dashboard');
-        // 3. Otherwise, the user is on the correct page. Mark auth as checked.
         } else {
           setAuthChecked(true);
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
-        // Fallback: assume not an admin for safety
+        // Fallback for safety
         if (pathname.startsWith('/dashboard/admin')) {
            router.replace('/dashboard');
+        } else {
+           setAuthChecked(true);
         }
-        setAuthChecked(true); // Allow render to avoid getting stuck
       }
     };
 
@@ -77,7 +76,7 @@ export default function DashboardLayout({
     );
   }
 
-  // If we are on the admin path, the specific admin layout will take over.
+  // The specific admin layout will render its own sidebar structure
   if (pathname.startsWith('/dashboard/admin')) {
     return <>{children}</>;
   }
