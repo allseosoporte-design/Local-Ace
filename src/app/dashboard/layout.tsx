@@ -23,52 +23,41 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   useEffect(() => {
-    // Wait until Firebase has determined the user's auth state
     if (isUserLoading) {
-      return;
+      return; 
     }
-
-    // If no user is logged in, redirect to the login page
     if (!user) {
       router.push('/login');
-      return;
-    }
-    
-    // If we already know the admin status, no need to re-check
-    if (isAdmin !== null) {
       return;
     }
 
     const checkAdminStatus = async () => {
       if (!firestore || !user) return;
-      
       const adminDocRef = doc(firestore, 'superAdmins', user.uid);
       try {
         const adminDoc = await getDoc(adminDocRef);
-        const userIsAdmin = adminDoc.exists();
-        
-        setIsAdmin(userIsAdmin);
-
-        // Perform redirection logic only after setting the admin state
-        if (userIsAdmin) {
-          if (!pathname.startsWith('/dashboard/admin')) {
-            router.push('/dashboard/admin');
-          }
-        } else {
-          if (pathname.startsWith('/dashboard/admin')) {
-            router.push('/dashboard');
-          }
-        }
+        setIsAdmin(adminDoc.exists());
       } catch (error) {
         console.error("Error checking admin status:", error);
-        // Handle potential errors, maybe redirect to a safe page
-        router.push('/dashboard');
+        setIsAdmin(false);
       }
     };
-
     checkAdminStatus();
+  }, [user, isUserLoading, firestore, router]);
 
-  }, [user, isUserLoading, router, firestore, isAdmin, pathname]);
+  useEffect(() => {
+    if (isAdmin === null) return; // Still checking
+
+    const userIsAdmin = isAdmin;
+    const onAdminPath = pathname.startsWith('/dashboard/admin');
+
+    if (userIsAdmin && !onAdminPath) {
+      router.push('/dashboard/admin');
+    } else if (!userIsAdmin && onAdminPath) {
+      router.push('/dashboard');
+    }
+
+  }, [isAdmin, pathname, router]);
 
   if (isUserLoading || isAdmin === null) {
     return (
@@ -120,6 +109,10 @@ export default function DashboardLayout({
     );
   }
   
-  // Fallback for any other case
-  return <>{children}</>;
+  // Fallback for any other case, e.g. admin on a non-admin page during redirect
+  return (
+    <div className="flex h-screen w-full items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>
+  );
 }
