@@ -111,8 +111,7 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
   );
 };
 
-
-export const columns = [
+const baseColumns = [
   {
     accessorKey: "name",
     header: "Customer",
@@ -129,6 +128,15 @@ export const columns = [
       </p>
     ),
   },
+  {
+    accessorKey: "date",
+    header: "Date",
+  },
+];
+
+
+export const columns = [
+  ...baseColumns.filter((c) => c.accessorKey !== 'rating'),
   {
     accessorKey: "rating",
     header: "Rating",
@@ -148,10 +156,6 @@ export const columns = [
     ),
   },
   {
-    accessorKey: "date",
-    header: "Date",
-  },
-  {
     id: "actions",
     cell: ActionsCell
   },
@@ -159,7 +163,7 @@ export const columns = [
 
 
 export const feedbackColumns = [
-  ...columns.filter((c) => c.accessorKey !== "rating" && c.id !== 'actions'),
+  ...baseColumns,
   {
     accessorKey: "status",
     header: "Status",
