@@ -20,22 +20,22 @@ import { LocalLeap } from "./icons";
 const links = [
   {
     href: "/dashboard",
-    label: "Dashboard",
+    label: "Panel",
     icon: LayoutDashboard,
   },
   {
     href: "/dashboard/reviews",
-    label: "Reviews",
+    label: "Reseñas",
     icon: Star,
   },
   {
     href: "/dashboard/profile",
-    label: "Profile",
+    label: "Perfil",
     icon: User,
   },
   {
     href: "/dashboard/posts",
-    label: "Posts",
+    label: "Publicaciones",
     icon: FileText,
   },
   {
@@ -45,7 +45,7 @@ const links = [
   },
   {
     href: "/dashboard/settings",
-    label: "Settings",
+    label: "Configuración",
     icon: Settings,
   },
 ];

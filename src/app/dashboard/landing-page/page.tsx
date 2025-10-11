@@ -28,17 +28,17 @@ import { generateLandingPageHeadline } from "@/ai/flows/generate-landing-page-he
 import { generateLandingPageDescription } from "@/ai/flows/generate-landing-page-description";
 
 const colorOptions = [
-  { name: "Blue", value: "hsl(221, 89%, 60%)" },
-  { name: "Green", value: "hsl(142, 71%, 45%)" },
-  { name: "Red", value: "hsl(0, 84%, 60%)" },
-  { name: "Orange", value: "hsl(35, 100%, 57%)" },
-  { name: "Purple", value: "hsl(262, 83%, 60%)" },
+  { name: "Azul", value: "hsl(221, 89%, 60%)" },
+  { name: "Verde", value: "hsl(142, 71%, 45%)" },
+  { name: "Rojo", value: "hsl(0, 84%, 60%)" },
+  { name: "Naranja", value: "hsl(35, 100%, 57%)" },
+  { name: "Morado", value: "hsl(262, 83%, 60%)" },
 ];
 
 export default function LandingPageBuilder() {
-  const [headline, setHeadline] = useState("Your Catchy Headline Here");
+  const [headline, setHeadline] = useState("Tu Titular Atractivo Aquí");
   const [description, setDescription] = useState(
-    "Describe your business in a way that excites your customers and makes them want to learn more. This is your chance to shine!"
+    "Describe tu negocio de una manera que entusiasme a tus clientes y les haga querer saber más. ¡Esta es tu oportunidad de brillar!"
   );
   const [primaryColor, setPrimaryColor] = useState(colorOptions[0].value);
   const [logo, setLogo] = useState<string | null>(null);
@@ -52,8 +52,8 @@ export default function LandingPageBuilder() {
     try {
       const result = await generateLandingPageHeadline({
         businessDescription: description,
-        targetAudience: "local customers",
-        keywords: "cafe, coffee, pastries"
+        targetAudience: "clientes locales",
+        keywords: "cafetería, café, pasteles"
       });
       if(result.headline) {
         setHeadline(result.headline);
@@ -71,8 +71,8 @@ export default function LandingPageBuilder() {
       const result = await generateLandingPageDescription({
         businessDescription: description,
         headline: headline,
-        keywords: "cafe, coffee, pastries",
-        targetAudience: "local customers",
+        keywords: "cafetería, café, pasteles",
+        targetAudience: "clientes locales",
       });
       if (result.description) {
         setDescription(result.description);
@@ -89,11 +89,11 @@ export default function LandingPageBuilder() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
       <Card className="lg:col-span-1 h-full overflow-y-auto">
         <CardHeader>
-          <CardTitle>Landing Page Editor</CardTitle>
+          <CardTitle>Editor de Landing Page</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="headline">Headline</Label>
+            <Label htmlFor="headline">Titular</Label>
             <Textarea
               id="headline"
               value={headline}
@@ -101,11 +101,11 @@ export default function LandingPageBuilder() {
             />
             <Button variant="outline" size="sm" onClick={handleGenerateHeadline} disabled={isGenerating}>
               {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              Generate with AI
+              Generar con IA
             </Button>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Descripción</Label>
             <Textarea
               id="description"
               value={description}
@@ -114,17 +114,17 @@ export default function LandingPageBuilder() {
             />
              <Button variant="outline" size="sm" onClick={handleGenerateDescription} disabled={isGenerating}>
               {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              Generate with AI
+              Generar con IA
             </Button>
           </div>
           <div className="space-y-2">
-            <Label>Primary Color</Label>
+            <Label>Color Primario</Label>
             <Select
               onValueChange={setPrimaryColor}
               defaultValue={primaryColor}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select a color" />
+                <SelectValue placeholder="Selecciona un color" />
               </SelectTrigger>
               <SelectContent>
                 {colorOptions.map((color) => (
@@ -146,7 +146,7 @@ export default function LandingPageBuilder() {
             <Input id="logo" type="file" accept="image/*" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="hero">Hero Image</Label>
+            <Label htmlFor="hero">Imagen de Cabecera</Label>
             <Input id="hero" type="file" accept="image/*" />
           </div>
         </CardContent>
@@ -158,7 +158,7 @@ export default function LandingPageBuilder() {
           <header className="flex justify-between items-center p-6 border-b">
             <LocalLeap style={{ color: primaryColor }} className="w-8 h-8" />
             <div className="flex items-center gap-2">
-              <Button style={{ backgroundColor: primaryColor, color: 'white' }}>Contact Us</Button>
+              <Button style={{ backgroundColor: primaryColor, color: 'white' }}>Contáctanos</Button>
             </div>
           </header>
 
@@ -177,18 +177,18 @@ export default function LandingPageBuilder() {
             <div className="grid md:grid-cols-3 gap-8 text-center">
               <div className="space-y-2">
                 <Phone className="w-10 h-10 mx-auto" style={{ color: primaryColor }} />
-                <h3 className="text-xl font-semibold">Call Us</h3>
+                <h3 className="text-xl font-semibold">Llámanos</h3>
                 <p className="text-muted-foreground">(123) 456-7890</p>
               </div>
               <div className="space-y-2">
                 <Mail className="w-10 h-10 mx-auto" style={{ color: primaryColor }} />
-                <h3 className="text-xl font-semibold">Email Us</h3>
-                <p className="text-muted-foreground">hello@yourbusiness.com</p>
+                <h3 className="text-xl font-semibold">Escríbenos</h3>
+                <p className="text-muted-foreground">hola@tunegocio.com</p>
               </div>
               <div className="space-y-2">
                 <MapPin className="w-10 h-10 mx-auto" style={{ color: primaryColor }} />
-                <h3 className="text-xl font-semibold">Visit Us</h3>
-                <p className="text-muted-foreground">123 Main St, Anytown, USA</p>
+                <h3 className="text-xl font-semibold">Visítanos</h3>
+                <p className="text-muted-foreground">123 Calle Principal, Tu Ciudad, País</p>
               </div>
             </div>
           </section>

@@ -33,8 +33,8 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
         {step === 1 && (
           <>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold">How was your experience?</CardTitle>
-              <CardDescription>Your feedback helps us improve.</CardDescription>
+              <CardTitle className="text-2xl font-bold">¿Cómo fue tu experiencia?</CardTitle>
+              <CardDescription>Tus comentarios nos ayudan a mejorar.</CardDescription>
             </CardHeader>
             <CardContent>
               <StarRating onRating={handleRating} />
@@ -45,25 +45,25 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
         {step === 2 && rating > 0 && rating < 5 && (
           <form onSubmit={handleSubmitFeedback}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><MessageSquare className="text-primary"/> Leave us your feedback</CardTitle>
-              <CardDescription>We're sorry your experience wasn't perfect. Please let us know how we can do better.</CardDescription>
+              <CardTitle className="flex items-center gap-2"><MessageSquare className="text-primary"/> Déjanos tus comentarios</CardTitle>
+              <CardDescription>Lamentamos que tu experiencia no haya sido perfecta. Por favor, dinos cómo podemos mejorar.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Nombre</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
+                <Label htmlFor="email">Correo Electrónico</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@ejemplo.com" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="message">Message</Label>
-                <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Your feedback..." required />
+                <Label htmlFor="message">Mensaje</Label>
+                <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Tus comentarios..." required />
               </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full">Send Feedback</Button>
+              <Button type="submit" className="w-full">Enviar Comentarios</Button>
             </CardFooter>
           </form>
         )}
@@ -72,18 +72,18 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
             <>
                 <CardHeader className="text-center">
                     <Star className="w-16 h-16 text-yellow-400 mx-auto" fill="currentColor" />
-                    <CardTitle className="text-2xl font-bold">Thank you!</CardTitle>
-                    <CardDescription>We're thrilled you had a great experience. Please share your review on Google to help others.</CardDescription>
+                    <CardTitle className="text-2xl font-bold">¡Gracias!</CardTitle>
+                    <CardDescription>Nos alegra que hayas tenido una gran experiencia. Por favor, comparte tu reseña en Google para ayudar a otros.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <a href="#" onClick={(e) => { e.preventDefault(); setStep(3); }} className="w-full">
                         <Button className="w-full">
-                            Continue to Google
+                            Continuar a Google
                         </Button>
                     </a>
                 </CardContent>
                  <CardFooter>
-                    <Button variant="link" className="w-full text-muted-foreground" onClick={() => setStep(3)}>Maybe later</Button>
+                    <Button variant="link" className="w-full text-muted-foreground" onClick={() => setStep(3)}>Quizás más tarde</Button>
                 </CardFooter>
             </>
         )}
@@ -91,8 +91,8 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
         {step === 3 && (
             <CardHeader className="text-center">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-                <CardTitle className="text-2xl font-bold">Thank You!</CardTitle>
-                <CardDescription>Your feedback is valuable to us.</CardDescription>
+                <CardTitle className="text-2xl font-bold">¡Gracias!</CardTitle>
+                <CardDescription>Tus comentarios son muy valiosos para nosotros.</CardDescription>
             </CardHeader>
         )}
       </Card>

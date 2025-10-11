@@ -21,7 +21,7 @@ import { suggestGMBKeywords } from "@/ai/flows/suggest-gmb-keywords";
 
 export default function ProfilePage() {
   const photos = PlaceHolderImages.filter(p => p.id.startsWith("business-photo"));
-  const [keywords, setKeywords] = useState(["cafe", "coffee shop", "bakery", "brunch"]);
+  const [keywords, setKeywords] = useState(["cafetería", "café", "pastelería", "brunch"]);
   const [newKeyword, setNewKeyword] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -40,8 +40,8 @@ export default function ProfilePage() {
     setIsGenerating(true);
     try {
       const result = await suggestGMBKeywords({
-        businessDescription: "A cozy local cafe serving artisanal coffee, freshly baked pastries, and light brunch options. We focus on high-quality ingredients and a friendly atmosphere.",
-        businessCategory: "Cafe",
+        businessDescription: "Una acogedora cafetería local que sirve café artesanal, pasteles recién horneados y opciones de brunch ligero. Nos enfocamos en ingredientes de alta calidad y un ambiente amigable.",
+        businessCategory: "Cafetería",
         location: "Brooklyn, NY"
       });
       if(result.keywords) {
@@ -57,24 +57,24 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">GMB Profile</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Perfil de GMB</h1>
         <p className="text-muted-foreground">
-          Optimize your Google My Business profile for maximum visibility.
+          Optimiza tu perfil de Google My Business para máxima visibilidad.
         </p>
       </div>
 
       <Tabs defaultValue="photos">
         <TabsList>
-          <TabsTrigger value="photos">Photos</TabsTrigger>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="keywords">Keywords</TabsTrigger>
+          <TabsTrigger value="photos">Fotos</TabsTrigger>
+          <TabsTrigger value="details">Detalles</TabsTrigger>
+          <TabsTrigger value="keywords">Palabras Clave</TabsTrigger>
         </TabsList>
 
         <TabsContent value="photos">
           <Card>
             <CardHeader>
-              <CardTitle>Photo Management</CardTitle>
-              <CardDescription>Upload and organize high-quality images to attract customers.</CardDescription>
+              <CardTitle>Gestión de Fotos</CardTitle>
+              <CardDescription>Sube y organiza imágenes de alta calidad para atraer clientes.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -89,12 +89,12 @@ export default function ProfilePage() {
                       className="rounded-lg object-cover w-full h-full"
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="destructive" size="sm">Delete</Button>
+                      <Button variant="destructive" size="sm">Eliminar</Button>
                     </div>
                   </div>
                 ))}
                 <div className="flex items-center justify-center border-2 border-dashed rounded-lg p-4">
-                  <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Upload</Button>
+                  <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Subir</Button>
                 </div>
               </div>
             </CardContent>
@@ -104,20 +104,20 @@ export default function ProfilePage() {
         <TabsContent value="details">
            <Card>
             <CardHeader>
-              <CardTitle>Business Details</CardTitle>
-              <CardDescription>Keep your information accurate and up-to-date.</CardDescription>
+              <CardTitle>Detalles del Negocio</CardTitle>
+              <CardDescription>Mantén tu información precisa y actualizada.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="business-name">Business Name</Label>
+                <Label htmlFor="business-name">Nombre del Negocio</Label>
                 <Input id="business-name" defaultValue="The Cozy Corner Cafe" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" defaultValue="A cozy local cafe serving artisanal coffee, freshly baked pastries, and light brunch options. We focus on high-quality ingredients and a friendly atmosphere." />
+                <Label htmlFor="description">Descripción</Label>
+                <Textarea id="description" defaultValue="Una acogedora cafetería local que sirve café artesanal, pasteles recién horneados y opciones de brunch ligero. Nos enfocamos en ingredientes de alta calidad y un ambiente amigable." />
               </div>
                <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">Dirección</Label>
                 <Input id="address" defaultValue="123 Main St, Brooklyn, NY 11201" />
               </div>
             </CardContent>
@@ -127,21 +127,21 @@ export default function ProfilePage() {
         <TabsContent value="keywords">
            <Card>
             <CardHeader>
-              <CardTitle>Strategic Keywords</CardTitle>
-              <CardDescription>Optimize with keywords to improve local SEO.</CardDescription>
+              <CardTitle>Palabras Clave Estratégicas</CardTitle>
+              <CardDescription>Optimiza con palabras clave para mejorar el SEO local.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2 mb-4">
                 <Input 
-                  placeholder="Add a keyword"
+                  placeholder="Añadir una palabra clave"
                   value={newKeyword}
                   onChange={(e) => setNewKeyword(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
                 />
-                <Button onClick={handleAddKeyword}>Add</Button>
+                <Button onClick={handleAddKeyword}>Añadir</Button>
                 <Button variant="outline" onClick={handleGenerateKeywords} disabled={isGenerating}>
                   {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                  Generate AI
+                  Generar con IA
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">

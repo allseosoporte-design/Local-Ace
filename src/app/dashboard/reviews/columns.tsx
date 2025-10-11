@@ -41,7 +41,7 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
       const result = await generateReviewResponse({
         reviewText: review.review,
         businessName: "The Cozy Corner Cafe",
-        industry: "Cafe",
+        industry: "Cafetería",
         customerSentiment: review.rating >= 4 ? "positive" : "negative",
       });
       setDraftResponse(result.draftResponse);
@@ -50,7 +50,7 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to generate AI response.",
+        description: "No se pudo generar la respuesta de la IA.",
       });
     } finally {
       setIsGenerating(false);
@@ -58,10 +58,10 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
   };
 
   const handleSendResponse = () => {
-    console.log("Sending response:", draftResponse);
+    console.log("Enviando respuesta:", draftResponse);
     toast({
-      title: "Response Sent!",
-      description: "Your response has been sent to the customer.",
+      title: "¡Respuesta Enviada!",
+      description: "Tu respuesta ha sido enviada al cliente.",
     });
     setIsDialogOpen(false);
   };
@@ -71,29 +71,29 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
+            <span className="sr-only">Abrir menú</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuItem
-            onClick={() => alert(`Viewing details for ${review.name}`)}
+            onClick={() => alert(`Viendo detalles de ${review.name}`)}
           >
-            View Details
+            Ver Detalles
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleGenerateResponse} disabled={isGenerating}>
             <Sparkles className="mr-2 h-4 w-4" />
-            {isGenerating ? "Generating..." : "Generate AI Response"}
+            {isGenerating ? "Generando..." : "Generar Respuesta con IA"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Draft Response for {review.name}</DialogTitle>
+            <DialogTitle>Borrador de respuesta para {review.name}</DialogTitle>
             <DialogDescription>
-              Review the generated response and edit if needed before sending.
+              Revisa la respuesta generada y edítala si es necesario antes de enviarla.
             </DialogDescription>
           </DialogHeader>
           <Textarea 
@@ -102,8 +102,8 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
             className="min-h-[150px]"
           />
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSendResponse}>Send Response</Button>
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSendResponse}>Enviar Respuesta</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -114,14 +114,14 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
 export const columns = [
   {
     accessorKey: "name",
-    header: "Customer",
+    header: "Cliente",
     cell: ({ row }: { row: { original: Review } }) => (
       <div className="font-medium">{row.original.name}</div>
     ),
   },
   {
     accessorKey: "review",
-    header: "Review",
+    header: "Reseña",
     cell: ({ row }: { row: { original: Review } }) => (
       <p className="text-muted-foreground max-w-xs truncate">
         {row.original.review}
@@ -130,11 +130,11 @@ export const columns = [
   },
   {
     accessorKey: "date",
-    header: "Date",
+    header: "Fecha",
   },
   {
     accessorKey: "rating",
-    header: "Rating",
+    header: "Calificación",
     cell: ({ row }: { row: { original: Review } }) => (
       <div className="flex items-center">
         {Array.from({ length: 5 }).map((_, i) => (
@@ -160,14 +160,14 @@ export const columns = [
 export const feedbackColumns = [
   {
     accessorKey: "name",
-    header: "Customer",
+    header: "Cliente",
     cell: ({ row }: { row: { original: Review } }) => (
       <div className="font-medium">{row.original.name}</div>
     ),
   },
   {
     accessorKey: "review",
-    header: "Review",
+    header: "Reseña",
     cell: ({ row }: { row: { original: Review } }) => (
       <p className="text-muted-foreground max-w-xs truncate">
         {row.original.review}
@@ -176,16 +176,20 @@ export const feedbackColumns = [
   },
   {
     accessorKey: "date",
-    header: "Date",
+    header: "Fecha",
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: "Estado",
     cell: ({ row }: { row: { original: Review } }) => {
       const status = row.original.status;
+      const statusMap = {
+        Pending: "Pendiente",
+        Responded: "Respondido"
+      }
       return (
         <Badge variant={status === "Pending" ? "destructive" : "secondary"}>
-          {status}
+          {status ? statusMap[status] : ""}
         </Badge>
       );
     },

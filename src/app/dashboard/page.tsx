@@ -23,50 +23,50 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Profile Visits
+              Visitas al Perfil
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12,234</div>
             <p className="text-xs text-muted-foreground">
-              +20.1% from last month
+              +20.1% desde el mes pasado
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Calls Received</CardTitle>
+            <CardTitle className="text-sm font-medium">Llamadas Recibidas</CardTitle>
             <Phone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+2,350</div>
             <p className="text-xs text-muted-foreground">
-              +180.1% from last month
+              +180.1% desde el mes pasado
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Route Requests</CardTitle>
+            <CardTitle className="text-sm font-medium">Solicitudes de Ruta</CardTitle>
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+1,234</div>
             <p className="text-xs text-muted-foreground">
-              +19% from last month
+              +19% desde el mes pasado
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Website Clicks</CardTitle>
+            <CardTitle className="text-sm font-medium">Clics al Sitio Web</CardTitle>
             <Globe className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+573</div>
             <p className="text-xs text-muted-foreground">
-              +32% from last month
+              +32% desde el mes pasado
             </p>
           </CardContent>
         </Card>
@@ -74,7 +74,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Overview</CardTitle>
+            <CardTitle>Resumen General</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
             <Overview />
@@ -82,9 +82,9 @@ export default function DashboardPage() {
         </Card>
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Recent 5-Star Reviews</CardTitle>
+            <CardTitle>Reseñas Recientes de 5 Estrellas</CardTitle>
             <CardDescription>
-              You got 26 new 5-star reviews this month.
+              Obtuviste 26 nuevas reseñas de 5 estrellas este mes.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -23,29 +23,29 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Configuración</h1>
         <p className="text-muted-foreground">
-          Manage your account, business, and billing settings.
+          Gestiona tu cuenta, negocio y configuración de facturación.
         </p>
       </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Update your personal information.</CardDescription>
+          <CardTitle>Perfil</CardTitle>
+          <CardDescription>Actualiza tu información personal.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name">Nombre Completo</Label>
             <Input id="name" defaultValue="John Doe" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Correo Electrónico</Label>
             <Input id="email" type="email" defaultValue="john.doe@example.com" />
           </div>
         </CardContent>
         <CardFooter>
-          <Button>Save Profile</Button>
+          <Button>Guardar Perfil</Button>
         </CardFooter>
       </Card>
       
@@ -53,19 +53,19 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Business</CardTitle>
-          <CardDescription>Manage your business details and white-label options.</CardDescription>
+          <CardTitle>Negocio</CardTitle>
+          <CardDescription>Gestiona los detalles de tu negocio y las opciones de marca blanca.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="business-name">Business Name</Label>
+            <Label htmlFor="business-name">Nombre del Negocio</Label>
             <Input id="business-name" defaultValue="The Cozy Corner Cafe" />
           </div>
            <div className="space-y-2">
-            <Label htmlFor="language">Language</Label>
-            <Select defaultValue="en">
+            <Label htmlFor="language">Idioma</Label>
+            <Select defaultValue="es">
               <SelectTrigger id="language">
-                <SelectValue placeholder="Select language" />
+                <SelectValue placeholder="Seleccionar idioma" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="en">English</SelectItem>
@@ -76,16 +76,16 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div>
-              <Label htmlFor="white-label" className="font-semibold">White-Label Mode</Label>
+              <Label htmlFor="white-label" className="font-semibold">Modo Marca Blanca</Label>
               <p className="text-sm text-muted-foreground">
-                For agencies to offer this platform under their own brand.
+                Para que las agencias ofrezcan esta plataforma bajo su propia marca.
               </p>
             </div>
             <Switch id="white-label" />
           </div>
         </CardContent>
         <CardFooter>
-          <Button>Save Business Settings</Button>
+          <Button>Guardar Configuración del Negocio</Button>
         </CardFooter>
       </Card>
       
@@ -93,20 +93,20 @@ export default function SettingsPage() {
 
        <Card>
         <CardHeader>
-          <CardTitle>Billing & Subscription</CardTitle>
-          <CardDescription>Manage your subscription plan and payment methods.</CardDescription>
+          <CardTitle>Facturación y Suscripción</CardTitle>
+          <CardDescription>Gestiona tu plan de suscripción y métodos de pago.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="rounded-lg border bg-card text-card-foreground p-4">
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="font-semibold">Pro Plan</p>
-                        <p className="text-sm text-muted-foreground">$49.99 / month</p>
+                        <p className="font-semibold">Plan Pro</p>
+                        <p className="text-sm text-muted-foreground">$49.99 / mes</p>
                     </div>
-                    <Button variant="outline">Change Plan</Button>
+                    <Button variant="outline">Cambiar Plan</Button>
                 </div>
                 <Separator className="my-4" />
-                <p className="text-sm text-muted-foreground">Next payment on Dec 1, 2024.</p>
+                <p className="text-sm text-muted-foreground">Próximo pago el 1 de Dic, 2024.</p>
             </div>
         </CardContent>
       </Card>

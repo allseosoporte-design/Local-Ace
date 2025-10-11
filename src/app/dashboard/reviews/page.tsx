@@ -20,28 +20,28 @@ export default function ReviewsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Review Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Gestión de Reseñas</h1>
           <p className="text-muted-foreground">
-            Manage your online reputation and engage with customers.
+            Gestiona tu reputación online e interactúa con los clientes.
           </p>
         </div>
         <Button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/funnel/${businessId}`)}>
           <Share2 className="mr-2 h-4 w-4" />
-          Copy Funnel Link
+          Copiar Enlace del Embudo
         </Button>
       </div>
 
       <Tabs defaultValue="public" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="public">Public Reviews</TabsTrigger>
-          <TabsTrigger value="feedback">Internal Feedback</TabsTrigger>
+          <TabsTrigger value="public">Reseñas Públicas</TabsTrigger>
+          <TabsTrigger value="feedback">Feedback Interno</TabsTrigger>
         </TabsList>
         <TabsContent value="public">
           <Card>
             <CardHeader>
-              <CardTitle>5-Star Reviews</CardTitle>
+              <CardTitle>Reseñas de 5 Estrellas</CardTitle>
               <CardDescription>
-                Reviews from customers who rated you 5 stars.
+                Reseñas de clientes que te calificaron con 5 estrellas.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -52,9 +52,9 @@ export default function ReviewsPage() {
         <TabsContent value="feedback">
           <Card>
             <CardHeader>
-              <CardTitle>Internal Feedback</CardTitle>
+              <CardTitle>Feedback Interno</CardTitle>
               <CardDescription>
-                Feedback from customers who rated you 1-4 stars. This is not public.
+                Comentarios de clientes que te calificaron con 1-4 estrellas. Esto no es público.
               </CardDescription>
             </CardHeader>
             <CardContent>
