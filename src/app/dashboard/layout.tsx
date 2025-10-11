@@ -20,57 +20,66 @@ export default function DashboardLayout({
   const router = useRouter();
   const firestore = useFirestore();
   const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
+    // Wait until Firebase auth state is resolved
     if (isUserLoading || !firestore) {
       return; 
     }
 
+    // If no user, redirect to login
     if (!user) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
+    // Check for admin status
     const checkAdminStatus = async () => {
-      const adminDocRef = doc(firestore, 'superAdmins', user.uid);
       try {
+        const adminDocRef = doc(firestore, 'superAdmins', user.uid);
         const adminDoc = await getDoc(adminDocRef);
         const userIsAdmin = adminDoc.exists();
-        setIsAdmin(userIsAdmin);
 
         const onAdminPath = pathname.startsWith('/dashboard/admin');
 
+        // Redirect logic
         if (userIsAdmin && !onAdminPath) {
           router.replace('/dashboard/admin');
         } else if (!userIsAdmin && onAdminPath) {
           router.replace('/dashboard');
+        } else {
+          setAuthChecked(true); // Allow rendering
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
-        setIsAdmin(false);
+        // Fallback for safety: not an admin, ensure they are not on admin path
         if (pathname.startsWith('/dashboard/admin')) {
-          router.replace('/dashboard');
+           router.replace('/dashboard');
+        } else {
+           setAuthChecked(true);
         }
       }
     };
 
     checkAdminStatus();
+
   }, [isUserLoading, user, firestore, pathname, router]);
 
-
-  if (isUserLoading || isAdmin === null) {
+  // Show a loader while we are verifying auth and roles
+  if (!authChecked || isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
-  
-  // If it's a super admin, the effect will handle redirection. 
-  // We can show children immediately to avoid layout shifts.
-  if (isAdmin) {
-     return <>{children}</>;
+
+  // At this point, auth is checked and redirection (if any) has happened.
+  // The Admin page has its own layout, so we only render the user layout here.
+  // The router will have already moved away if the user is an admin.
+  if (pathname.startsWith('/dashboard/admin')) {
+    return <>{children}</>;
   }
 
   // Regular user layout
