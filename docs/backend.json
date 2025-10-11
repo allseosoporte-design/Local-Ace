@@ -70,6 +70,14 @@
           "type": "string",
           "description": "Reference to SuperAdmin. (Relationship: SuperAdmin 1:N Business).  The SuperAdmin who manages this business account."
         },
+        "status": {
+          "type": "string",
+          "description": "The current status of the business account.",
+          "enum": [
+            "Active",
+            "Suspended"
+          ]
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp indicating when the business was added to the platform.",
@@ -87,6 +95,7 @@
         "description",
         "websiteUrl",
         "superAdminId",
+        "status",
         "createdAt",
         "updatedAt"
       ]
