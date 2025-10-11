@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
+import { ColumnDef } from "@tanstack/react-table";
 
 export type Post = {
   id: string;
@@ -18,7 +19,7 @@ export type Post = {
   publishDate: string;
 };
 
-export const columns = [
+export const columns: ColumnDef<Post>[] = [
   {
     accessorKey: "content",
     header: "Content",

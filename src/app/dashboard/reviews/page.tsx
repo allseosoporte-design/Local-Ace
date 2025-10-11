@@ -10,7 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Share2 } from "lucide-react";
 import { recentReviewsData, internalFeedbackData } from "@/lib/data";
-import { DataTable } from "./data-table";
+import { DataTable } from "@/components/ui/data-table";
 import { columns, feedbackColumns } from "./columns";
 
 export default function ReviewsPage() {

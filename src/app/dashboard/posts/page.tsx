@@ -22,7 +22,7 @@ import { Calendar } from "@/components/ui/calendar";
 
 import { PlusCircle } from "lucide-react";
 import { postsData } from "@/lib/data";
-import { DataTable } from "./data-table";
+import { DataTable } from "@/components/ui/data-table";
 import { columns } from "./columns";
 
 export default function PostsPage() {
