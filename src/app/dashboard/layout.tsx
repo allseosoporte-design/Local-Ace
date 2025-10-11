@@ -23,51 +23,53 @@ export default function DashboardLayout({
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    // Wait until Firebase auth state is resolved
+    // Don't run auth logic until Firebase is ready
     if (isUserLoading || !firestore) {
       return; 
     }
 
-    // If no user, redirect to login
+    // If there's no user, redirect to login page
     if (!user) {
       router.replace('/login');
       return;
     }
 
-    // Check for admin status
-    const checkAdminStatus = async () => {
+    // User is logged in, now check for role and handle routing
+    const checkAdminAndRoute = async () => {
       try {
         const adminDocRef = doc(firestore, 'superAdmins', user.uid);
         const adminDoc = await getDoc(adminDocRef);
-        const userIsAdmin = adminDoc.exists();
+        const isSuperAdmin = adminDoc.exists();
 
         const onAdminPath = pathname.startsWith('/dashboard/admin');
 
-        // Redirect logic
-        if (userIsAdmin && !onAdminPath) {
+        // Redirect logic:
+        // 1. If user is admin but not on admin path, redirect to admin dashboard.
+        if (isSuperAdmin && !onAdminPath) {
           router.replace('/dashboard/admin');
-        } else if (!userIsAdmin && onAdminPath) {
+        // 2. If user is NOT admin but IS on admin path, redirect to user dashboard.
+        } else if (!isSuperAdmin && onAdminPath) {
           router.replace('/dashboard');
+        // 3. Otherwise, the user is on the correct page. Mark auth as checked.
         } else {
-          setAuthChecked(true); // Allow rendering
+          setAuthChecked(true);
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
-        // Fallback for safety: not an admin, ensure they are not on admin path
+        // Fallback: assume not an admin for safety
         if (pathname.startsWith('/dashboard/admin')) {
            router.replace('/dashboard');
-        } else {
-           setAuthChecked(true);
         }
+        setAuthChecked(true); // Allow render to avoid getting stuck
       }
     };
 
-    checkAdminStatus();
+    checkAdminAndRoute();
 
   }, [isUserLoading, user, firestore, pathname, router]);
 
-  // Show a loader while we are verifying auth and roles
-  if (!authChecked || isUserLoading) {
+
+  if (!authChecked) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -75,14 +77,12 @@ export default function DashboardLayout({
     );
   }
 
-  // At this point, auth is checked and redirection (if any) has happened.
-  // The Admin page has its own layout, so we only render the user layout here.
-  // The router will have already moved away if the user is an admin.
+  // If we are on the admin path, the specific admin layout will take over.
   if (pathname.startsWith('/dashboard/admin')) {
     return <>{children}</>;
   }
-
-  // Regular user layout
+  
+  // Render the standard user dashboard layout
   return (
     <SidebarProvider>
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
