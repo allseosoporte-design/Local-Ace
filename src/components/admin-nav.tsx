@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
 
 const links = [
   {
@@ -18,16 +19,16 @@ export function AdminNav() {
   return (
     <>
       {links.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className={cn(
-            "text-muted-foreground transition-colors hover:text-foreground",
-            pathname.startsWith(link.href) && "text-foreground"
-          )}
-        >
-          {link.label}
-        </Link>
+        <SidebarMenuItem key={link.href}>
+          <SidebarMenuButton
+            asChild
+            isActive={pathname.startsWith(link.href)}
+          >
+            <Link href={link.href}>
+              {link.label}
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
       ))}
     </>
   );

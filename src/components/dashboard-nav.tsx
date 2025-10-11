@@ -3,31 +3,39 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
+import { Home, Star, User, Settings, FileText, Image as ImageIcon } from "lucide-react";
 
 const links = [
   {
     href: "/dashboard",
     label: "Panel",
+    icon: <Home />,
   },
   {
     href: "/dashboard/reviews",
     label: "Reseñas",
+    icon: <Star />,
   },
   {
     href: "/dashboard/profile",
     label: "Perfil",
+    icon: <User />,
   },
   {
     href: "/dashboard/posts",
     label: "Publicaciones",
+    icon: <FileText />,
   },
   {
     href: "/dashboard/landing-page",
     label: "Landing Page",
+    icon: <ImageIcon />,
   },
   {
     href: "/dashboard/settings",
     label: "Configuración",
+    icon: <Settings />,
   },
 ];
 
@@ -37,16 +45,18 @@ export function DashboardNav() {
   return (
     <>
       {links.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className={cn(
-            "text-muted-foreground transition-colors hover:text-foreground",
-            pathname === link.href && "text-foreground"
-          )}
-        >
-          {link.label}
-        </Link>
+        <SidebarMenuItem key={link.href}>
+          <SidebarMenuButton
+            asChild
+            isActive={pathname === link.href}
+            tooltip={link.label}
+          >
+            <Link href={link.href}>
+              {link.icon}
+              <span>{link.label}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
       ))}
     </>
   );

@@ -33,6 +33,7 @@ import { useMemo } from "react";
 import { useCollection } from "@/firebase";
 import { collection, query } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu } from '@/components/ui/sidebar';
 
 export default function AdminDashboardPage() {
   const firestore = useFirestore();
@@ -45,27 +46,33 @@ export default function AdminDashboardPage() {
   const { data: businesses, isLoading } = useCollection(businessesQuery);
 
   return (
+    <SidebarProvider>
     <div className="flex min-h-screen w-full flex-col">
-      <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-        <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
-          <Link
-            href="/dashboard/admin"
-            className="flex items-center gap-2 text-lg font-semibold md:text-base"
-          >
-            <LocalLeap className="h-6 w-6" />
-            <span className="sr-only">Local Leap</span>
-          </Link>
-          <AdminNav />
-        </nav>
-        <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-          <div className="ml-auto flex-1 sm:flex-initial">
-             {/* Search can go here if needed */}
+       <Sidebar>
+        <SidebarContent>
+          <SidebarHeader>
+            <Link
+                href="/dashboard/admin"
+                className="flex items-center gap-2 text-lg font-semibold md:text-base"
+              >
+                <LocalLeap className="h-6 w-6" />
+                <span>Local Leap</span>
+            </Link>
+          </SidebarHeader>
+          <SidebarMenu>
+            <AdminNav />
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+          <SidebarTrigger className="sm:hidden" />
+           <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4 justify-end">
+            <UserNav />
           </div>
-          <UserNav />
-        </div>
-      </header>
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-          <Card>
+        </header>
+        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+            <Card>
               <CardHeader>
               <div className="flex items-center justify-between">
                   <div>
@@ -125,7 +132,9 @@ export default function AdminDashboardPage() {
                   </Table>
               </CardContent>
           </Card>
-      </main>
+        </main>
+      </div>
     </div>
+    </SidebarProvider>
   );
 }
