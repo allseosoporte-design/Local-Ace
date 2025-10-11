@@ -2,51 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-} from "@/components/ui/sidebar";
-import {
-  LayoutDashboard,
-  Star,
-  User,
-  FileText,
-  Palette,
-  Settings,
-} from "lucide-react";
-import { LocalLeap } from "./icons";
+import { cn } from "@/lib/utils";
 
 const links = [
   {
     href: "/dashboard",
     label: "Panel",
-    icon: LayoutDashboard,
   },
   {
     href: "/dashboard/reviews",
     label: "Reseñas",
-    icon: Star,
   },
   {
     href: "/dashboard/profile",
     label: "Perfil",
-    icon: User,
   },
   {
     href: "/dashboard/posts",
     label: "Publicaciones",
-    icon: FileText,
   },
   {
     href: "/dashboard/landing-page",
     label: "Landing Page",
-    icon: Palette,
   },
   {
     href: "/dashboard/settings",
     label: "Configuración",
-    icon: Settings,
   },
 ];
 
@@ -54,31 +35,19 @@ export function DashboardNav() {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <LocalLeap className="w-8 h-8 text-primary" />
-          <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">
-            Local Leap
-          </span>
+    <>
+      {links.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          className={cn(
+            "text-muted-foreground transition-colors hover:text-foreground",
+            pathname === link.href && "text-foreground"
+          )}
+        >
+          {link.label}
         </Link>
-      </div>
-
-      <SidebarMenu className="flex-1 p-2">
-        {links.map((link) => (
-          <SidebarMenuItem key={link.href}>
-            <Link href={link.href} className="w-full">
-              <SidebarMenuButton
-                isActive={pathname === link.href}
-                tooltip={{ children: link.label }}
-              >
-                <link.icon />
-                <span>{link.label}</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
-    </div>
+      ))}
+    </>
   );
 }
