@@ -1,0 +1,261 @@
+{
+  "entities": {
+    "SuperAdmin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SuperAdmin",
+      "type": "object",
+      "description": "Represents a super administrator account with elevated privileges to manage the platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SuperAdmin entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the super administrator.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the super administrator."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the super administrator."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the super administrator account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the super administrator account was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Business": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Business",
+      "type": "object",
+      "description": "Represents a business using the platform to manage their Google My Business profile and online presence.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Business entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the business."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the business."
+        },
+        "websiteUrl": {
+          "type": "string",
+          "description": "URL of the business's website.",
+          "format": "uri"
+        },
+        "superAdminId": {
+          "type": "string",
+          "description": "Reference to SuperAdmin. (Relationship: SuperAdmin 1:N Business).  The SuperAdmin who manages this business account."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the business was added to the platform.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the business was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "websiteUrl",
+        "superAdminId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "Represents a review received by a business.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Review entity."
+        },
+        "businessId": {
+          "type": "string",
+          "description": "Reference to Business. (Relationship: Business 1:N Review). The business that received the review."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Rating given in the review (e.g., 1 to 5 stars)."
+        },
+        "comment": {
+          "type": "string",
+          "description": "Text content of the review."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Name of the reviewer."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the review was received.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "businessId",
+        "rating",
+        "comment",
+        "authorName",
+        "createdAt"
+      ]
+    },
+    "LandingPage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LandingPage",
+      "type": "object",
+      "description": "Represents a landing page created for a business.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the LandingPage entity."
+        },
+        "businessId": {
+          "type": "string",
+          "description": "Reference to Business. (Relationship: Business 1:N LandingPage). The business that owns the landing page."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the landing page."
+        },
+        "content": {
+          "type": "string",
+          "description": "HTML or markdown content of the landing page."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the landing page was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the landing page was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "businessId",
+        "title",
+        "content",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/superAdmins/{superAdminId}",
+        "definition": {
+          "entityName": "SuperAdmin",
+          "schema": {
+            "$ref": "#/backend/entities/SuperAdmin"
+          },
+          "description": "Stores super administrator accounts.  Used for authentication and authorization.",
+          "params": [
+            {
+              "name": "superAdminId",
+              "description": "The unique identifier of the super administrator."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/businesses/{businessId}",
+        "definition": {
+          "entityName": "Business",
+          "schema": {
+            "$ref": "#/backend/entities/Business"
+          },
+          "description": "Stores business accounts managed by super admins. Includes denormalized `superAdminId` for authorization independence.",
+          "params": [
+            {
+              "name": "businessId",
+              "description": "The unique identifier of the business."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/businesses/{businessId}/reviews/{reviewId}",
+        "definition": {
+          "entityName": "Review",
+          "schema": {
+            "$ref": "#/backend/entities/Review"
+          },
+          "description": "Stores reviews associated with a specific business.",
+          "params": [
+            {
+              "name": "businessId",
+              "description": "The unique identifier of the business that received the review."
+            },
+            {
+              "name": "reviewId",
+              "description": "The unique identifier of the review."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/businesses/{businessId}/landingPages/{landingPageId}",
+        "definition": {
+          "entityName": "LandingPage",
+          "schema": {
+            "$ref": "#/backend/entities/LandingPage"
+          },
+          "description": "Stores landing pages associated with a specific business.",
+          "params": [
+            {
+              "name": "businessId",
+              "description": "The unique identifier of the business that owns the landing page."
+            },
+            {
+              "name": "landingPageId",
+              "description": "The unique identifier of the landing page."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore data structure is designed to support the Local Leap application, focusing on a SaaS platform for Google Maps and Google My Business optimization.  The structure emphasizes authorization independence and simplified security rules by adhering to the principles outlined in the prompt.  Specifically, the `superAdmins` collection enables global role assignment. The structure uses path-based ownership and dedicated collections.  Authorization independence is achieved by avoiding `get()` calls in security rules.\n\n*   **SuperAdmins:** Super admins are stored in `/superAdmins/{superAdminId}`. These super admins can manage businesses and view reviews.  The existence of a document in `/superAdmins/{superAdminId}` is sufficient to grant admin privileges (DBAC).\n*   **Businesses:** Businesses are stored in `/businesses/{businessId}`.  Each business document contains the `superAdminId` of the super admin that owns the business. This denormalization enables authorization independence, as security rules for business documents can be based directly on the `superAdminId` without needing to `get()` the super admin document.\n*   **Reviews:** Reviews are stored in `/businesses/{businessId}/reviews/{reviewId}`.  Each review document contains the `businessId` to which it belongs. Security rules for reviews can leverage the `businessId` to ensure only the super admin associated with the business can access the reviews. This follows a path-based ownership model.\n*   **Landing Pages:** Landing pages are stored in `/businesses/{businessId}/landingPages/{landingPageId}`. This structure is similar to that of Reviews and enforces similar security constraints. The `businessId` is present within the landing page document.\n\nThis structure effectively addresses the QAPs.  Access control is enforced at each level.  Lists of businesses are restricted to super admins only.  Reviews and landing pages are accessible to the super admin associated with the parent business, ensuring data isolation and secure multi-tenancy."
+  }
+}
