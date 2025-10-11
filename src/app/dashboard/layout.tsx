@@ -23,40 +23,51 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   useEffect(() => {
+    // Wait until user loading is complete
     if (isUserLoading) {
-      return; 
+      return;
     }
+    
+    // If no user, redirect to login
     if (!user) {
       router.push('/login');
       return;
     }
 
+    // Check admin status once user is loaded
     const checkAdminStatus = async () => {
-      if (!firestore || !user) return;
+      if (!firestore) return;
       const adminDocRef = doc(firestore, 'superAdmins', user.uid);
       try {
         const adminDoc = await getDoc(adminDocRef);
         const userIsAdmin = adminDoc.exists();
         setIsAdmin(userIsAdmin);
-
-        const onAdminPath = pathname.startsWith('/dashboard/admin');
-
-        if (userIsAdmin && !onAdminPath) {
-          router.push('/dashboard/admin');
-        } else if (!userIsAdmin && onAdminPath) {
-          router.push('/dashboard');
-        }
-
       } catch (error) {
         console.error("Error checking admin status:", error);
         setIsAdmin(false);
-        router.push('/dashboard');
       }
     };
+
     checkAdminStatus();
-  }, [user, isUserLoading, firestore, router, pathname]);
+  }, [user, isUserLoading, firestore, router]);
 
 
+  useEffect(() => {
+    // This effect handles redirection based on admin status
+    if (isAdmin === null) {
+      return; // Still checking admin status
+    }
+
+    const onAdminPath = pathname.startsWith('/dashboard/admin');
+
+    if (isAdmin && !onAdminPath) {
+      router.push('/dashboard/admin');
+    } else if (!isAdmin && onAdminPath) {
+      router.push('/dashboard');
+    }
+  }, [isAdmin, pathname, router]);
+
+  // While user or admin status is loading, show a spinner
   if (isUserLoading || isAdmin === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
