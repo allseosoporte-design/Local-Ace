@@ -23,9 +23,8 @@ export default function DashboardLayout({
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // This effect runs only when user loading state changes, or firestore becomes available.
     if (isUserLoading || !firestore) {
-      return; // Wait until user is loaded and firestore is ready
+      return; 
     }
 
     if (!user) {
@@ -33,33 +32,33 @@ export default function DashboardLayout({
       return;
     }
 
-    // User is loaded, now check their admin status
-    const adminDocRef = doc(firestore, 'superAdmins', user.uid);
-    getDoc(adminDocRef).then(adminDoc => {
-      const userIsAdmin = adminDoc.exists();
-      setIsAdmin(userIsAdmin);
+    const checkAdminStatus = async () => {
+      const adminDocRef = doc(firestore, 'superAdmins', user.uid);
+      try {
+        const adminDoc = await getDoc(adminDocRef);
+        const userIsAdmin = adminDoc.exists();
+        setIsAdmin(userIsAdmin);
 
-      // --- Redirection logic is now here, executed AFTER admin status is determined ---
-      const onAdminPath = pathname.startsWith('/dashboard/admin');
+        const onAdminPath = pathname.startsWith('/dashboard/admin');
 
-      if (userIsAdmin && !onAdminPath) {
-        router.push('/dashboard/admin');
-      } else if (!userIsAdmin && onAdminPath) {
-        router.push('/dashboard');
+        if (userIsAdmin && !onAdminPath) {
+          router.replace('/dashboard/admin');
+        } else if (!userIsAdmin && onAdminPath) {
+          router.replace('/dashboard');
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
+        if (pathname.startsWith('/dashboard/admin')) {
+          router.replace('/dashboard');
+        }
       }
-    }).catch(error => {
-      console.error("Error checking admin status:", error);
-      setIsAdmin(false);
-      // If error occurs, assume not admin and redirect if they are on an admin path
-      if (pathname.startsWith('/dashboard/admin')) {
-         router.push('/dashboard');
-      }
-    });
+    };
 
-  }, [isUserLoading, user, firestore, router, pathname]);
+    checkAdminStatus();
+  }, [isUserLoading, user, firestore, pathname, router]);
 
 
-  // While user or admin status is loading, show a spinner
   if (isUserLoading || isAdmin === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -68,12 +67,13 @@ export default function DashboardLayout({
     );
   }
   
-  // It's a super admin, render the specific admin layout
+  // If it's a super admin, the effect will handle redirection. 
+  // We can show children immediately to avoid layout shifts.
   if (isAdmin) {
      return <>{children}</>;
   }
 
-  // It's a regular user, render the standard dashboard layout.
+  // Regular user layout
   return (
     <SidebarProvider>
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
