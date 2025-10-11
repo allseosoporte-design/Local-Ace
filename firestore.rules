@@ -1,139 +1,74 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a role-based access control model with superadmin privileges and ownership-based restrictions.
+ * @fileoverview Firestore Security Rules for Local Leap application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a role-based access control model where superadmins, identified by a document in `/users/{userId}`, have elevated privileges.
+ * Businesses and their related data (reviews, landing pages) are accessible only to superadmins.
  *
  * Data Structure:
- * - /superAdmins/{superAdminId}: Stores super administrator profiles. Superadmins have full access to all data.
- * - /businesses/{businessId}: Stores business profiles, accessible only to superadmins.
- * - /businesses/{businessId}/reviews/{reviewId}: Stores reviews for businesses, accessible only to superadmins.
- * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages for businesses, accessible only to superadmins.
- * - /subscriptionPlans/{planId}: Stores subscription plans, accessible only to superadmins.
+ * - /users/{userId}: Stores user information, including roles (e.g., 'superadmin').
+ * - /businesses/{businessId}: Stores business data; only accessible to superadmins.
+ * - /businesses/{businessId}/reviews/{reviewId}: Stores reviews for a business; only accessible to superadmins.
+ * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages for a business; only accessible to superadmins.
+ * - /subscriptionPlans/{planId}: Stores subscription plans; only accessible to superadmins.
  *
  * Key Security Decisions:
- * - Superadmins are granted full read/write access to all collections.  The existence of a superadmin document grants admin privileges.
- * - Regular users (business users) are not explicitly modeled and have no access under these rules.
- * - No user listing is allowed.
+ * - Superadmin Role: Users with the 'superadmin' role in their `/users/{userId}` document are granted full read/write access to businesses, reviews, landing pages, and subscription plans.
+ * - Read and write access is limited to authenticated users.
+ * - No specific data validation is performed in this prototyping phase beyond authorization checks.
  *
  * Denormalization for Authorization:
- * - The `businesses` collection could potentially contain a `superAdminId` field, although not explicitly defined.
+ * - Relies on the `get()` function to fetch the user's role from the `/users/{userId}` document and enforces this role in the rules.
  *
  * Structural Segregation:
- * - Superadmins and business data are stored in separate top-level collections.
+ * - No explicit segregation between public and private data is implemented.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is made by a super admin.
-     * @details Checks if the user is authenticated and if a corresponding document exists in the /superAdmins collection.
-     * @returns {boolean} True if the user is a super admin, false otherwise.
+     * @description Grants read and write access to users collection for authenticated users.
+     * @path /users/{userId}
+     * @allow (read, write): if request.auth != null
+     * @deny (read, write): if request.auth == null
+     * @principle Authenticated users only.
      */
-    function isSuperAdmin() {
-      return request.auth != null && exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
     }
 
     /**
-     * @description Rules for the /superAdmins collection.
-     * @path /superAdmins/{superAdminId}
-     * @allow (create) - A super admin can create their own document if their auth UID matches the document ID.
-     * @allow (get, list) - Any authenticated user can read a super admin profile.
-     * @allow (update, delete) - Only the super admin themselves can update or delete their profile.
-     * @deny (create) - Any user attempting to create a super admin document with an ID that doesn't match their auth UID.
-     * @principle Enforces document ownership and restricts access to a user's own data tree.
-     */
-    match /superAdmins/{superAdminId} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if request.auth.uid == superAdminId;
-      allow update: if request.auth.uid == superAdminId && resource != null;
-      allow delete: if request.auth.uid == superAdminId && resource != null;
-    }
-
-    /**
-     * @description Rules for the /businesses collection.
+     * @description Allows superadmins to read and write business data.
      * @path /businesses/{businessId}
-     * @allow (create) - Only a super admin can create a business.
-     * @allow (get, list) - Any authenticated user can read businesses.
-     * @allow (update, delete) - Only a super admin can update or delete a business.
-     * @deny (create) - Non-superadmins cannot create business documents.
-     * @principle Enforces superadmin-only access for managing businesses.
+     * @allow (read, write): if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin'
+     * @deny (read, write): if request.auth == null || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != 'superadmin'
+     * @principle Superadmin access to business data.
      */
     match /businesses/{businessId} {
-      allow get, list: if isSuperAdmin();
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin() && resource != null;
-      allow delete: if isSuperAdmin() && resource != null;
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
+
+      /**
+       * @description Allows superadmins to read and write subcollections under businesses.
+       * @path /businesses/{businessId}/{document=**}
+       * @allow (read, write): if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin'
+       * @deny (read, write): if request.auth == null || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != 'superadmin'
+       * @principle Superadmin access to business subcollections.
+       */
+      match /{document=**} {
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
+      }
     }
 
     /**
-     * @description Rules for the /businesses/{businessId}/reviews collection.
-     * @path /businesses/{businessId}/reviews/{reviewId}
-     * @allow (create) - Only a super admin can create a review for a business.
-     * @allow (get, list) - Any authenticated user can read reviews for a business.
-     * @allow (update, delete) - Only a super admin can update or delete a review.
-     * @deny (create) - Non-superadmins cannot create review documents.
-     * @principle Enforces superadmin-only access for managing reviews.
-     */
-    match /businesses/{businessId}/reviews/{reviewId} {
-      allow get, list: if isSuperAdmin();
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin() && resource != null;
-      allow delete: if isSuperAdmin() && resource != null;
-    }
-
-    /**
-     * @description Rules for the /businesses/{businessId}/landingPages collection.
-     * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow (create) - Only a super admin can create a landing page for a business.
-     * @allow (get, list) - Any authenticated user can read landing pages for a business.
-     * @allow (update, delete) - Only a super admin can update or delete a landing page.
-     * @deny (create) - Non-superadmins cannot create landing page documents.
-     * @principle Enforces superadmin-only access for managing landing pages.
-     */
-    match /businesses/{businessId}/landingPages/{landingPageId} {
-      allow get, list: if isSuperAdmin();
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin() && resource != null;
-      allow delete: if isSuperAdmin() && resource != null;
-    }
-
-    /**
-     * @description Rules for the /subscriptionPlans collection.
+     * @description Allows superadmins to read and write subscription plan data.
      * @path /subscriptionPlans/{planId}
-     * @allow (create) - Only a super admin can create a subscription plan.
-     * @allow (get, list) - Any authenticated user can read subscription plans.
-     * @allow (update, delete) - Only a super admin can update or delete a subscription plan.
-     * @deny (create) - Non-superadmins cannot create subscription plan documents.
-     * @principle Enforces superadmin-only access for managing subscription plans.
+     * @allow (read, write): if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin'
+     * @deny (read, write): if request.auth == null || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != 'superadmin'
+     * @principle Superadmin access to subscription plans.
      */
     match /subscriptionPlans/{planId} {
-      allow get, list: if isSuperAdmin();
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin() && resource != null;
-      allow delete: if isSuperAdmin() && resource != null;
-    }
-
-    /**
-     * @description Catches any other documents that are not explicitly defined.
-     * @path /{document=**}
-     * @deny (get, list, create, update, delete) - Denies all access.
-     * @principle Default deny for all other paths.
-     */
-    match /{document=**} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    /**
-     * @description Checks if the user is signed in.
-     * @returns {boolean} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
     }
   }
 }
