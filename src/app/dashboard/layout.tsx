@@ -32,18 +32,22 @@ export default function DashboardLayout({
     }
 
     const checkAdminStatus = async () => {
-      if (!firestore) return;
+      if (!firestore || !user) return;
+      
       const adminDocRef = doc(firestore, 'superAdmins', user.uid);
       const adminDoc = await getDoc(adminDocRef);
       const userIsAdmin = adminDoc.exists();
+      
       setIsAdmin(userIsAdmin);
 
+      const currentPathname = window.location.pathname;
+
       if (userIsAdmin) {
-        if (!pathname.startsWith('/dashboard/admin')) {
+        if (!currentPathname.startsWith('/dashboard/admin')) {
           router.push('/dashboard/admin');
         }
       } else {
-         if (pathname.startsWith('/dashboard/admin')) {
+         if (currentPathname.startsWith('/dashboard/admin')) {
           router.push('/dashboard');
         }
       }
@@ -51,7 +55,7 @@ export default function DashboardLayout({
 
     checkAdminStatus();
 
-  }, [user, isUserLoading, router, firestore, pathname]);
+  }, [user, isUserLoading, router, firestore]);
 
   if (isUserLoading || isAdmin === null) {
     return (
