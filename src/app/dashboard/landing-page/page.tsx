@@ -25,6 +25,7 @@ import {
 import { LocalLeap } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { generateLandingPageHeadline } from "@/ai/flows/generate-landing-page-headline";
+import { generateLandingPageDescription } from "@/ai/flows/generate-landing-page-description";
 
 const colorOptions = [
   { name: "Blue", value: "hsl(221, 89%, 60%)" },
@@ -64,6 +65,25 @@ export default function LandingPageBuilder() {
     }
   };
 
+  const handleGenerateDescription = async () => {
+    setIsGenerating(true);
+    try {
+      const result = await generateLandingPageDescription({
+        businessDescription: description,
+        headline: headline,
+        keywords: "cafe, coffee, pastries",
+        targetAudience: "local customers",
+      });
+      if (result.description) {
+        setDescription(result.description);
+      }
+    } catch (error) {
+      console.error("Failed to generate description:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
@@ -92,6 +112,10 @@ export default function LandingPageBuilder() {
               onChange={(e) => setDescription(e.target.value)}
               className="min-h-[120px]"
             />
+             <Button variant="outline" size="sm" onClick={handleGenerateDescription} disabled={isGenerating}>
+              {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              Generate with AI
+            </Button>
           </div>
           <div className="space-y-2">
             <Label>Primary Color</Label>
