@@ -111,7 +111,7 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
   );
 };
 
-const baseColumns = [
+export const columns = [
   {
     accessorKey: "name",
     header: "Customer",
@@ -132,11 +132,6 @@ const baseColumns = [
     accessorKey: "date",
     header: "Date",
   },
-];
-
-
-export const columns = [
-  ...baseColumns.filter((c) => c.accessorKey !== 'rating'),
   {
     accessorKey: "rating",
     header: "Rating",
@@ -163,7 +158,26 @@ export const columns = [
 
 
 export const feedbackColumns = [
-  ...baseColumns,
+  {
+    accessorKey: "name",
+    header: "Customer",
+    cell: ({ row }: { row: { original: Review } }) => (
+      <div className="font-medium">{row.original.name}</div>
+    ),
+  },
+  {
+    accessorKey: "review",
+    header: "Review",
+    cell: ({ row }: { row: { original: Review } }) => (
+      <p className="text-muted-foreground max-w-xs truncate">
+        {row.original.review}
+      </p>
+    ),
+  },
+  {
+    accessorKey: "date",
+    header: "Date",
+  },
   {
     accessorKey: "status",
     header: "Status",
