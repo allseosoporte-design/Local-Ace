@@ -36,28 +36,26 @@ export default function DashboardLayout({
       const adminDocRef = doc(firestore, 'superAdmins', user.uid);
       try {
         const adminDoc = await getDoc(adminDocRef);
-        setIsAdmin(adminDoc.exists());
+        const userIsAdmin = adminDoc.exists();
+        setIsAdmin(userIsAdmin);
+
+        const onAdminPath = pathname.startsWith('/dashboard/admin');
+
+        if (userIsAdmin && !onAdminPath) {
+          router.push('/dashboard/admin');
+        } else if (!userIsAdmin && onAdminPath) {
+          router.push('/dashboard');
+        }
+
       } catch (error) {
         console.error("Error checking admin status:", error);
         setIsAdmin(false);
+        router.push('/dashboard');
       }
     };
     checkAdminStatus();
-  }, [user, isUserLoading, firestore, router]);
+  }, [user, isUserLoading, firestore, router, pathname]);
 
-  useEffect(() => {
-    if (isAdmin === null) return; // Still checking
-
-    const userIsAdmin = isAdmin;
-    const onAdminPath = pathname.startsWith('/dashboard/admin');
-
-    if (userIsAdmin && !onAdminPath) {
-      router.push('/dashboard/admin');
-    } else if (!userIsAdmin && onAdminPath) {
-      router.push('/dashboard');
-    }
-
-  }, [isAdmin, pathname, router]);
 
   if (isUserLoading || isAdmin === null) {
     return (
