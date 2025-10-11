@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { DashboardNav } from "@/components/dashboard-nav";
 import { UserNav } from "@/components/user-nav";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2 } from "lucide-react";
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function DashboardLayout({
   children,
@@ -21,20 +22,57 @@ export default function DashboardLayout({
 }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const firestore = useFirestore();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
+    if (isUserLoading) {
+      return;
     }
-  }, [user, isUserLoading, router]);
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
-  if (isUserLoading || !user) {
+    const checkAdminStatus = async () => {
+      const adminDocRef = doc(firestore, 'superAdmins', user.uid);
+      const adminDoc = await getDoc(adminDocRef);
+      const userIsAdmin = adminDoc.exists();
+      setIsAdmin(userIsAdmin);
+
+      if (userIsAdmin) {
+        // If user is admin and not already on the admin dashboard, redirect.
+        if (!window.location.pathname.startsWith('/dashboard/admin')) {
+          router.push('/dashboard/admin');
+        }
+      } else {
+         // If user is not admin and is on an admin route, redirect to general dashboard.
+         if (window.location.pathname.startsWith('/dashboard/admin')) {
+          router.push('/dashboard');
+        }
+      }
+    };
+
+    checkAdminStatus();
+
+  }, [user, isUserLoading, router, firestore]);
+
+  if (isUserLoading || isAdmin === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
+
+  // If user is an admin, the admin layout will be rendered via its own page.
+  // This layout is for non-admin users.
+  if (isAdmin) {
+     // Still render children for the admin pages, but the nav might be different.
+     // The admin page will have its own structure.
+     return <>{children}</>;
+  }
+
 
   return (
     <SidebarProvider>
