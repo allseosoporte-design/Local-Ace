@@ -28,6 +28,90 @@ export type Review = {
   status?: "Pending" | "Responded";
 };
 
+const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [draftResponse, setDraftResponse] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const review = row.original;
+
+  const handleGenerateResponse = async () => {
+    setIsGenerating(true);
+    try {
+      const result = await generateReviewResponse({
+        reviewText: review.review,
+        businessName: "The Cozy Corner Cafe",
+        industry: "Cafe",
+        customerSentiment: review.rating >= 4 ? "positive" : "negative",
+      });
+      setDraftResponse(result.draftResponse);
+      setIsDialogOpen(true);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate AI response.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSendResponse = () => {
+    console.log("Sending response:", draftResponse);
+    toast({
+      title: "Response Sent!",
+      description: "Your response has been sent to the customer.",
+    });
+    setIsDialogOpen(false);
+  };
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">Open menu</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuItem
+            onClick={() => alert(`Viewing details for ${review.name}`)}
+          >
+            View Details
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleGenerateResponse} disabled={isGenerating}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            {isGenerating ? "Generating..." : "Generate AI Response"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Draft Response for {review.name}</DialogTitle>
+            <DialogDescription>
+              Review the generated response and edit if needed before sending.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea 
+            value={draftResponse}
+            onChange={(e) => setDraftResponse(e.target.value)}
+            className="min-h-[150px]"
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSendResponse}>Send Response</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+
 export const columns = [
   {
     accessorKey: "name",
@@ -69,94 +153,13 @@ export const columns = [
   },
   {
     id: "actions",
-    cell: function Actions({ row }: { row: { original: Review } }) {
-      const { toast } = useToast();
-      const [isDialogOpen, setIsDialogOpen] = useState(false);
-      const [draftResponse, setDraftResponse] = useState("");
-      const [isGenerating, setIsGenerating] = useState(false);
-      const review = row.original;
-
-      const handleGenerateResponse = async () => {
-        setIsGenerating(true);
-        try {
-          const result = await generateReviewResponse({
-            reviewText: review.review,
-            businessName: "The Cozy Corner Cafe",
-            industry: "Cafe",
-            customerSentiment: review.rating >= 4 ? "positive" : "negative",
-          });
-          setDraftResponse(result.draftResponse);
-          setIsDialogOpen(true);
-        } catch (error) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to generate AI response.",
-          });
-        } finally {
-          setIsGenerating(false);
-        }
-      };
-
-      const handleSendResponse = () => {
-        console.log("Sending response:", draftResponse);
-        toast({
-          title: "Response Sent!",
-          description: "Your response has been sent to the customer.",
-        });
-        setIsDialogOpen(false);
-      };
-
-      return (
-        <>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => alert(`Viewing details for ${review.name}`)}
-              >
-                View Details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleGenerateResponse} disabled={isGenerating}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                {isGenerating ? "Generating..." : "Generate AI Response"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Draft Response for {review.name}</DialogTitle>
-                <DialogDescription>
-                  Review the generated response and edit if needed before sending.
-                </DialogDescription>
-              </DialogHeader>
-              <Textarea 
-                value={draftResponse}
-                onChange={(e) => setDraftResponse(e.target.value)}
-                className="min-h-[150px]"
-              />
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleSendResponse}>Send Response</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </>
-      );
-    },
+    cell: ActionsCell
   },
 ];
 
 
 export const feedbackColumns = [
-  ...columns.filter((c) => c.accessorKey !== "rating"),
+  ...columns.filter((c) => c.accessorKey !== "rating" && c.id !== 'actions'),
   {
     accessorKey: "status",
     header: "Status",
@@ -171,6 +174,6 @@ export const feedbackColumns = [
   },
   {
     id: "actions",
-    cell: columns.find(c => c.id === 'actions')?.cell,
+    cell: ActionsCell,
   },
 ];
