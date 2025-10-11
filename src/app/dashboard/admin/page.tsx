@@ -29,16 +29,15 @@ import { UserNav } from "@/components/user-nav";
 import { AdminNav } from "@/components/admin-nav";
 import Link from 'next/link';
 import { LocalLeap } from '@/components/icons';
-import { useMemo } from "react";
 import { useCollection } from "@/firebase";
 import { collection, query } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useMemoFirebase } from "@/firebase";
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu } from '@/components/ui/sidebar';
 
 export default function AdminDashboardPage() {
   const firestore = useFirestore();
   
-  const businessesQuery = useMemo(() => {
+  const businessesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, "businesses"));
   }, [firestore]);
