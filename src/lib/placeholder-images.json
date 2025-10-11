@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "user-avatar",
+      "description": "User avatar",
+      "imageUrl": "https://picsum.photos/seed/10/40/40",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "business-photo-1",
+      "description": "Interior of a modern cafe",
+      "imageUrl": "https://picsum.photos/seed/11/400/300",
+      "imageHint": "cafe interior"
+    },
+    {
+      "id": "business-photo-2",
+      "description": "Exterior of a small shop",
+      "imageUrl": "https://picsum.photos/seed/12/400/300",
+      "imageHint": "shop exterior"
+    },
+    {
+      "id": "business-photo-3",
+      "description": "Close up of a product",
+      "imageUrl": "https://picsum.photos/seed/13/400/300",
+      "imageHint": "product detail"
+    },
+    {
+      "id": "business-photo-4",
+      "description": "Team members smiling",
+      "imageUrl": "https://picsum.photos/seed/14/400/300",
+      "imageHint": "team photo"
+    },
+    {
+      "id": "landing-hero",
+      "description": "Abstract background for landing page",
+      "imageUrl": "https://picsum.photos/seed/15/1200/600",
+      "imageHint": "abstract background"
+    },
+    {
+      "id": "landing-feature-1",
+      "description": "Feature image for landing page",
+      "imageUrl": "https://picsum.photos/seed/16/600/400",
+      "imageHint": "business meeting"
+    }
+  ]
 }
