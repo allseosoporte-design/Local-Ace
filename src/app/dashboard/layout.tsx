@@ -19,53 +19,45 @@ export default function DashboardLayout({
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Wait until user loading is complete
-    if (isUserLoading) {
-      return;
+    // This effect runs only when user loading state changes, or firestore becomes available.
+    if (isUserLoading || !firestore) {
+      return; // Wait until user is loaded and firestore is ready
     }
-    
-    // If no user, redirect to login
+
     if (!user) {
       router.push('/login');
       return;
     }
 
-    // Check admin status once user is loaded
-    const checkAdminStatus = async () => {
-      if (!firestore) return;
-      const adminDocRef = doc(firestore, 'superAdmins', user.uid);
-      try {
-        const adminDoc = await getDoc(adminDocRef);
-        const userIsAdmin = adminDoc.exists();
-        setIsAdmin(userIsAdmin);
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        setIsAdmin(false);
+    // User is loaded, now check their admin status
+    const adminDocRef = doc(firestore, 'superAdmins', user.uid);
+    getDoc(adminDocRef).then(adminDoc => {
+      const userIsAdmin = adminDoc.exists();
+      setIsAdmin(userIsAdmin);
+
+      // --- Redirection logic is now here, executed AFTER admin status is determined ---
+      const onAdminPath = pathname.startsWith('/dashboard/admin');
+
+      if (userIsAdmin && !onAdminPath) {
+        router.push('/dashboard/admin');
+      } else if (!userIsAdmin && onAdminPath) {
+        router.push('/dashboard');
       }
-    };
+    }).catch(error => {
+      console.error("Error checking admin status:", error);
+      setIsAdmin(false);
+      // If error occurs, assume not admin and redirect if they are on an admin path
+      if (pathname.startsWith('/dashboard/admin')) {
+         router.push('/dashboard');
+      }
+    });
 
-    checkAdminStatus();
-  }, [user, isUserLoading, firestore, router]);
+  }, [isUserLoading, user, firestore, router, pathname]);
 
-
-  useEffect(() => {
-    // This effect handles redirection based on admin status
-    if (isAdmin === null) {
-      return; // Still checking admin status
-    }
-
-    const onAdminPath = pathname.startsWith('/dashboard/admin');
-
-    if (isAdmin && !onAdminPath) {
-      router.push('/dashboard/admin');
-    } else if (!isAdmin && onAdminPath) {
-      router.push('/dashboard');
-    }
-  }, [isAdmin, pathname, router]);
 
   // While user or admin status is loading, show a spinner
   if (isUserLoading || isAdmin === null) {
@@ -75,53 +67,44 @@ export default function DashboardLayout({
       </div>
     );
   }
-
-  // If it's an admin and they are on an admin page, let the page's own layout render.
-  if (isAdmin && pathname.startsWith('/dashboard/admin')) {
+  
+  // It's a super admin, render the specific admin layout
+  if (isAdmin) {
      return <>{children}</>;
   }
 
-  // If it's a regular user, render the standard dashboard layout.
-  if (!isAdmin) {
-    return (
-      <SidebarProvider>
-        <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-           <Sidebar>
-            <SidebarContent>
-              <SidebarHeader>
-                <Link
-                    href="/dashboard"
-                    className="flex items-center gap-2 text-lg font-semibold"
-                  >
-                    <LocalLeap className="h-6 w-6" />
-                    <span>Local Leap</span>
-                </Link>
-              </SidebarHeader>
-              <SidebarMenu>
-                <DashboardNav />
-              </SidebarMenu>
-            </SidebarContent>
-          </Sidebar>
-          <div className="flex flex-col">
-             <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-              <SidebarTrigger className="shrink-0 md:hidden" />
-              <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4 justify-end">
-                <UserNav />
-              </div>
-            </header>
-            <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-                {children}
-            </main>
-          </div>
-        </div>
-      </SidebarProvider>
-    );
-  }
-  
-  // Fallback for any other case, e.g. admin on a non-admin page during redirect
+  // It's a regular user, render the standard dashboard layout.
   return (
-    <div className="flex h-screen w-full items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin" />
-    </div>
+    <SidebarProvider>
+      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+         <Sidebar>
+          <SidebarContent>
+            <SidebarHeader>
+              <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 text-lg font-semibold"
+                >
+                  <LocalLeap className="h-6 w-6" />
+                  <span>Local Leap</span>
+              </Link>
+            </SidebarHeader>
+            <SidebarMenu>
+              <DashboardNav />
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+        <div className="flex flex-col">
+           <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+            <SidebarTrigger className="shrink-0 md:hidden" />
+            <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4 justify-end">
+              <UserNav />
+            </div>
+          </header>
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+              {children}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
