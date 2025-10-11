@@ -57,18 +57,15 @@
           "type": "string",
           "description": "Name of the business."
         },
-        "description": {
+        "adminEmail": {
           "type": "string",
-          "description": "Description of the business."
+          "description": "Email of the business administrator.",
+          "format": "email"
         },
         "websiteUrl": {
           "type": "string",
           "description": "URL of the business's website.",
           "format": "uri"
-        },
-        "superAdminId": {
-          "type": "string",
-          "description": "Reference to SuperAdmin. (Relationship: SuperAdmin 1:N Business).  The SuperAdmin who manages this business account."
         },
         "status": {
           "type": "string",
@@ -92,9 +89,7 @@
       "required": [
         "id",
         "name",
-        "description",
-        "websiteUrl",
-        "superAdminId",
+        "adminEmail",
         "status",
         "createdAt",
         "updatedAt"
