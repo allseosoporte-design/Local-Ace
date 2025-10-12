@@ -50,19 +50,21 @@ export default function LoginPage() {
       const user = userCredential.user;
 
       // 2. Verificar si es superAdmin ANTES de redirigir
-      try {
-        const adminDocRef = doc(firestore, 'superAdmins', user.uid);
-        const adminDoc = await getDoc(adminDocRef);
-        
-        if (adminDoc.exists()) {
-          // Es superAdmin → redirigir a panel admin
-          router.push('/dashboard/admin');
-        } else {
-          // Usuario normal → redirigir a dashboard estándar
-          router.push('/dashboard');
-        }
-      } catch (error) {
-        console.error('Error verificando rol, redirigiendo a dashboard estándar:', error);
+      // Solución definitiva: Añadir una comprobación explícita para el correo del super admin.
+      if (user.email === 'allseosoporte@gmail.com') {
+        router.push('/dashboard/admin');
+        return; // Salir de la función después de redirigir
+      }
+
+      // Lógica de fallback para otros posibles superadministradores
+      const adminDocRef = doc(firestore, 'superAdmins', user.uid);
+      const adminDoc = await getDoc(adminDocRef);
+      
+      if (adminDoc.exists()) {
+        // Es superAdmin → redirigir a panel admin
+        router.push('/dashboard/admin');
+      } else {
+        // Usuario normal → redirigir a dashboard estándar
         router.push('/dashboard');
       }
 
@@ -72,10 +74,8 @@ export default function LoginPage() {
         title: 'Error de inicio de sesión',
         description: 'Credenciales incorrectas. Por favor, inténtalo de nuevo.',
       });
-      setIsLoading(false); // Asegúrate de detener la carga en caso de error de login
+      setIsLoading(false); 
     }
-    // finally se ejecutará incluso después de la redirección, por lo que podemos quitarlo
-    // para evitar un posible flash del estado de carga. La carga se detiene en caso de error.
   };
 
   return (
