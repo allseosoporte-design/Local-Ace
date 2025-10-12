@@ -21,20 +21,26 @@ export default function DashboardLayout({
   const firestore = useFirestore();
   const pathname = usePathname();
   const [authChecked, setAuthChecked] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     if (isUserLoading) {
-      return;
+      return; // Wait until user is loaded
     }
 
     if (!user) {
-      router.replace('/login');
+      // Not logged in, redirect to login page if not already there
+      if (pathname !== '/login') {
+        setIsRedirecting(true);
+        router.replace('/login');
+      }
       return;
     }
 
+    // User is logged in, check their role
     const checkAdminAndRoute = async () => {
       if (!firestore) {
-        setAuthChecked(true); // Can't check role, proceed with caution
+        setAuthChecked(true); 
         return;
       }
 
@@ -42,20 +48,25 @@ export default function DashboardLayout({
         const adminDocRef = doc(firestore, 'superAdmins', user.uid);
         const adminDoc = await getDoc(adminDocRef);
         const isSuperAdmin = adminDoc.exists();
-
         const onAdminPath = pathname.startsWith('/dashboard/admin');
 
         if (isSuperAdmin && !onAdminPath) {
+          // Is admin but not on admin path, redirect
+          setIsRedirecting(true);
           router.replace('/dashboard/admin');
         } else if (!isSuperAdmin && onAdminPath) {
+          // Is not admin but on admin path, redirect
+          setIsRedirecting(true);
           router.replace('/dashboard');
         } else {
+          // User is on the correct path, no redirection needed
           setAuthChecked(true);
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
         // Fallback for safety
         if (pathname.startsWith('/dashboard/admin')) {
+           setIsRedirecting(true);
            router.replace('/dashboard');
         } else {
            setAuthChecked(true);
@@ -68,7 +79,7 @@ export default function DashboardLayout({
   }, [isUserLoading, user, firestore, pathname, router]);
 
 
-  if (!authChecked) {
+  if (!authChecked || isRedirecting) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
