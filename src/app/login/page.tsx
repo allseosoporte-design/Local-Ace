@@ -13,8 +13,9 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
@@ -26,12 +27,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    if (!auth) {
+
+    if (!auth || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -40,18 +43,39 @@ export default function LoginPage() {
       setIsLoading(false);
       return;
     }
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      // 1. Iniciar sesión
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // 2. Verificar si es superAdmin ANTES de redirigir
+      try {
+        const adminDocRef = doc(firestore, 'superAdmins', user.uid);
+        const adminDoc = await getDoc(adminDocRef);
+        
+        if (adminDoc.exists()) {
+          // Es superAdmin → redirigir a panel admin
+          router.push('/dashboard/admin');
+        } else {
+          // Usuario normal → redirigir a dashboard estándar
+          router.push('/dashboard');
+        }
+      } catch (error) {
+        console.error('Error verificando rol, redirigiendo a dashboard estándar:', error);
+        router.push('/dashboard');
+      }
+
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error de inicio de sesión',
         description: 'Credenciales incorrectas. Por favor, inténtalo de nuevo.',
       });
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Asegúrate de detener la carga en caso de error de login
     }
+    // finally se ejecutará incluso después de la redirección, por lo que podemos quitarlo
+    // para evitar un posible flash del estado de carga. La carga se detiene en caso de error.
   };
 
   return (
