@@ -69,7 +69,7 @@ export function PlanCard({ plan, onEdit, onDelete, onReorder }: PlanCardProps) {
         <CardDescription className="h-10">{plan.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
-        <div className="mt-4">
+        <div>
           <span className="text-3xl font-bold">${plan.price.toLocaleString('es-CO')}</span>
           <span className="text-muted-foreground">/{plan.billingPeriod === 'monthly' ? 'mes' : 'año'}</span>
         </div>
