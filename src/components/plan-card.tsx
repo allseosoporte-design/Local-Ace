@@ -18,6 +18,7 @@ import {
   Pencil,
   Trash2,
   List,
+  CheckCircle,
 } from 'lucide-react';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { useFirestore } from '@/firebase';
