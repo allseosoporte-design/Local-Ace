@@ -32,4 +32,6 @@ const nextConfig: NextConfig = {
   },
 };
 
+// Forzando la reconstrucción para limpiar la caché.
+
 export default nextConfig;
