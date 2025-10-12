@@ -235,7 +235,7 @@
         },
         "updatedAt": {
           "type": "string",
-  "description": "Timestamp indicating when the plan was last updated.",
+          "description": "Timestamp indicating when the plan was last updated.",
           "format": "date-time"
         }
       },
@@ -270,7 +270,7 @@
           "schema": {
             "$ref": "#/backend/entities/SuperAdmin"
           },
-          "description": "Stores super administrator accounts.  Used for authentication and authorization.",
+          "description": "Stores super administrator accounts. Used for authentication and authorization.",
           "params": [
             {
               "name": "superAdminId",
@@ -286,7 +286,7 @@
           "schema": {
             "$ref": "#/backend/entities/Business"
           },
-          "description": "Stores business accounts managed by super admins. Includes denormalized `superAdminId` for authorization independence.",
+          "description": "Stores business accounts managed by super admins.",
           "params": [
             {
               "name": "businessId",
@@ -355,5 +355,3 @@
     "reasoning": "This Firestore data structure is designed to support the Local Leap application, focusing on a SaaS platform for Google Maps and Google My Business optimization.  The structure emphasizes authorization independence and simplified security rules by adhering to the principles outlined in the prompt.  Specifically, the `superAdmins` collection enables global role assignment. The structure uses path-based ownership and dedicated collections.  Authorization independence is achieved by avoiding `get()` calls in security rules.\n\n*   **SuperAdmins:** Super admins are stored in `/superAdmins/{superAdminId}`. These super admins can manage businesses and view reviews.  The existence of a document in `/superAdmins/{superAdminId}` is sufficient to grant admin privileges (DBAC).\n*   **Businesses:** Businesses are stored in `/businesses/{businessId}`.  Each business document contains the `superAdminId` of the super admin that owns the business. This denormalization enables authorization independence, as security rules for business documents can be based directly on the `superAdminId` without needing to `get()` the super admin document.\n*   **Reviews:** Reviews are stored in `/businesses/{businessId}/reviews/{reviewId}`.  Each review document contains the `businessId` to which it belongs. Security rules for reviews can leverage the `businessId` to ensure only the super admin associated with the business can access the reviews. This follows a path-based ownership model.\n*   **Landing Pages:** Landing pages are stored in `/businesses/{businessId}/landingPages/{landingPageId}`. This structure is similar to that of Reviews and enforces similar security constraints. The `businessId` is present within the landing page document.\n*   **Subscription Plans:** Subscription plans are stored in `/subscriptionPlans/{planId}`. These are managed by super admins and are read-only for regular business users. This structure allows for easy retrieval and display of plans on the pricing page."
   }
 }
-
-    

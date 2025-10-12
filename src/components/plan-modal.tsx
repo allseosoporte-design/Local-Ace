@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -36,13 +36,13 @@ import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { useFirestore } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { X } from 'lucide-react';
+import { X, PlusCircle } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
 const planSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres.'),
-  price: z.coerce.number().positive('El precio debe ser un número positivo.'),
+  price: z.coerce.number().nonnegative('El precio debe ser un número no negativo.'),
   currency: z.string().default('COP'),
   billingPeriod: z.enum(['monthly', 'yearly']),
   features: z.array(z.string().min(3, 'Cada característica debe tener al menos 3 caracteres.')).min(1, 'Debe haber al menos una característica.'),
@@ -110,12 +110,10 @@ export function PlanModal({ isOpen, onClose, plan, planCount }: PlanModalProps) 
     if (!firestore) return;
     try {
       if (plan) {
-        // Update
         const planRef = doc(firestore, 'subscriptionPlans', plan.id);
         await setDoc(planRef, { ...data, updatedAt: serverTimestamp() }, { merge: true });
         toast({ title: 'Plan actualizado', description: 'Los cambios han sido guardados.' });
       } else {
-        // Create
         await addDoc(collection(firestore, 'subscriptionPlans'), {
           ...data,
           createdAt: serverTimestamp(),
@@ -195,7 +193,7 @@ export function PlanModal({ isOpen, onClose, plan, planCount }: PlanModalProps) 
                       )}/>
                       <FormField control={form.control} name="order" render={({ field }) => (
                           <FormItem>
-                              <FormLabel>Orden</FormLabel>
+                              <FormLabel>Orden de Visualización</FormLabel>
                               <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
                               <FormMessage />
                           </FormItem>
@@ -204,6 +202,7 @@ export function PlanModal({ isOpen, onClose, plan, planCount }: PlanModalProps) 
 
                   <div>
                       <FormLabel>Características</FormLabel>
+                      <FormDescription>Añade los puntos clave que incluye este plan.</FormDescription>
                       <div className="space-y-2 pt-2">
                         {fields.map((field, index) => (
                            <FormField
@@ -228,17 +227,20 @@ export function PlanModal({ isOpen, onClose, plan, planCount }: PlanModalProps) 
                             />
                         ))}
                       </div>
-                      <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append('')}>Añadir Característica</Button>
+                      <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append('')}>
+                        <PlusCircle className="h-4 w-4 mr-2"/>
+                        Añadir Característica
+                      </Button>
                   </div>
-                  <div className="flex items-center space-x-4 pt-4">
+                  <div className="grid grid-cols-2 gap-4 pt-4">
                      <FormField control={form.control} name="isActive" render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm w-full">
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                             <div className="space-y-0.5"><FormLabel>Activo</FormLabel></div>
                             <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                         </FormItem>
                       )}/>
                       <FormField control={form.control} name="isPopular" render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm w-full">
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                             <div className="space-y-0.5"><FormLabel>Popular</FormLabel></div>
                             <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                         </FormItem>

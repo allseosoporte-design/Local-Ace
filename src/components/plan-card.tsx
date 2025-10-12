@@ -60,10 +60,12 @@ export function PlanCard({ plan, onEdit, onDelete, onReorder }: PlanCardProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{plan.name}</CardTitle>
-          {!plan.isActive && <Badge variant="destructive">Inactivo</Badge>}
-           {plan.isPopular && <Badge>Popular</Badge>}
+          <div className="flex items-center gap-2">
+            {plan.isPopular && <Badge>Popular</Badge>}
+            {!plan.isActive && <Badge variant="destructive">Inactivo</Badge>}
+          </div>
         </div>
-        <CardDescription className="truncate">{plan.description}</CardDescription>
+        <CardDescription className="h-10">{plan.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
         <div>
@@ -71,12 +73,22 @@ export function PlanCard({ plan, onEdit, onDelete, onReorder }: PlanCardProps) {
           <span className="text-muted-foreground">/{plan.billingPeriod === 'monthly' ? 'mes' : 'año'}</span>
         </div>
         <Separator />
-        <div className="flex items-center text-sm text-muted-foreground">
-            <List className="mr-2 h-4 w-4" />
-            <span>{plan.features.length} Características incluidas</span>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-            <span className="font-semibold mr-2">Orden:</span> 
+        <ul className="space-y-2 text-sm text-muted-foreground">
+        {plan.features.slice(0, 3).map((feature, index) => (
+            <li key={index} className="flex items-center">
+                <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                <span>{feature}</span>
+            </li>
+        ))}
+        {plan.features.length > 3 && (
+             <li className="flex items-center">
+                <List className="h-4 w-4 mr-2" />
+                <span>y {plan.features.length - 3} más...</span>
+            </li>
+        )}
+        </ul>
+        <div className="text-xs text-muted-foreground pt-2">
+            <span className="font-semibold mr-2">Orden de visualización:</span> 
             <span>{plan.order}</span>
         </div>
       </CardContent>
@@ -96,7 +108,7 @@ export function PlanCard({ plan, onEdit, onDelete, onReorder }: PlanCardProps) {
             <Button variant="ghost" size="icon" onClick={() => onEdit(plan)}>
                 <Pencil className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => onDelete(plan)}>
+            <Button variant="ghost" size="icon" className="hover:text-destructive text-destructive/70" onClick={() => onDelete(plan)}>
                 <Trash2 className="h-4 w-4" />
             </Button>
         </div>
