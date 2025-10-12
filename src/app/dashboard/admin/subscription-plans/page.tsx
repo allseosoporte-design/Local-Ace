@@ -6,13 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { PlusCircle, BarChart, CheckCircle, Star } from 'lucide-react';
-import { collection, query, orderBy, where } from 'firebase/firestore';
+import { collection, query, orderBy, where, doc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { PlanModal } from '@/components/plan-modal';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { PlanCard } from '@/components/plan-card';
 import { useToast } from '@/hooks/use-toast';
-import { deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,26 +33,35 @@ export default function SubscriptionPlansPage() {
   const [planToDelete, setPlanToDelete] = useState<SubscriptionPlan | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
+  // 1. Query simplificada para obtener todos los planes, como sugeriste.
   const plansQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    let q = query(collection(firestore, 'subscriptionPlans'), orderBy('order'));
-    if (!showInactive) {
-      q = query(q, where('isActive', '==', true));
-    }
-    return q;
-  }, [firestore, showInactive]);
+    return collection(firestore, 'subscriptionPlans');
+  }, [firestore]);
 
-  const { data: plans, isLoading } = useCollection<SubscriptionPlan>(plansQuery);
+  const { data: allPlans, isLoading } = useCollection<SubscriptionPlan>(plansQuery);
+
+  // 2. Filtrado y ordenación en el lado del cliente con useMemo.
+  const plans = useMemo(() => {
+    if (!allPlans) return [];
+    let filteredPlans = allPlans;
+    if (!showInactive) {
+      filteredPlans = filteredPlans.filter(p => p.isActive);
+    }
+    // Ordenación segura, tratando `order` como opcional.
+    return filteredPlans.sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [allPlans, showInactive]);
+
 
   const metrics = useMemo(() => {
-    if (!plans) return { total: 0, active: 0, popular: 0 };
-    const activePlans = plans.filter(p => p.isActive);
+    if (!allPlans) return { total: 0, active: 0, popular: 0 };
+    const activePlans = allPlans.filter(p => p.isActive);
     return {
-      total: plans.length,
+      total: allPlans.length,
       active: activePlans.length,
       popular: activePlans.filter(p => p.isPopular).length,
     };
-  }, [plans]);
+  }, [allPlans]);
 
   const handleCreate = () => {
     setEditingPlan(null);
@@ -86,25 +94,28 @@ export default function SubscriptionPlansPage() {
   
   const handleReorder = async (plan: SubscriptionPlan, direction: 'up' | 'down') => {
     if (!plans || !firestore) return;
-    const currentIndex = plans.findIndex(p => p.id === plan.id);
+    const sortedPlans = [...plans].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const currentIndex = sortedPlans.findIndex(p => p.id === plan.id);
+    
     if (currentIndex === -1) return;
 
     let otherIndex = -1;
     if (direction === 'up' && currentIndex > 0) {
       otherIndex = currentIndex - 1;
-    } else if (direction === 'down' && currentIndex < plans.length - 1) {
+    } else if (direction === 'down' && currentIndex < sortedPlans.length - 1) {
       otherIndex = currentIndex + 1;
     }
     
     if (otherIndex === -1) return;
     
-    const otherPlan = plans[otherIndex];
+    const otherPlan = sortedPlans[otherIndex];
 
     try {
       const batch = writeBatch(firestore);
       const planRef = doc(firestore, 'subscriptionPlans', plan.id);
       const otherPlanRef = doc(firestore, 'subscriptionPlans', otherPlan.id);
 
+      // Intercambiar los valores de 'order'
       batch.update(planRef, { order: otherPlan.order });
       batch.update(otherPlanRef, { order: plan.order });
       
@@ -190,7 +201,7 @@ export default function SubscriptionPlansPage() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
         plan={editingPlan}
-        planCount={plans?.length || 0}
+        planCount={allPlans?.length || 0}
       />
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
