@@ -57,13 +57,9 @@ export default function RegisterPage() {
       
       if (emailLower === 'allseosoporte@gmail.com') {
         console.log('🔄 Creando documento en Firestore superAdmins...');
-        console.log('📍 Firestore disponible:', !!firestore);
-        console.log('📍 UID del usuario:', user.uid);
         
         try {
           const superAdminRef = doc(firestore, 'superAdmins', user.uid);
-          console.log('📍 Referencia creada:', superAdminRef.path);
-          
           const docData = {
             id: user.uid,
             email: user.email,
@@ -72,7 +68,6 @@ export default function RegisterPage() {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           };
-          console.log('📍 Datos a guardar:', docData);
           
           await setDoc(superAdminRef, docData);
           
@@ -82,25 +77,19 @@ export default function RegisterPage() {
             title: '¡Registro exitoso!',
             description: 'Cuenta de SuperAdmin creada. Redirigiendo...',
           });
-
-          // Esperar 2 segundos antes de redirigir
-          await new Promise(resolve => setTimeout(resolve, 2000));
           
-          // Redirigir directamente al panel admin
           router.push('/dashboard/admin');
+
         } catch (firestoreError: any) {
           console.error('❌ Error creando documento en Firestore:', firestoreError);
-          console.error('❌ Código de error:', firestoreError.code);
-          console.error('❌ Mensaje:', firestoreError.message);
           
           toast({
             variant: 'destructive',
             title: 'Error al crear perfil de administrador',
-            description: `Error: ${firestoreError.message}. Usuario creado pero sin rol admin.`,
+            description: `Error: ${firestoreError.message}. El usuario fue creado en autenticación, pero no se pudo asignar el rol de administrador. Verifica las reglas de seguridad de Firestore.`,
+            duration: 10000,
           });
-          
-          // Aún así redirigir a login
-          router.push('/login');
+          // No redirigir para que el usuario vea el error
         }
       } else {
         console.log('✅ Usuario normal registrado');
@@ -110,7 +99,6 @@ export default function RegisterPage() {
           description: 'Tu cuenta ha sido creada. Ahora puedes iniciar sesión.',
         });
         
-        // Usuarios normales van a login
         router.push('/login');
       }
 

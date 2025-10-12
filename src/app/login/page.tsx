@@ -63,8 +63,9 @@ export default function LoginPage() {
 
     } catch (error: any) {
       let errorMessage = 'Credenciales incorrectas. Por favor, inténtalo de nuevo.';
-      // You can add more specific error messages if needed
-      // if (error.code === 'auth/user-not-found') { ... }
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+          errorMessage = 'El correo electrónico o la contraseña son incorrectos.';
+      }
       toast({
         variant: 'destructive',
         title: 'Error de inicio de sesión',
