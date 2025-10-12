@@ -48,7 +48,7 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Delete every user that is not allseosoporte@gmail.com from superAdmins
+      // Solo el correo especificado se convierte en superAdmin
       if (email === 'allseosoporte@gmail.com') {
         const superAdminRef = doc(firestore, 'superAdmins', user.uid);
         await setDoc(superAdminRef, {
@@ -60,7 +60,6 @@ export default function RegisterPage() {
             updatedAt: serverTimestamp()
         });
       }
-
 
       toast({
         title: '¡Registro exitoso!',

@@ -50,13 +50,6 @@ export default function LoginPage() {
       const user = userCredential.user;
 
       // 2. Verificar si es superAdmin ANTES de redirigir
-      // Solución definitiva: Añadir una comprobación explícita para el correo del super admin.
-      if (user.email === 'allseosoporte@gmail.com') {
-        router.push('/dashboard/admin');
-        return; // Salir de la función después de redirigir
-      }
-
-      // Lógica de fallback para otros posibles superadministradores
       const adminDocRef = doc(firestore, 'superAdmins', user.uid);
       const adminDoc = await getDoc(adminDocRef);
       
