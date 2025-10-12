@@ -57,7 +57,6 @@ export default function DashboardLayout({
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
-        // Fallback for safety
         if (pathname.startsWith('/dashboard/admin')) {
            setIsRedirecting(true);
            router.replace('/dashboard');
