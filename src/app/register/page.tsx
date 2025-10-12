@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
@@ -44,8 +45,23 @@ export default function RegisterPage() {
     }
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       
+      // Delete every user that is not allseosoporte@gmail.com from superAdmins
+      if (email === 'allseosoporte@gmail.com') {
+        const superAdminRef = doc(firestore, 'superAdmins', user.uid);
+        await setDoc(superAdminRef, {
+            id: user.uid,
+            email: user.email,
+            firstName: 'Alexander',
+            lastName: 'Jerez Fernandez',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+      }
+
+
       toast({
         title: '¡Registro exitoso!',
         description: 'Tu cuenta ha sido creada. Ahora puedes iniciar sesión.',
