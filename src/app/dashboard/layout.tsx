@@ -25,19 +25,15 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (isUserLoading) {
-      return; // Wait until user is loaded
+      return; 
     }
 
     if (!user) {
-      // Not logged in, redirect to login page if not already there
-      if (pathname !== '/login') {
-        setIsRedirecting(true);
-        router.replace('/login');
-      }
+      setIsRedirecting(true);
+      router.replace('/login');
       return;
     }
 
-    // User is logged in, check their role
     const checkAdminAndRoute = async () => {
       if (!firestore) {
         setAuthChecked(true); 
@@ -51,15 +47,12 @@ export default function DashboardLayout({
         const onAdminPath = pathname.startsWith('/dashboard/admin');
 
         if (isSuperAdmin && !onAdminPath) {
-          // Is admin but not on admin path, redirect
           setIsRedirecting(true);
           router.replace('/dashboard/admin');
         } else if (!isSuperAdmin && onAdminPath) {
-          // Is not admin but on admin path, redirect
           setIsRedirecting(true);
           router.replace('/dashboard');
         } else {
-          // User is on the correct path, no redirection needed
           setAuthChecked(true);
         }
       } catch (error) {
