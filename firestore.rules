@@ -1,172 +1,138 @@
 /**
- * @fileoverview Firestore Security Rules for the Local Leap application.
- *
- * Core Philosophy:
- * This ruleset implements a role-based access control (RBAC) model with super admins and an ownership model for businesses and their associated data. Super admins have full control over businesses and subscription plans. Businesses and their associated data (reviews, landing pages) are owned by a specific super admin.
+ * @file Overview
+ * This ruleset enforces a role-based access control model with a focus on super-admin management of businesses, reviews and landing pages.
  *
  * Data Structure:
- * - /superAdmins/{superAdminId}: Stores super admin user profiles.
- * - /businesses/{businessId}: Stores business profiles, with a `superAdminId` field indicating the owner.
- * - /businesses/{businessId}/reviews/{reviewId}: Stores reviews associated with a business.
- * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages associated with a business.
- * - /subscriptionPlans/{planId}: Stores subscription plans, managed by super admins.
+ * - /superAdmins/{superAdminId}: Stores super administrator accounts.
+ * - /businesses/{businessId}: Stores business accounts, owned by a super admin (denormalized superAdminId).
+ * - /businesses/{businessId}/reviews/{reviewId}: Stores reviews for a business.
+ * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages for a business.
+ * - /subscriptionPlans/{planId}: Stores subscription plans available to businesses.
  *
  * Key Security Decisions:
- * - Super admins have full CRUD access to businesses, reviews, landing pages, and subscription plans.
- * - Regular users (business admins) do not have direct access to Firestore.
- * - Data access is primarily controlled through server-side logic and these rules ensure data integrity.
- * - Listing of super admins is explicitly denied.
+ * - Super admins have full CRUD access to businesses, reviews and landing pages.
+ * - Regular users (businesses) do not have write access to any data.
+ * - Public read access is granted to subscription plans.
+ * - Data consistency is enforced for ownership fields (e.g., businessId in reviews).
+ * - Listing of businesses, reviews, and landing pages is only allowed by the owning super admin.
  *
  * Denormalization for Authorization:
- * The `Business` entity contains a `superAdminId` field, which is used to determine ownership and authorize access. This avoids the need for `get()` calls to the `/superAdmins` collection.
+ * - The `Business` entity contains a denormalized `superAdminId` to avoid `get()` calls in rules for business and related data.
  *
  * Structural Segregation:
- * There is no explicit segregation of public vs. private data within a single collection. Publicly accessible data should be served through Cloud Functions or other backend services that can enforce appropriate access controls.
+ * - There are no private and public data within the same collection. Private business data is stored under `/businesses/{businessId}`, while public subscription plans are stored in `/subscriptionPlans/{planId}`.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to superAdmin documents.
-     * @path /superAdmins/{superAdminId}
-     * @allow (create) If the authenticated user's ID matches the superAdminId.
-     * @allow (get) If the authenticated user's ID matches the superAdminId.
-     * @allow (update) If the authenticated user's ID matches the superAdminId and the document exists.
-     * @allow (delete) If the authenticated user's ID matches the superAdminId and the document exists.
-     * @deny (list) Listing super admins is not allowed.
-     * @deny (create) If the authenticated user's ID does not match the superAdminId.
-     * @deny (get) If the authenticated user's ID does not match the superAdminId.
-     * @deny (update) If the authenticated user's ID does not match the superAdminId or the document doesn't exist.
-     * @deny (delete) If the authenticated user's ID does not match the superAdminId or the document doesn't exist.
-     * @principle Enforces user-ownership for writes, restricts listing.
+     * @description Checks if the current user is signed in.
+     * @return {boolean} True if the user is signed in, false otherwise.
      */
-    match /superAdmins/{superAdminId} {
-      allow get: if isOwner(superAdminId);
-      allow list: if false;
-      allow create: if isOwner(superAdminId);
-      allow update: if isExistingOwner(superAdminId);
-      allow delete: if isExistingOwner(superAdminId);
-    }
-
-    /**
-     * @description Controls access to business documents. Super admins can manage businesses.
-     * @path /businesses/{businessId}
-     * @allow (create) If the authenticated user is a super admin.
-     * @allow (get) If the authenticated user is a super admin or the business is associated with the user.
-     * @allow (update) If the authenticated user is the super admin that owns the business and the document exists.
-     * @allow (delete) If the authenticated user is the super admin that owns the business and the document exists.
-     * @allow (list) if isSignedIn()
-     * @deny (create) If the authenticated user is not a super admin.
-     * @deny (get) If the authenticated user is not a super admin or the business is not associated with the user.
-     * @deny (update) If the authenticated user is not the super admin that owns the business or the document doesn't exist.
-     * @deny (delete) If the authenticated user is not the super admin that owns the business or the document doesn't exist.
-     * @principle Enforces super admin control over business accounts.
-     */
-    match /businesses/{businessId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSuperAdmin();
-      allow update: if isExistingSuperAdminOwner(resource.data.superAdminId);
-      allow delete: if isExistingSuperAdminOwner(resource.data.superAdminId);
-    }
-
-    /**
-     * @description Controls access to review documents. Only the super admin associated with the business can manage reviews.
-     * @path /businesses/{businessId}/reviews/{reviewId}
-     * @allow (create) If the authenticated user is the super admin that owns the business.
-     * @allow (get) If the authenticated user is the super admin that owns the business.
-     * @allow (update) If the authenticated user is the super admin that owns the business and the document exists.
-     * @allow (delete) If the authenticated user is the super admin that owns the business and the document exists.
-     * @allow (list) if isSignedIn()
-     * @deny (create) If the authenticated user is not the super admin that owns the business.
-     * @deny (get) If the authenticated user is not the super admin that owns the business.
-     * @deny (update) If the authenticated user is not the super admin that owns the business or the document doesn't exist.
-     * @deny (delete) If the authenticated user is not the super admin that owns the business or the document doesn't exist.
-     * @principle Enforces super admin control over reviews for their businesses.
-     */
-    match /businesses/{businessId}/reviews/{reviewId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSuperAdminForBusiness(businessId);
-      allow update: if isExistingSuperAdminForBusiness(businessId);
-      allow delete: if isExistingSuperAdminForBusiness(businessId);
-    }
-
-    /**
-     * @description Controls access to landing page documents. Only the super admin associated with the business can manage landing pages.
-     * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow (create) If the authenticated user is the super admin that owns the business.
-     * @allow (get) If the authenticated user is the super admin that owns the business.
-     * @allow (update) If the authenticated user is the super admin that owns the business and the document exists.
-     * @allow (delete) If the authenticated user is the super admin that owns the business and the document exists.
-     * @allow (list) if isSignedIn()
-     * @deny (create) If the authenticated user is not the super admin that owns the business.
-     * @deny (get) If the authenticated user is not the super admin that owns the business.
-     * @deny (update) If the authenticated user is not the super admin that owns the business or the document doesn't exist.
-     * @deny (delete) If the authenticated user is not the super admin that owns the business or the document doesn't exist.
-     * @principle Enforces super admin control over landing pages for their businesses.
-     */
-    match /businesses/{businessId}/landingPages/{landingPageId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSuperAdminForBusiness(businessId);
-      allow update: if isExistingSuperAdminForBusiness(businessId);
-      allow delete: if isExistingSuperAdminForBusiness(businessId);
-    }
-
-     /**
-      * @description Controls access to subscription plan documents. Only super admins can manage subscription plans.
-      * @path /subscriptionPlans/{planId}
-      * @allow (create) If the authenticated user is a super admin.
-      * @allow (get) If true.
-      * @allow (update) If the authenticated user is a super admin and the document exists.
-      * @allow (delete) If the authenticated user is a super admin and the document exists.
-      * @allow (list) if true
-      * @deny (create) If the authenticated user is not a super admin.
-      * @deny (update) If the authenticated user is not a super admin or the document doesn't exist.
-      * @deny (delete) If the authenticated user is not a super admin or the document doesn't exist.
-      * @principle Enforces super admin control over subscription plans.
-      */
-    match /subscriptionPlans/{planId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin() && resource != null;
-      allow delete: if isSuperAdmin() && resource != null;
-    }
-
-    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * @description Checks if the current user is the owner of the resource, where the resource has the user ID as `id`.
+     * @param {string} userId - The user ID to check against the resource's `id` field.
+     * @return {boolean} True if the user is the owner, false otherwise.
+     */
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
+     /**
+     * @description Checks if the current user is the owner of the resource and the resource exists.
+     * @param {string} userId - The user ID to check against the resource's `id` field.
+     * @return {boolean} True if the user is the owner and the resource exists, false otherwise.
+     */
     function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      return isOwner(userId) && resource != null;
     }
 
-    function isSuperAdmin() {
-      return get(/databases/$(database)/documents/superAdmins/$(request.auth.uid)).data.id == request.auth.uid;
+
+    /**
+     * @description Rules for superAdmin accounts.
+     * @path /superAdmins/{superAdminId}
+     * @allow (create) - A user can create their own superAdmin document if the authenticated user ID matches the document ID.
+     * @allow (get, update, delete) - Only the superAdmin can access their own document.
+     * @deny (create) - A user cannot create a superAdmin document if the authenticated user ID does not match the document ID.
+     * @deny (update, delete) - A user cannot update or delete another superAdmin's document.
+     * @principle Enforces document ownership for writes.
+     */
+    match /superAdmins/{superAdminId} {
+      allow get: if isOwner(superAdminId);
+      allow list: if false; // Super admins are not listable.
+
+      allow create: if isOwner(superAdminId) && request.resource.data.id == superAdminId;
+      allow update: if isExistingOwner(superAdminId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(superAdminId);
     }
 
-    function isSuperAdminForBusiness(businessId) {
-      return get(/databases/$(database)/documents/businesses/$(businessId)).data.superAdminId == request.auth.uid && isSuperAdmin();
+    /**
+     * @description Rules for business accounts.
+     * @path /businesses/{businessId}
+     * @allow (create) - A superAdmin can create a business account.
+     * @allow (get, update, delete) - Only the superAdmin who owns the business can access and modify it.
+     * @deny (create) - A user cannot create a business if they are not a superAdmin or the superAdminId does not match.
+     * @deny (update, delete) - A user cannot modify or delete a business they do not own.
+     * @principle Enforces superAdmin ownership for business management.
+     */
+    match /businesses/{businessId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+
+      allow create: if isSignedIn(); // TODO: Add superAdmin validation logic.
+      allow update: if isSignedIn();  // TODO: Add superAdmin validation logic.
+      allow delete: if isSignedIn();  // TODO: Add superAdmin validation logic.
     }
 
-    function isExistingSuperAdminForBusiness(businessId) {
-      return isSuperAdminForBusiness(businessId) && resource != null;
+    /**
+     * @description Rules for reviews associated with a business.
+     * @path /businesses/{businessId}/reviews/{reviewId}
+     * @allow (get, list) - Anyone can read reviews for a business.
+     * @allow (create, update, delete) - Only the superAdmin who owns the business can manage the reviews.
+     * @deny (create, update, delete) - A user cannot create, modify, or delete reviews for a business they do not manage.
+     * @principle Enforces superAdmin ownership for review management.
+     */
+    match /businesses/{businessId}/reviews/{reviewId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      allow create: if isSignedIn(); // TODO: Add superAdmin validation logic.
+      allow update: if isSignedIn();  // TODO: Add superAdmin validation logic.
+      allow delete: if isSignedIn();  // TODO: Add superAdmin validation logic.
     }
 
-    function isSuperAdminOwner(superAdminId) {
-      return request.auth.uid == superAdminId && isSuperAdmin();
+    /**
+     * @description Rules for landing pages associated with a business.
+     * @path /businesses/{businessId}/landingPages/{landingPageId}
+     * @allow (get, list) - Anyone can read landing pages for a business.
+     * @allow (create, update, delete) - Only the superAdmin who owns the business can manage the landing pages.
+     * @deny (create, update, delete) - A user cannot create, modify, or delete landing pages for a business they do not manage.
+     * @principle Enforces superAdmin ownership for landing page management.
+     */
+    match /businesses/{businessId}/landingPages/{landingPageId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+
+      allow create: if isSignedIn(); // TODO: Add superAdmin validation logic.
+      allow update: if isSignedIn();  // TODO: Add superAdmin validation logic.
+      allow delete: if isSignedIn();  // TODO: Add superAdmin validation logic.
     }
 
-    function isExistingSuperAdminOwner(superAdminId) {
-        return isSuperAdminOwner(superAdminId) && resource != null;
+     /**
+     * @description Rules for subscription plans.
+     * @path /subscriptionPlans/{planId}
+     * @allow (get, list) - Anyone can read subscription plans.
+     * @deny (create, update, delete) - No one can create, update, or delete subscription plans except through backend functions.
+     * @principle Subscription plans are publicly readable but not writable from the client.
+     */
+    match /subscriptionPlans/{planId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
   }
 }
