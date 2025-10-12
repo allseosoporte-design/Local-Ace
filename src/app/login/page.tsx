@@ -62,12 +62,16 @@ export default function LoginPage() {
       }
 
     } catch (error: any) {
+      let errorMessage = 'Credenciales incorrectas. Por favor, inténtalo de nuevo.';
+      // You can add more specific error messages if needed
+      // if (error.code === 'auth/user-not-found') { ... }
       toast({
         variant: 'destructive',
         title: 'Error de inicio de sesión',
-        description: 'Credenciales incorrectas. Por favor, inténtalo de nuevo.',
+        description: errorMessage,
       });
-      setIsLoading(false); 
+    } finally {
+      setIsLoading(false);
     }
   };
 

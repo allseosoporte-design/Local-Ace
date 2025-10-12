@@ -49,7 +49,7 @@ export default function RegisterPage() {
       const user = userCredential.user;
       
       // Solo el correo especificado se convierte en superAdmin
-      if (email === 'allseosoporte@gmail.com') {
+      if (email.toLowerCase() === 'allseosoporte@gmail.com') {
         const superAdminRef = doc(firestore, 'superAdmins', user.uid);
         await setDoc(superAdminRef, {
             id: user.uid,
