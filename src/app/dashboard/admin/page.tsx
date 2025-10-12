@@ -36,13 +36,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { UserNav } from "@/components/user-nav";
-import { AdminNav } from "@/components/admin-nav";
-import Link from 'next/link';
-import { LocalLeap } from '@/components/icons';
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
-import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu } from '@/components/ui/sidebar';
 import { BusinessModal, BusinessFormData } from "@/components/business-modal";
 import { useToast } from "@/hooks/use-toast";
 
@@ -122,91 +117,66 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <Sidebar>
-          <SidebarContent>
-            <SidebarHeader>
-              <Link href="/dashboard/admin" className="flex items-center gap-2 text-lg font-semibold">
-                <LocalLeap className="h-6 w-6" />
-                <span>Local Leap</span>
-              </Link>
-            </SidebarHeader>
-            <SidebarMenu>
-              <AdminNav />
-            </SidebarMenu>
-          </SidebarContent>
-        </Sidebar>
-        <div className="flex flex-col">
-          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-            <SidebarTrigger className="shrink-0 md:hidden" />
-            <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4 justify-end">
-              <UserNav />
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Gestión de Clientes</CardTitle>
+              <CardDescription>Crea, modifica y gestiona las cuentas de tus clientes.</CardDescription>
             </div>
-          </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Gestión de Clientes</CardTitle>
-                    <CardDescription>Crea, modifica y gestiona las cuentas de tus clientes.</CardDescription>
-                  </div>
-                  <Button onClick={handleCreate}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Crear Negocio
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nombre del Negocio</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Administrador</TableHead>
-                      <TableHead><span className="sr-only">Acciones</span></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading && <TableRow><TableCell colSpan={4} className="text-center">Cargando negocios...</TableCell></TableRow>}
-                    {!isLoading && businesses?.map((business) => (
-                      <TableRow key={business.id}>
-                        <TableCell className="font-medium">{business.name}</TableCell>
-                        <TableCell>
-                          <Badge variant={business.status === 'Active' ? 'default' : 'destructive'}>
-                            {business.status === 'Active' ? 'Activo' : 'Suspendido'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{business.adminEmail}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button aria-haspopup="true" size="icon" variant="ghost">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Menú de acciones</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleEdit(business)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteConfirmation(business)} className="text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </main>
-        </div>
-      </div>
+            <Button onClick={handleCreate}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Crear Negocio
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre del Negocio</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Administrador</TableHead>
+                <TableHead><span className="sr-only">Acciones</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading && <TableRow><TableCell colSpan={4} className="text-center">Cargando negocios...</TableCell></TableRow>}
+              {!isLoading && businesses?.map((business) => (
+                <TableRow key={business.id}>
+                  <TableCell className="font-medium">{business.name}</TableCell>
+                  <TableCell>
+                    <Badge variant={business.status === 'Active' ? 'default' : 'destructive'}>
+                      {business.status === 'Active' ? 'Activo' : 'Suspendido'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{business.adminEmail}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Menú de acciones</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleEdit(business)}>
+                          <Pencil className="mr-2 h-4 w-4" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteConfirmation(business)} className="text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
       <BusinessModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -227,6 +197,6 @@ export default function AdminDashboardPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </SidebarProvider>
+    </>
   );
 }
