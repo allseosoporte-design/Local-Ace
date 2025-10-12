@@ -36,9 +36,9 @@ export default function SubscriptionPlansPage() {
 
   const plansQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    const q = query(collection(firestore, 'subscriptionPlans'), orderBy('order'));
+    let q = query(collection(firestore, 'subscriptionPlans'), orderBy('order'));
     if (!showInactive) {
-      return query(q, where('isActive', '==', true));
+      q = query(q, where('isActive', '==', true));
     }
     return q;
   }, [firestore, showInactive]);
