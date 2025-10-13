@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -14,6 +15,7 @@ import {
   History,
   Server,
   Calendar,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -58,26 +60,68 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
-const configurations = [
-  { id: 1, name: 'Aviso 7 días antes', type: '7 días antes de la expiración', status: 'Activo' },
-  { id: 2, name: 'Primer aviso vencido', type: 'Al día siguiente de la expiración', status: 'Activo' },
-  { id: 3, name: 'Último aviso', type: '5 días después de la expiración', status: 'Inactivo' },
+// --- Types ---
+interface ReminderRule {
+  id: string;
+  name: string;
+  triggerType: 'before' | 'after';
+  days: number;
+  channel: 'email' | 'whatsapp' | 'sms';
+  templateId: string;
+  isActive: boolean;
+}
+
+interface ReminderTemplate {
+  id: string;
+  name: string;
+  content: string;
+  channel: 'email' | 'whatsapp' | 'sms';
+}
+
+interface ReminderLog {
+  id: string;
+  businessName: string;
+  ruleName: string; // Denormalized for easy display
+  sentAt: Timestamp;
+  status: 'sent' | 'opened' | 'failed';
+}
+
+const configurations: ReminderRule[] = [
+    { id: '1', name: 'Aviso 7 días antes', triggerType: 'before', days: 7, channel: 'email', templateId: 'template-1', isActive: true },
+    { id: '2', name: 'Primer aviso vencido', triggerType: 'after', days: 1, channel: 'email', templateId: 'template-2', isActive: true },
+    { id: '3', name: 'Último aviso', triggerType: 'after', days: 5, channel: 'whatsapp', templateId: 'template-3', isActive: false },
 ];
 
-const templates = [
-    { id: 'template-1', name: 'Recordatorio de vencimiento próximo', content: 'Hola {empresa}, tu suscripción al plan {plan} está a punto de vencer. Renueva ahora para no perder acceso.' },
-    { id: 'template-2', name: 'Aviso de pago vencido', content: 'Hola {empresa}, hemos notado que tu pago para el plan {plan} está vencido. Por favor, regulariza tu situación para evitar la suspensión del servicio.' },
+const templates: ReminderTemplate[] = [
+    { id: 'template-1', name: 'Recordatorio de vencimiento próximo', content: 'Hola {empresa}, tu suscripción al plan {plan} está a punto de vencer. Renueva ahora para no perder acceso.', channel: 'email' },
+    { id: 'template-2', name: 'Aviso de pago vencido', content: 'Hola {empresa}, hemos notado que tu pago para el plan {plan} está vencido. Por favor, regulariza tu situación para evitar la suspensión del servicio.', channel: 'email' },
+    { id: 'template-3', name: 'Aviso urgente de pago', content: 'URGENTE: {empresa}, tu servicio será suspendido. Contacta con soporte.', channel: 'whatsapp' },
 ];
 
-const history = [
-    { id: 1, empresa: 'Café El Sol', type: 'Aviso 7 días antes', date: '2024-07-20 10:00', status: 'Enviado' },
-    { id: 2, empresa: 'Burger Hub', type: 'Aviso de pago vencido', date: '2024-07-19 14:30', status: 'Abierto' },
-    { id: 3, empresa: 'Pizzería La Nostra', type: 'Aviso 7 días antes', date: '2024-07-18 09:00', status: 'Fallido' },
+const history: ReminderLog[] = [
+    { id: '1', businessName: 'Café El Sol', ruleName: 'Aviso 7 días antes', sentAt: Timestamp.fromDate(new Date('2024-07-20T10:00:00')), status: 'sent' },
+    { id: '2', businessName: 'Burger Hub', ruleName: 'Aviso de pago vencido', sentAt: Timestamp.fromDate(new Date('2024-07-19T14:30:00')), status: 'opened' },
+    { id: '3', businessName: 'Pizzería La Nostra', ruleName: 'Aviso 7 días antes', sentAt: Timestamp.fromDate(new Date('2024-07-18T09:00:00')), status: 'failed' },
 ];
 
 
 export default function RemindersPage() {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const rulesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'reminderRules'), orderBy('name')) : null, [firestore]);
+  const templatesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'reminderTemplates'), orderBy('name')) : null, [firestore]);
+  const logsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'reminderLogs'), orderBy('sentAt', 'desc')) : null, [firestore]);
+
+  const { data: rulesData, isLoading: isLoadingRules } = useCollection<ReminderRule>(rulesQuery);
+  const { data: templatesData, isLoading: isLoadingTemplates } = useCollection<ReminderTemplate>(templatesQuery);
+  const { data: logsData, isLoading: isLoadingLogs } = useCollection<ReminderLog>(logsQuery);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -147,7 +191,7 @@ export default function RemindersPage() {
             <Card className="mt-6">
                 <CardHeader>
                     <CardTitle>Próximos recordatorios</CardTitle>
-                    <CardDescription>Descripción de la sección</CardDescription>
+                    <CardDescription>Visualización de los próximos envíos automáticos programados.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center justify-center text-center text-muted-foreground h-48">
                     <Calendar className="h-12 w-12 mb-4" />
@@ -228,13 +272,16 @@ export default function RemindersPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {configurations.map((config) => (
+                        {isLoadingRules && (
+                           <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" /></TableCell></TableRow>
+                        )}
+                        {(rulesData || configurations).map((config) => (
                             <TableRow key={config.id}>
                                 <TableCell className="font-medium">{config.name}</TableCell>
-                                <TableCell>{config.type}</TableCell>
+                                <TableCell>{`${config.days} días ${config.triggerType === 'before' ? 'antes' : 'después'} de la expiración`}</TableCell>
                                 <TableCell>
-                                    <Badge variant={config.status === 'Activo' ? 'default' : 'secondary'}>
-                                        {config.status}
+                                    <Badge variant={config.isActive ? 'default' : 'secondary'}>
+                                        {config.isActive ? 'Activo' : 'Inactivo'}
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -256,9 +303,13 @@ export default function RemindersPage() {
                     <CardDescription>Edita el contenido de los mensajes de recordatorio.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {templates.map((template) => (
+                     {isLoadingTemplates && <Loader2 className="mx-auto my-8 h-8 w-8 animate-spin text-muted-foreground" />}
+                    {(templatesData || templates).map((template) => (
                         <div key={template.id} className="border p-4 rounded-lg flex justify-between items-center">
-                            <p className="font-medium">{template.name}</p>
+                           <div>
+                              <p className="font-medium">{template.name}</p>
+                              <p className="text-xs text-muted-foreground">{`Canal: ${template.channel}`}</p>
+                           </div>
                             <Dialog>
                                <DialogTrigger asChild>
                                     <Button variant="outline">
@@ -294,21 +345,24 @@ export default function RemindersPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Empresa</TableHead>
-                            <TableHead>Tipo</TableHead>
+                            <TableHead>Tipo de Recordatorio</TableHead>
                             <TableHead>Fecha</TableHead>
                             <TableHead>Estado</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {history.map((item) => (
+                        {isLoadingLogs && (
+                            <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" /></TableCell></TableRow>
+                        )}
+                        {(logsData || history).map((item) => (
                             <TableRow key={item.id}>
-                                <TableCell className="font-medium">{item.empresa}</TableCell>
-                                <TableCell>{item.type}</TableCell>
-                                <TableCell>{item.date}</TableCell>
+                                <TableCell className="font-medium">{item.businessName}</TableCell>
+                                <TableCell>{item.ruleName}</TableCell>
+                                <TableCell>{format(item.sentAt.toDate(), 'dd/MM/yyyy HH:mm')}</TableCell>
                                 <TableCell>
                                     <Badge variant={
-                                        item.status === 'Enviado' ? 'default' :
-                                        item.status === 'Abierto' ? 'outline' : 'destructive'
+                                        item.status === 'sent' ? 'default' :
+                                        item.status === 'opened' ? 'outline' : 'destructive'
                                     }>{item.status}</Badge>
                                 </TableCell>
                             </TableRow>
@@ -329,7 +383,7 @@ export default function RemindersPage() {
                     <div className="flex items-center justify-between rounded-lg border p-4">
                         <div className="space-y-1">
                             <p className="font-semibold">Estado del servicio</p>
-                            <p className="text-sm text-green-600 font-bold">En ejecución</p>
+                            <p className="text-sm text-green-600 font-bold flex items-center gap-2"><CheckCircle className="h-4 w-4"/>En ejecución</p>
                         </div>
                         <div className="flex gap-2">
                            <Button variant="outline">Pausar</Button>
@@ -347,3 +401,5 @@ export default function RemindersPage() {
     </div>
   );
 }
+
+    

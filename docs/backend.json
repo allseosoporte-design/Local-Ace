@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Business": {
@@ -418,6 +419,62 @@
             "timestamp": { "type": "string", "format": "date-time" }
         },
         "required": ["tipoAccion", "idAdmin", "timestamp"]
+    },
+    "ReminderRule": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ReminderRule",
+      "type": "object",
+      "description": "Defines rules for sending automated payment reminders.",
+      "properties": {
+        "name": { "type": "string" },
+        "triggerType": { "type": "string", "enum": ["before", "after"] },
+        "days": { "type": "number" },
+        "channel": { "type": "string", "enum": ["email", "whatsapp", "sms"] },
+        "templateId": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["name", "triggerType", "days", "channel", "templateId", "isActive"]
+    },
+    "ReminderTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ReminderTemplate",
+      "type": "object",
+      "description": "Stores message templates for reminders.",
+      "properties": {
+        "name": { "type": "string" },
+        "content": { "type": "string" },
+        "channel": { "type": "string", "enum": ["email", "whatsapp", "sms"] }
+      },
+      "required": ["name", "content", "channel"]
+    },
+    "ReminderLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ReminderLog",
+      "type": "object",
+      "description": "Logs every reminder sent to a business.",
+      "properties": {
+        "businessId": { "type": "string" },
+        "businessName": { "type": "string" },
+        "ruleId": { "type": "string" },
+        "ruleName": { "type": "string" },
+        "templateId": { "type": "string" },
+        "sentAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["sent", "opened", "failed"] },
+        "channel": { "type": "string", "enum": ["email", "whatsapp", "sms"] }
+      },
+      "required": ["businessId", "ruleId", "sentAt", "status", "channel"]
+    },
+    "ReminderSystemStatus": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ReminderSystemStatus",
+      "type": "object",
+      "description": "Stores the status of the automated reminder system.",
+      "properties": {
+        "status": { "type": "string", "enum": ["running", "paused"] },
+        "lastRun": { "type": "string", "format": "date-time" },
+        "nextRun": { "type": "string", "format": "date-time" }
+      },
+      "required": ["status"]
     }
   },
   "auth": {
@@ -474,6 +531,24 @@
     "/activityLogs/{logId}": {
         "schema": { "$ref": "#/entities/ActivityLog" },
         "description": "Stores logs of administrative actions."
+    },
+    "/reminderRules/{ruleId}": {
+      "schema": { "$ref": "#/entities/ReminderRule" },
+      "description": "Stores the rules that trigger automated reminders."
+    },
+    "/reminderTemplates/{templateId}": {
+      "schema": { "$ref": "#/entities/ReminderTemplate" },
+      "description": "Stores message templates for reminders."
+    },
+    "/reminderLogs/{logId}": {
+      "schema": { "$ref": "#/entities/ReminderLog" },
+      "description": "A historical log of every reminder sent."
+    },
+    "/reminderSystemStatus/singleton": {
+      "schema": { "$ref": "#/entities/ReminderSystemStatus" },
+      "description": "A single document to control and monitor the reminder system."
     }
   }
 }
+
+    
