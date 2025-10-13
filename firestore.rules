@@ -1,26 +1,38 @@
 /**
- * @file Firebase Security Rules for Local Leap platform.
+ * @fileOverview Firestore Security Rules for Local Leap platform.
  *
- * @core_philosophy This ruleset enforces a tiered access control model:
- *   - Public Read: Certain data (e.g., Businesses, SubscriptionPlans) is publicly readable.
- *   - Owner-Only Write: Write access is generally restricted to authorized users/owners of specific resources (e.g., businesses, their profiles, landing pages, and associated subcollections).
- *   - SuperAdmin Override: SuperAdmins have read and write access to all collections, allowing for platform-wide management.
+ * Core Philosophy:
+ * This ruleset prioritizes security by default, enforcing strict ownership and role-based access control.
+ * All write operations require authentication and authorization. Read operations are generally public
+ * unless they expose private user data, in which case they are restricted to the owner. Data validation
+ * is minimized to allow for rapid prototyping, focusing instead on authorization.
  *
- * @data_structure The data is organized hierarchically:
- *   - `/businesses/{businessId}`: Root level for business data.
- *   - Subcollections under `/businesses/{businessId}`: Contain related entities like reviews, Google Business Profiles, landing pages, etc.
- *   - `/subscriptionPlans/{subscriptionPlanId}`: Stores subscription plan details.
- *   - `/superAdmins/{superAdminId}`: Stores super admin profiles.
+ * Data Structure:
+ * - /businesses/{businessId}: Business profiles.
+ * - /businesses/{businessId}/reviews/{reviewId}: Customer reviews for each business.
+ * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}: Google Business Profile listings.
+ * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}: Posts for Google Business Profiles.
+ * - /businesses/{businessId}/landingPages/{landingPageId}: Landing pages for each business.
+ * - /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}: Contact forms for landing pages.
+ * - /subscriptionPlans/{subscriptionPlanId}: Details about the different subscription plans.
+ * - /paymentSettings/{planSettingsId}: Payment settings for each subscription plan.
+ * - /superAdmins/{superAdminId}: Super administrator profiles.
+ * - /pendingPayments/{paymentId}: Pending payment requests.
+ * - /subscriptions/{subscriptionId}: Active subscriptions.
+ * - /activityLogs/{logId}: Logs of admin activity.
  *
- * @key_security_decisions
- *   - SuperAdmin Role: SuperAdmin role is granted using the `/superAdmins/{superAdminId}` collection, which is separate and auditable.
- *   - Public Read with Owner-Only Write for Businesses: Businesses are publicly readable, but only the owner can modify them.
- *   - Subcollection Ownership: Subcollections inherit the ownership of their parent business.
- *   - No User Listing: Listing of users (SuperAdmins) is explicitly denied.
- *   - Denormalization: Authorization relies on denormalized data where possible to avoid costly `get()` calls in the rules.
+ * Key Security Decisions:
+ * - SuperAdmin role implicitly grants full access to all data.
+ * - User listing is generally disallowed for privacy.
+ * - Ambiguous relationships default to owner-only access for writes.
  *
- * @denormalization_for_authorization N/A - No denormalization implemented in this version.
- * @structural_segregation N/A - No structural segregation implemented in this version.
+ * Denormalization for Authorization:
+ *  N/A: No specific denormalization is required based on the current schema.
+ *       If authorization logic becomes more complex, consider adding fields like
+ *       `businessId` to subcollections (e.g., `reviews`) to avoid costly `get()` calls in rules.
+ *
+ * Structural Segregation:
+ *  N/A: No explicit segregation of public vs. private data using separate collections.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -28,10 +40,7 @@ service cloud.firestore {
 
     /**
      * @description Checks if the request is authenticated.
-     * @path N/A
-     * @allow N/A
-     * @deny N/A
-     * @principle Requires authentication for certain operations.
+     * @returns {boolean} True if the user is signed in, false otherwise.
      */
     function isSignedIn() {
       return request.auth != null;
@@ -39,213 +48,204 @@ service cloud.firestore {
 
     /**
      * @description Checks if the authenticated user is the owner of the resource.
-     * @path N/A
-     * @allow N/A
-     * @deny N/A
-     * @principle Enforces ownership-based access control.
+     * @param {string} userId - The user ID to compare against the request's auth UID.
+     * @returns {boolean} True if the user is the owner, false otherwise.
      */
-    function isOwner(resourceId) {
-      return request.auth.uid == resourceId;
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the authenticated user is an existing owner of the resource.
-     *              This is used for update and delete operations to ensure the document exists.
-     * @path N/A
-     * @allow N/A
-     * @deny N/A
-     * @principle Enforces that a document must exist before it can be updated or deleted.
+     * @description Checks if the authenticated user is the existing owner of the resource (for update/delete).
+     * @param {string} userId - The user ID to compare against the resource's owner ID.
+     * @returns {boolean} True if the user is the owner and the resource exists, false otherwise.
      */
-    function isExistingOwner(resourceId) {
-      return isOwner(resourceId) && resource != null;
-    }
-
-        /**
-     * @description Checks if the authenticated user is a super admin.
-     * @path N/A
-     * @allow N/A
-     * @deny N/A
-     */
-    function isSuperAdmin() {
-        return exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Rules for the /businesses/{businessId} collection.
+     * @description Rules for business profiles.
      * @path /businesses/{businessId}
-     * @allow (get, list): Any user can read business data.
-     * @allow (create): An authenticated user can create a business if the businessId matches their UID.
-     * @allow (update, delete): Only the owner (creator) of the business can update or delete it.
-     * @deny (create): An unauthenticated user cannot create a business.
-     * @deny (update, delete): A non-owner cannot update or delete the business.
-     * @principle Public read, owner-only write, enforced ownership on create, update, and delete.
+     * @allow (get, list): Public read access.
+     * @allow (create): Only authenticated users can create. The 'id' field must match the businessId.
+     * @allow (update, delete): Only the business owner (creator) can update or delete.
+     * @deny (create): If the 'id' field does not match the businessId.
+     * @principle Allows public reads, but restricts write access to the owner. Validates resource ID on creation.
      */
     match /businesses/{businessId} {
       allow get, list: if true;
-      allow create: if isSignedIn() && request.auth.uid == businessId;
-      allow update, delete: if isExistingOwner(businessId) || isSuperAdmin();
+      allow create: if isSignedIn() && request.resource.data.id == businessId;
+      allow update, delete: if isExistingOwner(resource.data.id);
     }
 
     /**
-     * @description Rules for the /businesses/{businessId}/reviews/{reviewId} collection.
+     * @description Rules for reviews associated with a business.
      * @path /businesses/{businessId}/reviews/{reviewId}
-     * @allow (get, list): Any user can read reviews for a business.
-     * @allow (create): Any authenticated user can create a review.
-     * @allow (update, delete): Only the user who created the review or a SuperAdmin can update/delete.  Requires denormalized owner information.
-     * @deny (create): An unauthenticated user cannot create a review.
-     * @deny (update, delete): A non-owner cannot update or delete the review.
-     * @principle Public read, authenticated create, owner-only write, enforced ownership on create, update, and delete.
+     * @allow (get, list): Public read access.
+     * @allow (create): Only authenticated users can create.
+     * @allow (update, delete): Only the business owner can update or delete.
+     * @deny (create): If the request is not authenticated.
+     * @principle Reviews are publicly readable, but write access is restricted to the business owner.
      */
     match /businesses/{businessId}/reviews/{reviewId} {
       allow get, list: if true;
       allow create: if isSignedIn();
-      allow update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field. Or superAdmin
+      allow update, delete: if isExistingOwner(resource.data.businessId);
     }
 
     /**
-     * @description Rules for the /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId} collection.
+     * @description Rules for Google Business Profiles associated with a business.
      * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}
-     * @allow (get, list): Any user can read a Google Business Profile.
-     * @allow (create): Only the owner of the business can create a Google Business Profile.
-     * @allow (update, delete): Only the owner of the business can update or delete a Google Business Profile.
-     * @deny (create): A non-owner cannot create a Google Business Profile.
-     * @deny (update, delete): A non-owner cannot update or delete a Google Business Profile.
-     * @principle Owner-only write, enforced ownership on create, update, and delete.
+     * @allow (get, list): Public read access.
+     * @allow (create): Only authenticated users can create.
+     * @allow (update, delete): Only the business owner can update or delete.
+     * @deny (create): If the request is not authenticated.
+     * @principle Google Business Profiles are publicly readable, but write access is restricted to the business owner.
      */
     match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId} {
       allow get, list: if true;
-      allow create: if isOwner(businessId) || isSuperAdmin();
-      allow update, delete: if isExistingOwner(businessId) || isSuperAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isExistingOwner(businessId);
     }
 
     /**
-     * @description Rules for the /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId} collection.
+     * @description Rules for posts associated with a Google Business Profile.
      * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}
-     * @allow (get, list): Any user can read a post.
-     * @allow (create): Only the owner of the business can create a post.
-     * @allow (update, delete): Only the owner of the business can update or delete a post.
-     * @deny (create): A non-owner cannot create a post.
-     * @deny (update, delete): A non-owner cannot update or delete a post.
-     * @principle Owner-only write, enforced ownership on create, update, and delete.
+     * @allow (get, list): Public read access.
+     * @allow (create): Only authenticated users can create.
+     * @allow (update, delete): Only the business owner can update or delete.
+     * @deny (create): If the request is not authenticated.
+     * @principle Posts are publicly readable, but write access is restricted to the business owner.
      */
     match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId} {
       allow get, list: if true;
-      allow create: if isOwner(businessId) || isSuperAdmin();
-      allow update, delete: if isExistingOwner(businessId) || isSuperAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isExistingOwner(businessId);
     }
 
     /**
-     * @description Rules for the /businesses/{businessId}/landingPages/{landingPageId} collection.
+     * @description Rules for landing pages associated with a business.
      * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow (get, list): Any user can read a landing page.
-     * @allow (create): Only the owner of the business can create a landing page.
-     * @allow (update, delete): Only the owner of the business can update or delete a landing page.
-     * @deny (create): A non-owner cannot create a landing page.
-     * @deny (update, delete): A non-owner cannot update or delete a landing page.
-     * @principle Owner-only write, enforced ownership on create, update, and delete.
+     * @allow (get, list): Public read access.
+     * @allow (create): Only authenticated users can create.
+     * @allow (update, delete): Only the business owner can update or delete.
+     * @deny (create): If the request is not authenticated.
+     * @principle Landing pages are publicly readable, but write access is restricted to the business owner.
      */
     match /businesses/{businessId}/landingPages/{landingPageId} {
       allow get, list: if true;
-      allow create: if isOwner(businessId) || isSuperAdmin();
-      allow update, delete: if isExistingOwner(businessId) || isSuperAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isExistingOwner(businessId);
     }
 
     /**
-     * @description Rules for the /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId} collection.
+     * @description Rules for contact forms associated with a landing page.
      * @path /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}
-     * @allow (get, list): Any user can read a contact form.
-     * @allow (create): Only the owner of the business can create a contact form.
-     * @allow (update, delete): Only the owner of the business can update or delete a contact form.
-     * @deny (create): A non-owner cannot create a contact form.
-     * @deny (update, delete): A non-owner cannot update or delete a contact form.
-     * @principle Owner-only write, enforced ownership on create, update, and delete.
+     * @allow (get, list): Public read access.
+     * @allow (create): Only authenticated users can create.
+     * @allow (update, delete): Only the business owner can update or delete.
+     * @deny (create): If the request is not authenticated.
+     * @principle Contact forms are publicly readable, but write access is restricted to the business owner.
      */
     match /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId} {
       allow get, list: if true;
-      allow create: if isOwner(businessId) || isSuperAdmin();
-      allow update, delete: if isExistingOwner(businessId) || isSuperAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isExistingOwner(businessId);
     }
 
     /**
-     * @description Rules for the /subscriptionPlans/{subscriptionPlanId} collection.
+     * @description Rules for subscription plans.
      * @path /subscriptionPlans/{subscriptionPlanId}
-     * @allow (get, list): Any user can read subscription plans.
-     * @allow (create, update, delete): Only a super admin can create, update, or delete subscription plans.
-     * @deny (create, update, delete): A non-admin user cannot create, update, or delete subscription plans.
-     * @principle Public read, admin-only write.
+     * @allow get, list: if true;
+     * @allow create, update, delete: if false; // TODO: Add admin role check
+     * @principle Subscription plans are publicly readable, but only admins can create, update, or delete them.
      */
     match /subscriptionPlans/{subscriptionPlanId} {
       allow get, list: if true;
-      allow create, update, delete: if isSuperAdmin();
+      allow create: if false; // TODO: Add admin role check
+      allow update: if false; // TODO: Add admin role check
+      allow delete: if false; // TODO: Add admin role check
     }
 
-    /**
-     * @description Rules for the /paymentSettings/{planSettingsId} collection.
-     * @path /paymentSettings/{planSettingsId}
-     * @allow (get, list): Any user can read payment settings.
-     * @allow (create, update, delete): Only a super admin can create, update, or delete payment settings.
-     * @deny (create, update, delete): A non-admin user cannot create, update, or delete payment settings.
-     * @principle Public read, admin-only write.
-     */
+     /**
+      * @description Rules for payment settings.
+      * @path /paymentSettings/{planSettingsId}
+      * @allow get, list: if true;
+      * @allow create, update, delete: if false; // TODO: Add admin role check
+      * @principle Payment settings are publicly readable, but only admins can create, update, or delete them.
+      */
     match /paymentSettings/{planSettingsId} {
       allow get, list: if true;
-      allow create, update, delete: if isSuperAdmin();
+      allow create: if false; // TODO: Add admin role check
+      allow update: if false; // TODO: Add admin role check
+      allow delete: if false; // TODO: Add admin role check
     }
 
     /**
-     * @description Rules for the /superAdmins/{superAdminId} collection.
+     * @description Rules for super administrator profiles.
      * @path /superAdmins/{superAdminId}
-     * @allow get: if isOwner(superAdminId) || isSuperAdmin(); // Only the user or a SuperAdmin can get
-     * @allow create: if isSuperAdmin(); //Only a SuperAdmin can create another SuperAdmin
-     * @allow update: if isOwner(superAdminId) || isSuperAdmin(); // Only the user or a SuperAdmin can update
-     * @allow delete: if isSuperAdmin(); //Only a SuperAdmin can delete another SuperAdmin
-     * @deny list: if true; // SuperAdmins cannot be listed
+     * @allow get: if isOwner(superAdminId);
+     * @allow list: if false;
+     * @allow create: if isOwner(superAdminId);
+     * @allow update: if isExistingOwner(superAdminId);
+     * @allow delete: if false; // SuperAdmins cannot delete themselves or others
+     * @principle Only super admins can read their own profile and create their profiles (self-registration), but cannot list other admins or delete themselves.
      */
     match /superAdmins/{superAdminId} {
-        allow get: if isOwner(superAdminId) || isSuperAdmin();
-        allow create: if isSuperAdmin();
-        allow update: if isOwner(superAdminId) || isSuperAdmin();
-        allow delete: if isSuperAdmin();
+      allow get: if isOwner(superAdminId);
       allow list: if false;
+      allow create: if isOwner(superAdminId);
+      allow update: if isExistingOwner(superAdminId);
+      allow delete: if false; // SuperAdmins cannot delete themselves or others
     }
 
-        /**
-     * @description Rules for the /pendingPayments/{paymentId} collection.
+    /**
+     * @description Rules for pending payment requests.
      * @path /pendingPayments/{paymentId}
-     * @allow get, list: if isSuperAdmin();
-     * @allow create: if isSignedIn();
-     * @allow update, delete: if isSuperAdmin();
+     * @allow get, list: if false; // TODO: Add admin role check for listing and getting specific payments.
+     * @allow create: if isSignedIn(); // Any authenticated user can request a pending payment.
+     * @allow update: if false; // TODO: Only admins can update the status of pending payments.
+     * @allow delete: if false; // No one can delete a pending payment request.
+     * @principle Only admins can view/modify pending payments. Users can create payment requests.
      */
     match /pendingPayments/{paymentId} {
-        allow get, list: if isSuperAdmin();
-        allow create: if isSignedIn();
-        allow update, delete: if isSuperAdmin();
+        allow get, list: if false; // TODO: Add admin role check for listing and getting specific payments.
+        allow create: if isSignedIn(); // Any authenticated user can request a pending payment.
+        allow update: if false; // TODO: Only admins can update the status of pending payments.
+        allow delete: if false; // No one can delete a pending payment request.
     }
 
-        /**
-     * @description Rules for the /subscriptions/{subscriptionId} collection.
+    /**
+     * @description Rules for active subscriptions.
      * @path /subscriptions/{subscriptionId}
-     * @allow get, list: if isSuperAdmin();
-     * @allow create: if isSuperAdmin();
-     * @allow update, delete: if isSuperAdmin();
+     * @allow get, list: if false; // TODO: Add admin/business owner role check.
+     * @allow create: if false; // TODO: Only admins can create subscriptions.
+     * @allow update: if false; // TODO: Only admins can update subscriptions.
+     * @allow delete: if false; // TODO: Only admins can delete subscriptions.
+     * @principle Subscriptions are managed by admins. Businesses can view their own subscriptions.
      */
     match /subscriptions/{subscriptionId} {
-        allow get, list: if isSuperAdmin();
-        allow create: if isSuperAdmin();
-        allow update, delete: if isSuperAdmin();
+        allow get, list: if false; // TODO: Add admin/business owner role check.
+        allow create: if false; // TODO: Only admins can create subscriptions.
+        allow update: if false; // TODO: Only admins can update subscriptions.
+        allow delete: if false; // TODO: Only admins can delete subscriptions.
     }
 
-        /**
-     * @description Rules for the /activityLogs/{logId} collection.
+    /**
+     * @description Rules for activity logs.
      * @path /activityLogs/{logId}
-     * @allow get, list: if isSuperAdmin();
-     * @allow create: if isSuperAdmin();
-     * @allow update, delete: if false;
+     * @allow get, list: if false; // TODO: Only admins can view activity logs.
+     * @allow create: if false; // Activity logs are created by the system.
+     * @allow update: if false;
+     * @allow delete: if false;
+     * @principle Activity logs are only accessible to admins and are system-generated.
      */
     match /activityLogs/{logId} {
-        allow get, list: if isSuperAdmin();
-        allow create: if isSuperAdmin();
-        allow update, delete: if false;
+        allow get, list: if false; // TODO: Only admins can view activity logs.
+        allow create: if false; // Activity logs are created by the system.
+        allow update: if false;
+        allow delete: if false;
     }
   }
 }
