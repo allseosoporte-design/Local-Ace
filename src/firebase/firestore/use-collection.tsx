@@ -9,6 +9,7 @@ import {
   QuerySnapshot,
   CollectionReference,
 } from 'firebase/firestore';
+import { getAuth, User } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -84,12 +85,22 @@ export function useCollection<T = any>(
         setError(null);
         setIsLoading(false);
       },
-      (error: FirestoreError) => {
+      async (error: FirestoreError) => {
         // This logic extracts the path from either a ref or a query
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
             ? (memoizedTargetRefOrQuery as CollectionReference).path
             : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
+        
+        try {
+            const auth = getAuth();
+            const user = auth.currentUser as User;
+            if (user) {
+              await user.getIdToken(true); // `true` forces a refresh
+            }
+        } catch (authError) {
+            console.error("Failed to refresh auth token:", authError);
+        }
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',
