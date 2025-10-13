@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
 import { Users, CreditCard, User, Settings } from "lucide-react";
 import { EditorLandingIcon } from "./icons/editor-landing";
+import { PaymentIcon } from "./icons/payment";
 
 
 const links = [
@@ -24,6 +25,11 @@ const links = [
     href: "/dashboard/admin/editor-landing",
     label: "Editor de Landing",
     icon: <EditorLandingIcon />,
+  },
+  {
+    href: "/dashboard/admin/payment-settings",
+    label: "Configuración de Pagos",
+    icon: <PaymentIcon />,
   },
   {
     href: "/dashboard/admin/profile",
