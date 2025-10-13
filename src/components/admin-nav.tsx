@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Users, CreditCard, User } from "lucide-react";
+import { Users, CreditCard, User, Settings } from "lucide-react";
 import { EditorLandingIcon } from "./icons/editor-landing";
 
 
@@ -30,6 +30,11 @@ const links = [
     label: "Perfil",
     icon: <User />,
   },
+  {
+    href: "/dashboard/admin/settings",
+    label: "Configuración",
+    icon: <Settings />,
+  }
 ];
 
 export function AdminNav() {
