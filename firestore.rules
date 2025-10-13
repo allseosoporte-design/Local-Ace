@@ -1,217 +1,226 @@
 /**
- * @fileoverview Firestore Security Rules for Local Leap platform.
- *
- * Core Philosophy:
- * This ruleset enforces a role-based access control model, primarily focused on restricting access to super administrators.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for most data, with some public read access for specific collections.
  *
  * Data Structure:
- * The database is organized with top-level collections for core entities (businesses, subscriptionPlans, superAdmins, etc.).
- * Subcollections are used to represent relationships (e.g., reviews under a business).
+ * - /businesses/{businessId}: Business profiles.
+ * - /businesses/{businessId}/reviews/{reviewId}: Customer reviews for a business.
+ * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}: Google Business Profiles for a business.
+ * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}: Posts for a Google Business Profile.
+ * - /businesses/{businessId}/landingPages/{landingPageId}: Landing pages for a business.
+ * - /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}: Contact forms for landing pages.
+ * - /subscriptionPlans/{subscriptionPlanId}: Subscription plans.
+ * - /paymentSettings/{planSettingsId}: Payment settings for subscription plans.
+ * - /superAdmins/{superAdminId}: Super administrator profiles.
+ * - /pendingPayments/{paymentId}: Pending payment requests.
+ * - /subscriptions/{subscriptionId}: Active subscriptions for businesses.
+ * - /activityLogs/{logId}: Logs of administrative actions.
  *
  * Key Security Decisions:
- * - Only authenticated super administrators can read or write superAdmin profiles.
- * - Regular users (non-superAdmins) are implicitly denied access to superAdmin profiles.
- * - Read access is generally open unless writes should be restricted to owners.
- * - Data validation is minimal in this prototype, focusing on authorization and relational integrity checks.
+ * - User ownership is enforced for businesses and their related data (reviews, GBP, landing pages, etc.).
+ * - Super admins can only read their own profile.
+ * - Listing of super admins is disallowed.
+ * - Public read access is enabled for subscription plans.
  *
  * Denormalization for Authorization:
- * This ruleset avoids `get()` calls by assuming the superAdmin role can be determined through `request.auth.token.role`.
- *
- * Structural Segregation:
- * No explicit segregation of public vs. private data is implemented. All collections are treated as potentially private
- * and secured based on roles or ownership.
+ * - Reviews are stored under businesses to easily manage and query reviews associated with a particular business.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows access to business entities.
+     * @description Allows access to business profiles based on ownership.
      * @path /businesses/{businessId}
-     * @allow get, list: if true;
-     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Allows public read, restricts writes to owners (not implemented in this version).
+     * @allow (create) - Authenticated user can create a business with their user ID as the business ID.
+     * @allow (get, list, update, delete) - Authenticated user can access their own business profile.
+     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /businesses/{businessId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read: if isSignedIn() && isOwner(businessId);
+      allow create: if isSignedIn() && isOwner(businessId) && request.resource.data.id == businessId;
+      allow update: if isSignedIn() && isExistingOwner(businessId) && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && isExistingOwner(businessId);
+      allow list: if false;
     }
 
     /**
      * @description Allows access to reviews associated with a business.
      * @path /businesses/{businessId}/reviews/{reviewId}
-     * @allow get, list: if true;
-     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Allows public read, restricts writes to owners (not implemented in this version).
+     * @allow (create) - Authenticated user can create a review under their business.
+     * @allow (get, list, update, delete) - Authenticated user can access/manage reviews under their business.
+     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /businesses/{businessId}/reviews/{reviewId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read: if isSignedIn() && isOwner(businessId);
+      allow create: if isSignedIn() && isOwner(businessId);
+      allow update: if isSignedIn() && isExistingOwner(businessId);
+      allow delete: if isSignedIn() && isExistingOwner(businessId);
+      allow list: if isSignedIn() && isOwner(businessId);
     }
 
     /**
      * @description Allows access to Google Business Profiles associated with a business.
      * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}
-     * @allow get, list: if true;
-     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Allows public read, restricts writes to owners (not implemented in this version).
+     * @allow (create) - Authenticated user can create a Google Business Profile under their business.
+     * @allow (get, list, update, delete) - Authenticated user can access/manage Google Business Profiles under their business.
+     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read: if isSignedIn() && isOwner(businessId);
+      allow create: if isSignedIn() && isOwner(businessId);
+      allow update: if isSignedIn() && isExistingOwner(businessId);
+      allow delete: if isSignedIn() && isExistingOwner(businessId);
+      allow list: if isSignedIn() && isOwner(businessId);
     }
 
     /**
      * @description Allows access to posts associated with a Google Business Profile.
      * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}
-     * @allow get, list: if true;
-     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Allows public read, restricts writes to owners (not implemented in this version).
+     * @allow (create) - Authenticated user can create a post under their Google Business Profile.
+     * @allow (get, list, update, delete) - Authenticated user can access/manage posts under their Google Business Profile.
+     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read: if isSignedIn() && isOwner(businessId);
+      allow create: if isSignedIn() && isOwner(businessId);
+      allow update: if isSignedIn() && isExistingOwner(businessId);
+      allow delete: if isSignedIn() && isExistingOwner(businessId);
+      allow list: if isSignedIn() && isOwner(businessId);
     }
 
     /**
      * @description Allows access to landing pages associated with a business.
      * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow get, list: if true;
-     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Allows public read, restricts writes to owners (not implemented in this version).
+     * @allow (create) - Authenticated user can create a landing page under their business.
+     * @allow (get, list, update, delete) - Authenticated user can access/manage landing pages under their business.
+     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /businesses/{businessId}/landingPages/{landingPageId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read: if isSignedIn() && isOwner(businessId);
+      allow create: if isSignedIn() && isOwner(businessId);
+      allow update: if isSignedIn() && isExistingOwner(businessId);
+      allow delete: if isSignedIn() && isExistingOwner(businessId);
+      allow list: if isSignedIn() && isOwner(businessId);
     }
 
     /**
      * @description Allows access to contact forms associated with a landing page.
      * @path /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}
-     * @allow get, list: if true;
-     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Allows public read, restricts writes to owners (not implemented in this version).
+     * @allow (create) - Authenticated user can create a contact form under their landing page.
+     * @allow (get, list, update, delete) - Authenticated user can access/manage contact forms under their landing page.
+     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read: if isSignedIn() && isOwner(businessId);
+      allow create: if isSignedIn() && isOwner(businessId);
+      allow update: if isSignedIn() && isExistingOwner(businessId);
+      allow delete: if isSignedIn() && isExistingOwner(businessId);
+      allow list: if isSignedIn() && isOwner(businessId);
     }
 
     /**
-     * @description Allows access to subscription plan details.
+     * @description Allows public read access to subscription plans.
      * @path /subscriptionPlans/{subscriptionPlanId}
-     * @allow get, list: if true;
-     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Allows public read, restricts writes to owners (not implemented in this version).
+     * @allow (get, list) - Any user can read subscription plans.
+     * @deny (create, update, delete) - No user can create, update, or delete subscription plans via client-side rules. These operations must be handled via trusted server environments.
+     * @principle Allows public read access for all users.
      */
     match /subscriptionPlans/{subscriptionPlanId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows access to payment gateway settings for each subscription plan.
+     * @description Allows read and write access to payment settings.
      * @path /paymentSettings/{planSettingsId}
-     * @allow get, list: if true;
-     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Allows public read, restricts writes to owners (not implemented in this version).
+     * @allow (get, list) - Any user can read payment settings.
+     * @deny (create, update, delete) - No user can create, update, or delete payment settings via client-side rules. These operations must be handled via trusted server environments.
      */
     match /paymentSettings/{planSettingsId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Manages super administrator user profiles.
+     * @description Allows super admins to only read their own profile.
      * @path /superAdmins/{superAdminId}
-     * @allow get, list: if isAdmin();
-     * @allow create: if isAdmin() && isSelfCreate(superAdminId);
-     * @allow update: if isAdmin() && isExistingOwner(superAdminId);
-     * @allow delete: if isAdmin() && isExistingOwner(superAdminId);
-     * @principle Enforces role-based access control for super admins.
+     * @allow (read) - Authenticated user can read their own super admin profile.
+     * @deny (create, update, delete, list) - No user can create, update, delete, or list super admin profiles.
+     * @principle Restricts access to a user's own data tree.
      */
     match /superAdmins/{superAdminId} {
-      allow get, list: if isAdmin();
-      allow create: if isAdmin() && isSelfCreate(superAdminId);
-      allow update: if isAdmin() && isExistingOwner(superAdminId);
-      allow delete: if isAdmin() && isExistingOwner(superAdminId);
+      allow read: if isSignedIn() && isOwner(superAdminId);
+      allow create, update, delete: if false;
+      allow list: if false;
     }
 
     /**
-     * @description Manages pending payments, accessible only to super administrators.
+     * @description Allows access to pending payment requests.
      * @path /pendingPayments/{paymentId}
-     * @allow get, list: if isAdmin();
-     * @allow create: if isAdmin();
-     * @allow update: if isAdmin() && resource != null;
-     * @allow delete: if false; // Deletion is not allowed for pending payments.
-     * @principle Restricts access to pending payment records to super administrators for management.
+     * @allow (read) - Authenticated user can read pending payment requests.
+     * @deny (create, update, delete, list) - No user can create, update, delete, or list pending payment requests.
      */
     match /pendingPayments/{paymentId} {
-        allow get, list: if isAdmin();
-        allow create: if isAdmin();
-        allow update: if isAdmin() && resource != null;
-        allow delete: if false;
+      allow read: if isSignedIn();
+      allow create, update, delete: if false;
+      allow list: if false;
     }
-  }
 
-  // ---- Helper functions ----
+    /**
+     * @description Allows access to subscriptions.
+     * @path /subscriptions/{subscriptionId}
+     * @allow (read) - Authenticated user can read subscriptions.
+     * @deny (create, update, delete, list) - No user can create, update, delete, or list subscriptions.
+     */
+    match /subscriptions/{subscriptionId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if false;
+      allow list: if false;
+    }
 
-  /**
-   * @description Checks if the user is signed in.
-   * @return {boolean} True if the user is signed in, false otherwise.
-   */
-  function isSignedIn() {
-    return request.auth != null;
-  }
+    /**
+     * @description Allows access to activity logs.
+     * @path /activityLogs/{logId}
+     * @allow (read) - Authenticated user can read activity logs.
+     * @deny (create, update, delete, list) - No user can create, update, delete, or list activity logs.
+     */
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if false;
+      allow list: if false;
+    }
 
-  /**
-   * @description Checks if the user is an administrator.
-   * @return {boolean} True if the user is an administrator, false otherwise.
-   */
-  function isAdmin() {
-    return isSignedIn() && request.auth.token.role == 'superadmin';
-  }
+    /**
+     * @description Helper function to determine if the current user is signed in.
+     * @return {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-  /**
-   * @description Checks if the user is the owner of the resource.
-   * @param {string} userId - The user ID to check against.
-   * @return {boolean} True if the user is the owner, false otherwise.
-   */
-  function isOwner(userId) {
-    return isSignedIn() && request.auth.uid == userId;
-  }
+    /**
+     * @description Helper function to determine if the current user is the owner of the resource.
+     * @param {string} userId - The user ID to check against.
+     * @return {boolean} True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
 
-  /**
-   * @description Checks if the user is creating their own user document.
-   * @param {string} userId - The user ID to check against.
-   * @return {boolean} True if the user is creating their own document, false otherwise.
-   */
-  function isSelfCreate(userId) {
-    return isSignedIn() && request.auth.uid == userId;
-  }
-
-  /**
-   * @description Checks if the user is the owner of the existing resource.
-   * @param {string} userId - The user ID to check against.
-   * @return {boolean} True if the user is the owner and the resource exists, false otherwise.
-   */
+    /**
+     * @description Helper function to determine if the current user is the owner of the existing resource.
+     * @param {string} userId - The user ID to check against.
+     * @return {boolean} True if the user is the owner, false otherwise.
+     */
     function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      return isOwner(userId) && resource != null;
     }
+  }
 }
