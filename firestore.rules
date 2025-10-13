@@ -1,226 +1,202 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model for most data, with some public read access for specific collections.
+ * @fileoverview Firestore Security Rules for Local Leap platform.
+ *
+ * Core Philosophy:
+ * This ruleset implements a role-based access control model with a 'superAdmin' role, and ownership-based access where appropriate.
  *
  * Data Structure:
- * - /businesses/{businessId}: Business profiles.
- * - /businesses/{businessId}/reviews/{reviewId}: Customer reviews for a business.
- * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}: Google Business Profiles for a business.
- * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}: Posts for a Google Business Profile.
- * - /businesses/{businessId}/landingPages/{landingPageId}: Landing pages for a business.
- * - /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}: Contact forms for landing pages.
- * - /subscriptionPlans/{subscriptionPlanId}: Subscription plans.
- * - /paymentSettings/{planSettingsId}: Payment settings for subscription plans.
- * - /superAdmins/{superAdminId}: Super administrator profiles.
- * - /pendingPayments/{paymentId}: Pending payment requests.
- * - /subscriptions/{subscriptionId}: Active subscriptions for businesses.
- * - /activityLogs/{logId}: Logs of administrative actions.
+ * - Businesses and related data (reviews, Google Business Profiles, landing pages) are stored under the `/businesses/{businessId}` path.
+ * - Subscription plans and payment settings are stored in top-level collections.
+ * - Super admins are stored under the `/superAdmins/{superAdminId}` path.
+ * - Pending payments, subscriptions and activity logs are stored in top-level collections.
  *
  * Key Security Decisions:
- * - User ownership is enforced for businesses and their related data (reviews, GBP, landing pages, etc.).
- * - Super admins can only read their own profile.
- * - Listing of super admins is disallowed.
- * - Public read access is enabled for subscription plans.
+ * - Only super admins can list businesses.
+ * - Super admins have full access to businesses.
+ * - Other collections are generally readable by anyone, but only super admins can create, update, or delete them.
+ * - All write operations require an authenticated user.
  *
  * Denormalization for Authorization:
- * - Reviews are stored under businesses to easily manage and query reviews associated with a particular business.
+ *  None.
+ *
+ * Structural Segregation:
+ *  No explicit segregation; assumes all data within a given collection has the same access requirements.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows access to business profiles based on ownership.
+     * @description Allows super admins to manage business entities.
      * @path /businesses/{businessId}
-     * @allow (create) - Authenticated user can create a business with their user ID as the business ID.
-     * @allow (get, list, update, delete) - Authenticated user can access their own business profile.
-     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @allow (list, create) if request.auth.uid is a super admin.
+     * @allow (read, update, delete) if request.auth.uid is a super admin.
+     * @deny (list, create) if request.auth.uid is not a super admin.
+     * @deny (read, update, delete) if request.auth.uid is not a super admin.
+     * @principle Enforces super admin role for business management.
      */
     match /businesses/{businessId} {
-      allow read: if isSignedIn() && isOwner(businessId);
-      allow create: if isSignedIn() && isOwner(businessId) && request.resource.data.id == businessId;
-      allow update: if isSignedIn() && isExistingOwner(businessId) && request.resource.data.id == resource.data.id;
-      allow delete: if isSignedIn() && isExistingOwner(businessId);
-      allow list: if false;
+      allow list, create: if isSuperAdmin();
+      allow read, update, delete: if isSuperAdmin();
     }
 
     /**
-     * @description Allows access to reviews associated with a business.
+     * @description Allows super admins to manage reviews under a business.
      * @path /businesses/{businessId}/reviews/{reviewId}
-     * @allow (create) - Authenticated user can create a review under their business.
-     * @allow (get, list, update, delete) - Authenticated user can access/manage reviews under their business.
-     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @allow get, list: if true;
+     * @allow create, update, delete: if isSuperAdmin();
+     * @deny create, update, delete: if !isSuperAdmin();
+     * @principle Open read access, super admin only writes.
      */
     match /businesses/{businessId}/reviews/{reviewId} {
-      allow read: if isSignedIn() && isOwner(businessId);
-      allow create: if isSignedIn() && isOwner(businessId);
-      allow update: if isSignedIn() && isExistingOwner(businessId);
-      allow delete: if isSignedIn() && isExistingOwner(businessId);
-      allow list: if isSignedIn() && isOwner(businessId);
+      allow get, list: if true;
+      allow create, update, delete: if isSuperAdmin();
     }
 
     /**
-     * @description Allows access to Google Business Profiles associated with a business.
+     * @description Allows super admins to manage Google Business Profiles for a business.
      * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}
-     * @allow (create) - Authenticated user can create a Google Business Profile under their business.
-     * @allow (get, list, update, delete) - Authenticated user can access/manage Google Business Profiles under their business.
-     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @allow get, list: if true;
+     * @allow create, update, delete: if isSuperAdmin();
+     * @deny create, update, delete: if !isSuperAdmin();
+     * @principle Open read access, super admin only writes.
      */
     match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId} {
-      allow read: if isSignedIn() && isOwner(businessId);
-      allow create: if isSignedIn() && isOwner(businessId);
-      allow update: if isSignedIn() && isExistingOwner(businessId);
-      allow delete: if isSignedIn() && isExistingOwner(businessId);
-      allow list: if isSignedIn() && isOwner(businessId);
+      allow get, list: if true;
+      allow create, update, delete: if isSuperAdmin();
     }
 
     /**
-     * @description Allows access to posts associated with a Google Business Profile.
+     * @description Allows super admins to manage posts under a Google Business Profile.
      * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}
-     * @allow (create) - Authenticated user can create a post under their Google Business Profile.
-     * @allow (get, list, update, delete) - Authenticated user can access/manage posts under their Google Business Profile.
-     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @allow get, list: if true;
+     * @allow create, update, delete: if isSuperAdmin();
+     * @deny create, update, delete: if !isSuperAdmin();
+     * @principle Open read access, super admin only writes.
      */
     match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId} {
-      allow read: if isSignedIn() && isOwner(businessId);
-      allow create: if isSignedIn() && isOwner(businessId);
-      allow update: if isSignedIn() && isExistingOwner(businessId);
-      allow delete: if isSignedIn() && isExistingOwner(businessId);
-      allow list: if isSignedIn() && isOwner(businessId);
+      allow get, list: if true;
+      allow create, update, delete: if isSuperAdmin();
     }
 
     /**
-     * @description Allows access to landing pages associated with a business.
+     * @description Allows super admins to manage landing pages for a business.
      * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow (create) - Authenticated user can create a landing page under their business.
-     * @allow (get, list, update, delete) - Authenticated user can access/manage landing pages under their business.
-     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @allow get, list: if true;
+     * @allow create, update, delete: if isSuperAdmin();
+     * @deny create, update, delete: if !isSuperAdmin();
+     * @principle Open read access, super admin only writes.
      */
     match /businesses/{businessId}/landingPages/{landingPageId} {
-      allow read: if isSignedIn() && isOwner(businessId);
-      allow create: if isSignedIn() && isOwner(businessId);
-      allow update: if isSignedIn() && isExistingOwner(businessId);
-      allow delete: if isSignedIn() && isExistingOwner(businessId);
-      allow list: if isSignedIn() && isOwner(businessId);
+      allow get, list: if true;
+      allow create, update, delete: if isSuperAdmin();
     }
 
     /**
-     * @description Allows access to contact forms associated with a landing page.
+     * @description Allows super admins to manage contact forms for a landing page.
      * @path /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}
-     * @allow (create) - Authenticated user can create a contact form under their landing page.
-     * @allow (get, list, update, delete) - Authenticated user can access/manage contact forms under their landing page.
-     * @deny (create, update, delete) - Any operation where the business ID does not match the user ID.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @allow get, list: if true;
+     * @allow create, update, delete: if isSuperAdmin();
+     * @deny create, update, delete: if !isSuperAdmin();
+     * @principle Open read access, super admin only writes.
      */
     match /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId} {
-      allow read: if isSignedIn() && isOwner(businessId);
-      allow create: if isSignedIn() && isOwner(businessId);
-      allow update: if isSignedIn() && isExistingOwner(businessId);
-      allow delete: if isSignedIn() && isExistingOwner(businessId);
-      allow list: if isSignedIn() && isOwner(businessId);
+      allow get, list: if true;
+      allow create, update, delete: if isSuperAdmin();
     }
 
     /**
-     * @description Allows public read access to subscription plans.
+     * @description Allows public read access to subscription plans, and super admin write access.
      * @path /subscriptionPlans/{subscriptionPlanId}
-     * @allow (get, list) - Any user can read subscription plans.
-     * @deny (create, update, delete) - No user can create, update, or delete subscription plans via client-side rules. These operations must be handled via trusted server environments.
-     * @principle Allows public read access for all users.
+     * @allow get, list: if true;
+     * @allow create, update, delete: if isSuperAdmin();
+     * @deny create, update, delete: if !isSuperAdmin();
+     * @principle Open read access, super admin only writes.
      */
     match /subscriptionPlans/{subscriptionPlanId} {
       allow get, list: if true;
-      allow create, update, delete: if false;
+      allow create, update, delete: if isSuperAdmin();
     }
 
     /**
-     * @description Allows read and write access to payment settings.
+     * @description Allows public read access to payment settings, and super admin write access.
      * @path /paymentSettings/{planSettingsId}
-     * @allow (get, list) - Any user can read payment settings.
-     * @deny (create, update, delete) - No user can create, update, or delete payment settings via client-side rules. These operations must be handled via trusted server environments.
+     * @allow get, list: if true;
+     * @allow create, update, delete: if isSuperAdmin();
+     * @deny create, update, delete: if !isSuperAdmin();
+     * @principle Open read access, super admin only writes.
      */
     match /paymentSettings/{planSettingsId} {
       allow get, list: if true;
-      allow create, update, delete: if false;
+      allow create, update, delete: if isSuperAdmin();
     }
 
     /**
-     * @description Allows super admins to only read their own profile.
+     * @description Allows access control for super admins. Only super admins can manage super admin profiles.
      * @path /superAdmins/{superAdminId}
-     * @allow (read) - Authenticated user can read their own super admin profile.
-     * @deny (create, update, delete, list) - No user can create, update, delete, or list super admin profiles.
-     * @principle Restricts access to a user's own data tree.
+     * @allow get: if isSuperAdmin();
+     * @allow list: if false;
+     * @allow create: if isSuperAdmin();
+     * @allow update: if isSuperAdmin();
+     * @allow delete: if isSuperAdmin();
+     * @deny list: if true;
+     * @deny create, update, delete: if !isSuperAdmin();
+     * @principle Restricts super admin management to other super admins.
      */
     match /superAdmins/{superAdminId} {
-      allow read: if isSignedIn() && isOwner(superAdminId);
-      allow create, update, delete: if false;
-      allow list: if false;
+        allow get: if isSuperAdmin();
+        allow list: if false;
+        allow create: if isSuperAdmin();
+        allow update: if isSuperAdmin();
+        allow delete: if isSuperAdmin();
     }
 
-    /**
-     * @description Allows access to pending payment requests.
-     * @path /pendingPayments/{paymentId}
-     * @allow (read) - Authenticated user can read pending payment requests.
-     * @deny (create, update, delete, list) - No user can create, update, delete, or list pending payment requests.
-     */
+     /**
+      * @description Allows super admins to manage pending payments.
+      * @path /pendingPayments/{paymentId}
+      * @allow get, list: if true;
+      * @allow create, update, delete: if isSuperAdmin();
+      * @deny create, update, delete: if !isSuperAdmin();
+      * @principle Open read access, super admin only writes.
+      */
     match /pendingPayments/{paymentId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if false;
-      allow list: if false;
+        allow get, list: if true;
+        allow create, update, delete: if isSuperAdmin();
     }
 
     /**
-     * @description Allows access to subscriptions.
+     * @description Allows super admins to manage subscriptions.
      * @path /subscriptions/{subscriptionId}
-     * @allow (read) - Authenticated user can read subscriptions.
-     * @deny (create, update, delete, list) - No user can create, update, delete, or list subscriptions.
+     * @allow get, list: if true;
+     * @allow create, update, delete: if isSuperAdmin();
+     * @deny create, update, delete: if !isSuperAdmin();
+     * @principle Open read access, super admin only writes.
      */
     match /subscriptions/{subscriptionId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if false;
-      allow list: if false;
+        allow get, list: if true;
+        allow create, update, delete: if isSuperAdmin();
     }
 
     /**
-     * @description Allows access to activity logs.
+     * @description Allows super admins to manage activity logs.
      * @path /activityLogs/{logId}
-     * @allow (read) - Authenticated user can read activity logs.
-     * @deny (create, update, delete, list) - No user can create, update, delete, or list activity logs.
+     * @allow get, list: if true;
+     * @allow create, update, delete: if isSuperAdmin();
+     * @deny create, update, delete: if !isSuperAdmin();
+     * @principle Open read access, super admin only writes.
      */
     match /activityLogs/{logId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if false;
-      allow list: if false;
+        allow get, list: if true;
+        allow create, update, delete: if isSuperAdmin();
     }
 
-    /**
-     * @description Helper function to determine if the current user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
-     */
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Helper function to determine if the current user is the owner of the resource.
-     * @param {string} userId - The user ID to check against.
-     * @return {boolean} True if the user is the owner, false otherwise.
-     */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    /**
-     * @description Helper function to determine if the current user is the owner of the existing resource.
-     * @param {string} userId - The user ID to check against.
-     * @return {boolean} True if the user is the owner, false otherwise.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    function isSuperAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
     }
   }
 }
