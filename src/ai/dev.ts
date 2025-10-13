@@ -6,3 +6,4 @@ import '@/ai/flows/generate-landing-page-description.ts';
 import '@/ai/flows/generate-review-response.ts';
 import '@/ai/flows/summarize-competitor-reviews.ts';
 import '@/ai/flows/suggest-gmb-keywords.ts';
+import '@/ai/flows/upload-image.ts';
