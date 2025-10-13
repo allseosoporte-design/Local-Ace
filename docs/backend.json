@@ -306,7 +306,12 @@
     "providers": [
       "password",
       "anonymous"
-    ]
+    ],
+    "customClaims": {
+      "isSuperAdmin": {
+        "type": "boolean"
+      }
+    }
   },
   "firestore": {
     "/superAdmins/{superAdminId}": {
@@ -343,7 +348,8 @@
       "schema": {
         "$ref": "#/entities/PaymentSettings"
       },
-      "description": "Stores payment method configurations for subscription plans. Access is restricted to super admins."
+      "description": "Stores payment method configurations for subscription plans. Access is restricted to super admins.",
+      "rules": "isSuperAdmin()"
     }
   }
 }
