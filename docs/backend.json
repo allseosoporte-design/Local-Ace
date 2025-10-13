@@ -1,53 +1,10 @@
 {
   "entities": {
-    "SuperAdmin": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SuperAdmin",
-      "type": "object",
-      "description": "Represents a super administrator account with elevated privileges to manage the platform.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the SuperAdmin entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the super administrator.",
-          "format": "email"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "First name of the super administrator."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Last name of the super administrator."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the super administrator account was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the super administrator account was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "email",
-        "firstName",
-        "lastName",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
     "Business": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Business",
       "type": "object",
-      "description": "Represents a business using the platform to manage their Google My Business profile and online presence.",
+      "description": "Represents a business using the Local Leap platform.",
       "properties": {
         "id": {
           "type": "string",
@@ -57,49 +14,49 @@
           "type": "string",
           "description": "Name of the business."
         },
-        "adminEmail": {
+        "address": {
           "type": "string",
-          "description": "Email of the business administrator.",
-          "format": "email"
+          "description": "Address of the business."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Phone number of the business."
         },
         "websiteUrl": {
           "type": "string",
-          "description": "URL of the business's website.",
+          "description": "Website URL of the business.",
           "format": "uri"
         },
-        "status": {
+        "googleMapsUrl": {
           "type": "string",
-          "description": "The current status of the business account.",
-          "enum": [
-            "Active",
-            "Suspended"
-          ]
+          "description": "Google Maps URL of the business.",
+          "format": "uri"
         },
-        "createdAt": {
+        "industryCategory": {
           "type": "string",
-          "description": "Timestamp indicating when the business was added to the platform.",
-          "format": "date-time"
+          "description": "Category of the business's industry (e.g., Restaurant, Retail)."
         },
-        "updatedAt": {
+        "subscriptionPlanId": {
           "type": "string",
-          "description": "Timestamp indicating when the business was last updated.",
-          "format": "date-time"
+          "description": "Reference to SubscriptionPlan. (Relationship: SubscriptionPlan 1:N Business)"
         }
       },
       "required": [
         "id",
         "name",
-        "adminEmail",
-        "status",
-        "createdAt",
-        "updatedAt"
+        "address",
+        "phoneNumber",
+        "websiteUrl",
+        "googleMapsUrl",
+        "industryCategory",
+        "subscriptionPlanId"
       ]
     },
     "Review": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Review",
       "type": "object",
-      "description": "Represents a review received by a business.",
+      "description": "Represents a customer review of a business.",
       "properties": {
         "id": {
           "type": "string",
@@ -107,33 +64,148 @@
         },
         "businessId": {
           "type": "string",
-          "description": "Reference to Business. (Relationship: Business 1:N Review). The business that received the review."
+          "description": "Reference to Business. (Relationship: Business 1:N Review)"
         },
         "rating": {
           "type": "number",
-          "description": "Rating given in the review (e.g., 1 to 5 stars)."
+          "description": "Rating given by the customer (1-5 stars)."
         },
         "comment": {
           "type": "string",
-          "description": "Text content of the review."
+          "description": "Textual comment provided by the customer."
         },
-        "authorName": {
+        "reviewDate": {
           "type": "string",
-          "description": "Name of the reviewer."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the review was received.",
+          "description": "Date and time when the review was submitted.",
           "format": "date-time"
+        },
+        "isFiltered": {
+          "type": "boolean",
+          "description": "Indicates whether the review was filtered (1-4 stars)."
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Name of the customer who submitted the review."
+        },
+        "customerEmail": {
+          "type": "string",
+          "description": "Email of the customer who submitted the review.",
+          "format": "email"
         }
       },
       "required": [
         "id",
         "businessId",
         "rating",
-        "comment",
-        "authorName",
-        "createdAt"
+        "reviewDate",
+        "isFiltered"
+      ]
+    },
+    "GoogleBusinessProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GoogleBusinessProfile",
+      "type": "object",
+      "description": "Represents a Google Business Profile listing.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the GoogleBusinessProfile entity."
+        },
+        "businessId": {
+          "type": "string",
+          "description": "Reference to Business. (Relationship: Business 1:1 GoogleBusinessProfile)"
+        },
+        "profileName": {
+          "type": "string",
+          "description": "Name of the business as it appears on Google."
+        },
+        "categoryIds": {
+          "type": "array",
+          "description": "References to Categories. (Relationship: Category N:N GoogleBusinessProfile)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the business on Google."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Latitude coordinate of the business location."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude coordinate of the business location."
+        }
+      },
+      "required": [
+        "id",
+        "businessId",
+        "profileName",
+        "latitude",
+        "longitude"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category for Google Business Profile listings.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Category entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Post": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Post",
+      "type": "object",
+      "description": "Represents a post on a Google Business Profile.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Post entity."
+        },
+        "googleBusinessProfileId": {
+          "type": "string",
+          "description": "Reference to GoogleBusinessProfile. (Relationship: GoogleBusinessProfile 1:N Post)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the post."
+        },
+        "content": {
+          "type": "string",
+          "description": "Content of the post."
+        },
+        "postDateTime": {
+          "type": "string",
+          "description": "Date and time the post was published.",
+          "format": "date-time"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the image associated with the post.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "googleBusinessProfileId",
+        "title",
+        "content",
+        "postDateTime"
       ]
     },
     "LandingPage": {
@@ -148,41 +220,42 @@
         },
         "businessId": {
           "type": "string",
-          "description": "Reference to Business. (Relationship: Business 1:N LandingPage). The business that owns the landing page."
+          "description": "Reference to Business. (Relationship: Business 1:N LandingPage)"
         },
         "title": {
           "type": "string",
           "description": "Title of the landing page."
         },
-        "content": {
+        "description": {
           "type": "string",
-          "description": "HTML or markdown content of the landing page."
+          "description": "Description on the landing page."
         },
-        "createdAt": {
+        "logoUrl": {
           "type": "string",
-          "description": "Timestamp indicating when the landing page was created.",
-          "format": "date-time"
+          "description": "URL of the logo displayed on the landing page.",
+          "format": "uri"
         },
-        "updatedAt": {
+        "primaryColor": {
           "type": "string",
-          "description": "Timestamp indicating when the landing page was last updated.",
-          "format": "date-time"
+          "description": "Primary color used in the landing page design (e.g., #4285F4)."
+        },
+        "contactFormId": {
+          "type": "string",
+          "description": "Reference to ContactForm. (Relationship: ContactForm 1:1 LandingPage)"
         }
       },
       "required": [
         "id",
         "businessId",
         "title",
-        "content",
-        "createdAt",
-        "updatedAt"
+        "description"
       ]
     },
     "SubscriptionPlan": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SubscriptionPlan",
       "type": "object",
-      "description": "Represents a subscription plan that businesses can subscribe to.",
+      "description": "Represents a subscription plan for the platform.",
       "properties": {
         "id": {
           "type": "string",
@@ -190,166 +263,203 @@
         },
         "name": {
           "type": "string",
-          "description": "Name of the subscription plan."
-        },
-        "description": {
-          "type": "string",
-          "description": "A short description of the plan."
+          "description": "Name of the subscription plan (e.g., Basic, Premium)."
         },
         "price": {
           "type": "number",
-          "description": "The price of the plan."
+          "description": "Price of the subscription plan (monthly or annually)."
         },
-        "currency": {
-          "type": "string",
-          "description": "The currency of the price (e.g., 'USD', 'COP')."
+        "locationLimit": {
+          "type": "number",
+          "description": "Maximum number of locations allowed for this plan."
         },
-        "billingPeriod": {
-          "type": "string",
-          "description": "The billing frequency.",
-          "enum": ["monthly", "yearly"]
-        },
-        "features": {
+        "featureSet": {
           "type": "array",
-          "description": "A list of features included in the plan.",
+          "description": "List of features included in this subscription plan.",
           "items": {
             "type": "string"
           }
-        },
-        "order": {
-            "type": "number",
-            "description": "The display order of the plan."
-        },
-        "isActive": {
-            "type": "boolean",
-            "description": "Whether the plan is currently active and available for subscription."
-        },
-        "isPopular": {
-            "type": "boolean",
-            "description": "Whether the plan should be highlighted as popular."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the plan was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the plan was last updated.",
-          "format": "date-time"
         }
       },
       "required": [
         "id",
         "name",
-        "description",
         "price",
-        "currency",
-        "billingPeriod",
-        "features",
-        "order",
-        "isActive",
-        "isPopular",
-        "createdAt",
-        "updatedAt"
+        "locationLimit"
       ]
     },
-     "PaymentSettings": {
-      "title": "PaymentSettings",
+    "ContactForm": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContactForm",
       "type": "object",
-      "description": "Stores payment method configurations for a subscription plan.",
+      "description": "Represents a contact form associated with a landing page.",
       "properties": {
-        "planId": { "type": "string", "description": "The ID of the subscription plan (e.g., 'starter')." },
-        "nequi": { "$ref": "#/entities/QRPaymentMethod" },
-        "bancolombia": { "$ref": "#/entities/QRPaymentMethod" },
-        "stripe": { "$ref": "#/entities/StripePaymentMethod" },
-        "mercadoPago": { "$ref": "#/entities/MercadoPagoPaymentMethod" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "QRPaymentMethod": {
-      "title": "QRPaymentMethod",
-      "type": "object",
-      "properties": {
-        "enabled": { "type": "boolean" },
-        "qrImageUrl": { "type": "string", "format": "uri" },
-        "accountNumber": { "type": "string" },
-        "holderName": { "type": "string" },
-        "idDocument": { "type": "string" },
-        "phone": { "type": "string" },
-        "isMainQR": { "type": "boolean" },
-        "instructions": { "type": "string" }
-      }
-    },
-    "StripePaymentMethod": {
-      "title": "StripePaymentMethod",
-      "type": "object",
-      "properties": {
-        "enabled": { "type": "boolean" },
-        "publicKey": { "type": "string" },
-        "secretKey": { "type": "string" }
-      }
-    },
-    "MercadoPagoPaymentMethod": {
-      "title": "MercadoPagoPaymentMethod",
-      "type": "object",
-      "properties": {
-        "enabled": { "type": "boolean" },
-        "accessToken": { "type": "string" },
-        "publicKey": { "type": "string" },
-        "mode": { "type": "string", "enum": ["production", "sandbox"] },
-        "instructions": { "type": "string" }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ContactForm entity."
+        },
+        "fields": {
+          "type": "array",
+          "description": "Array of fields to be displayed in the Contact Form",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id"
+      ]
     }
   },
   "auth": {
     "providers": [
       "password",
       "anonymous"
-    ],
-    "customClaims": {
-      "isSuperAdmin": {
-        "type": "boolean"
-      }
-    }
+    ]
   },
   "firestore": {
-    "/superAdmins/{superAdminId}": {
-      "schema": {
-        "$ref": "#/entities/SuperAdmin"
+    "structure": [
+      {
+        "path": "/businesses/{businessId}",
+        "definition": {
+          "entityName": "Business",
+          "schema": {
+            "$ref": "#/backend/entities/Business"
+          },
+          "description": "Stores business entities.  `businessId` is the unique identifier for each business.",
+          "params": [
+            {
+              "name": "businessId",
+              "description": "Unique identifier for the Business entity."
+            }
+          ]
+        }
       },
-      "description": "Stores super administrator accounts. Used for authentication and authorization."
-    },
-    "/businesses/{businessId}": {
-      "schema": {
-        "$ref": "#/entities/Business"
+      {
+        "path": "/businesses/{businessId}/reviews/{reviewId}",
+        "definition": {
+          "entityName": "Review",
+          "schema": {
+            "$ref": "#/backend/entities/Review"
+          },
+          "description": "Stores reviews associated with a business.  Includes denormalized business information as necessary for authorization independence.",
+          "params": [
+            {
+              "name": "businessId",
+              "description": "Unique identifier for the Business entity."
+            },
+            {
+              "name": "reviewId",
+              "description": "Unique identifier for the Review entity."
+            }
+          ]
+        }
       },
-      "description": "Stores business accounts managed by super admins."
-    },
-    "/businesses/{businessId}/reviews/{reviewId}": {
-      "schema": {
-        "$ref": "#/entities/Review"
+      {
+        "path": "/businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}",
+        "definition": {
+          "entityName": "GoogleBusinessProfile",
+          "schema": {
+            "$ref": "#/backend/entities/GoogleBusinessProfile"
+          },
+          "description": "Stores Google Business Profiles associated with a business.",
+          "params": [
+            {
+              "name": "businessId",
+              "description": "Unique identifier for the Business entity."
+            },
+            {
+              "name": "googleBusinessProfileId",
+              "description": "Unique identifier for the GoogleBusinessProfile entity."
+            }
+          ]
+        }
       },
-      "description": "Stores reviews associated with a specific business."
-    },
-    "/businesses/{businessId}/landingPages/{landingPageId}": {
-      "schema": {
-        "$ref": "#/entities/LandingPage"
+      {
+        "path": "/businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}",
+        "definition": {
+          "entityName": "Post",
+          "schema": {
+            "$ref": "#/backend/entities/Post"
+          },
+          "description": "Stores posts associated with a Google Business Profile.",
+          "params": [
+            {
+              "name": "businessId",
+              "description": "Unique identifier for the Business entity."
+            },
+            {
+              "name": "googleBusinessProfileId",
+              "description": "Unique identifier for the GoogleBusinessProfile entity."
+            },
+            {
+              "name": "postId",
+              "description": "Unique identifier for the Post entity."
+            }
+          ]
+        }
       },
-      "description": "Stores landing pages associated with a specific business."
-    },
-    "/subscriptionPlans/{planId}": {
-      "schema": {
-        "$ref": "#/entities/SubscriptionPlan"
+      {
+        "path": "/businesses/{businessId}/landingPages/{landingPageId}",
+        "definition": {
+          "entityName": "LandingPage",
+          "schema": {
+            "$ref": "#/backend/entities/LandingPage"
+          },
+          "description": "Stores landing pages associated with a business.",
+          "params": [
+            {
+              "name": "businessId",
+              "description": "Unique identifier for the Business entity."
+            },
+            {
+              "name": "landingPageId",
+              "description": "Unique identifier for the LandingPage entity."
+            }
+          ]
+        }
       },
-      "description": "Stores all available subscription plans for the platform."
-    },
-    "/paymentSettings/{planSettingsId}": {
-      "schema": {
-        "$ref": "#/entities/PaymentSettings"
+      {
+        "path": "/businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}",
+        "definition": {
+          "entityName": "ContactForm",
+          "schema": {
+            "$ref": "#/backend/entities/ContactForm"
+          },
+          "description": "Stores contact forms associated with a landing page.",
+          "params": [
+            {
+              "name": "businessId",
+              "description": "Unique identifier for the Business entity."
+            },
+            {
+              "name": "landingPageId",
+              "description": "Unique identifier for the LandingPage entity."
+            },
+            {
+              "name": "contactFormId",
+              "description": "Unique identifier for the ContactForm entity."
+            }
+          ]
+        }
       },
-      "description": "Stores payment method configurations for subscription plans. Access is restricted to super admins.",
-      "rules": "isSuperAdmin()"
-    }
+      {
+        "path": "/subscriptionPlans/{subscriptionPlanId}",
+        "definition": {
+          "entityName": "SubscriptionPlan",
+          "schema": {
+            "$ref": "#/backend/entities/SubscriptionPlan"
+          },
+          "description": "Stores subscription plan details.",
+          "params": [
+            {
+              "name": "subscriptionPlanId",
+              "description": "Unique identifier for the SubscriptionPlan entity."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure prioritizes authorization independence and QAPs (Rules are not Filters) as mandated. It leverages structural segregation to ensure homogeneous security postures within collections and subcollections.  \n\n*   **Businesses:** The `businesses` collection stores business-related data. Each business document is identified by a unique `businessId`.  \n*   **Reviews:** Reviews are stored in a subcollection of the business (`/businesses/{businessId}/reviews/{reviewId}`). This allows efficient querying of reviews associated with a specific business.  \n*   **Google Business Profiles:** Google Business Profiles are stored in a subcollection of the business (`/businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}`). This approach allows efficient querying of Google Business Profiles associated with a specific business.\n*   **Posts:** Posts are stored in a subcollection of the Google Business Profile (`/businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}`).\n*   **Landing Pages:** Landing Pages are stored in a subcollection of the business (`/businesses/{businessId}/landingPages/{landingPageId}`). This allows efficient querying of landing pages associated with a specific business. \n*   **Contact Forms:** Contact Forms are stored in a subcollection of the landing page (`/businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}`).  This allows efficient querying of contact forms associated with a specific landing page. \n*   **Subscription Plans:** The `subscriptionPlans` collection stores subscription plan details.  \n\n**Authorization Independence:**\n\n*   The structure enables authorization independence by avoiding `get()` calls in the security rules. For example, access to `/businesses/{businessId}/reviews/{reviewId}` will rely on the existence of the business document and potentially on denormalized data within the review document itself (e.g., copying business ownership details into the review). \n\n**QAPs (Rules are not Filters):**\n\n*   Structural segregation supports QAPs. For instance, if there were a need to separate public and private reviews, they would be stored in separate collections or subcollections (e.g., `/businesses/{businessId}/public_reviews/{reviewId}` and `/businesses/{businessId}/private_reviews/{reviewId}`), each with its own security rules. This prevents the need to filter based on review content in the rules, which is an anti-pattern."
   }
 }

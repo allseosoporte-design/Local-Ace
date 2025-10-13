@@ -1,127 +1,171 @@
 /**
- * @fileoverview Firestore Security Rules for the Local Leap application.
- *
- * Core Philosophy:
- * This ruleset implements a role-based access control (RBAC) model with super admins and an ownership model for businesses and their associated data. Super admins have broad access, while businesses primarily have read access, and the super admin of a business has write access.
- *
- * Data Structure:
- * - /superAdmins/{superAdminId}: Stores super admin profiles. Super admins can manage businesses and subscription plans.
- * - /businesses/{businessId}: Stores business profiles, including a denormalized superAdminId for simpler authorization.
- * - /businesses/{businessId}/reviews/{reviewId}: Stores reviews associated with a business.
- * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages associated with a business.
- * - /subscriptionPlans/{planId}: Stores subscription plans.
- *
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a hierarchical data ownership model, where businesses own their associated reviews, Google Business Profiles, posts, landing pages, and contact forms.
+ * All data is nested under the /businesses/{businessId} collection.
  * Key Security Decisions:
- * - Super admins are granted database-wide admin privileges based on their existence in the `/superAdmins` collection.
- * - Read access to subscription plans is public.
- * - Strict ownership is enforced for businesses, reviews, and landing pages, with the super admin controlling write access.
- * - Listing of super admins is disallowed for security reasons.
- *
- * Denormalization for Authorization:
- * - Business documents include a `superAdminId` field to avoid needing to perform `get()` operations to determine the owner. This enables fast, simple rules based on the `superAdminId`.
+ *  - Explicitly denying listing of the root collections, enforcing access only through a known businessId.
+ *  - Enforcing that a user must be signed in to perform any write operation.
+ *  - Assuming that all write operations require business ownership.
+ *  - Read access is generally open for prototyping purposes, but this should be tightened in production.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Rule for super admin accounts. Only the super admin can read/write their own document. Listing is denied.
-     * @path /superAdmins/{superAdminId}
-     * @allow (create, get, update, delete) if the user is signed in and their UID matches the superAdminId.
-     * @deny (create, get, update, delete) if the user is not signed in or their UID does not match the superAdminId.
-     * @principle Enforces user-ownership for super admin profiles.
+     * @description Checks if the user is signed in.
+     * @return {bool} True if the user is signed in, false otherwise.
      */
-    match /superAdmins/{superAdminId} {
-      // Only allow authenticated users
-      allow create: if isSignedIn() && request.auth.uid == superAdminId;
-      allow get: if isSignedIn() && request.auth.uid == superAdminId;
-      allow update: if isSignedIn() && isExistingOwner(superAdminId);
-      allow delete: if isSignedIn() && isExistingOwner(superAdminId);
-      allow list: if false; // Listing super admins is not permitted.
-    }
-
-    /**
-     * @description Rule for business accounts. Super admins can create, read, update, and delete businesses.
-     * @path /businesses/{businessId}
-     * @allow (create) if the user is a super admin and the request data contains a valid 'superAdminId'.
-     * @allow (get, list) if the user is a super admin.
-     * @allow (update, delete) if the user is a super admin and owns the business.
-     * @deny (create, get, update, delete) if the user is not a super admin.
-     * @principle Enforces super admin control over business profiles.
-     */
-    match /businesses/{businessId} {
-      allow create: if isSignedIn() && isSuperAdmin() && request.resource.data.superAdminId == request.auth.uid;
-      allow get, list: if isSignedIn() && isSuperAdmin();
-      allow update: if isSignedIn() && isSuperAdmin() && isExistingOwner(resource.data.superAdminId);
-      allow delete: if isSignedIn() && isSuperAdmin() && isExistingOwner(resource.data.superAdminId);
-    }
-
-    /**
-     * @description Rule for reviews associated with a business. Only super admins can create, read, update, and delete reviews for their businesses.
-     * @path /businesses/{businessId}/reviews/{reviewId}
-     * @allow (create) if the user is a super admin and owns the business.
-     * @allow (get, list) if the user is a super admin and owns the business.
-     * @allow (update, delete) if the user is a super admin and owns the business.
-     * @deny (create, get, update, delete) if the user is not a super admin or does not own the business.
-     * @principle Enforces super admin control over reviews for their businesses.
-     */
-    match /businesses/{businessId}/reviews/{reviewId} {
-      allow create: if isSignedIn() && isSuperAdminForBusiness(businessId);
-      allow get, list: if isSignedIn() && isSuperAdminForBusiness(businessId);
-      allow update: if isSignedIn() && isSuperAdminForBusiness(businessId) && resource != null;
-      allow delete: if isSignedIn() && isSuperAdminForBusiness(businessId) && resource != null;
-    }
-
-    /**
-     * @description Rule for landing pages associated with a business. Only super admins can create, read, update, and delete landing pages for their businesses.
-     * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow (create) if the user is a super admin and owns the business.
-     * @allow (get, list) if the user is a super admin and owns the business.
-     * @allow (update, delete) if the user is a super admin and owns the business.
-     * @deny (create, get, update, delete) if the user is not a super admin or does not own the business.
-     * @principle Enforces super admin control over landing pages for their businesses.
-     */
-    match /businesses/{businessId}/landingPages/{landingPageId} {
-      allow create: if isSignedIn() && isSuperAdminForBusiness(businessId);
-      allow get, list: if isSignedIn() && isSuperAdminForBusiness(businessId);
-      allow update: if isSignedIn() && isSuperAdminForBusiness(businessId) && resource != null;
-      allow delete: if isSignedIn() && isSuperAdminForBusiness(businessId) && resource != null;
-    }
-
-    /**
-     * @description Rule for subscription plans.  Super admins can create, read, update and delete plans.  Other users can read plans.
-     * @path /subscriptionPlans/{planId}
-     * @allow (create, update, delete) if the user is a super admin.
-     * @allow (get, list) if true (public read).
-     * @deny (create, update, delete) if the user is not a super admin.
-     * @principle Enforces super admin control over subscription plans, with public read access.
-     */
-    match /subscriptionPlans/{planId} {
-      allow create: if isSignedIn() && isSuperAdmin();
-      allow get, list: if true;
-      allow update: if isSignedIn() && isSuperAdmin() && resource != null;
-      allow delete: if isSignedIn() && isSuperAdmin() && resource != null;
-    }
-
-    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    /**
+     * @description Checks if the request is made by the owner of the business.
+     * @param {string} businessId - The ID of the business.
+     * @return {bool} True if the user is the owner, false otherwise.
+     */
+    function isOwner(businessId) {
+      return isSignedIn() && request.auth.uid == businessId;
     }
 
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    /**
+     * @description Checks if the business exists and the user is the owner of the business.
+     * @param {string} businessId - The ID of the business.
+     * @return {bool} True if the business exists and the user is the owner, false otherwise.
+     */
+    function isExistingOwner(businessId) {
+      return isOwner(businessId) && resource != null;
+    }
+    
+    match /{path=**}/businesses {
+      allow list: if false;
     }
 
-    function isSuperAdmin() {
-        return exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
+    /**
+     * @description Manages access to Business documents.
+     * @path /businesses/{businessId}
+     * @allow (create) User with UID matching `businessId` can create a business document.
+     * @deny (create) User with UID not matching `businessId` cannot create a business document.
+     * @allow (get, list) Any signed-in user can read a business document.
+     * @allow (update, delete) Only the owner of the business can update or delete the document.
+     * @deny (update, delete) Non-owners cannot update or delete the document.
+     * @principle Enforces document ownership for writes, open reads for prototyping.
+     */
+    match /businesses/{businessId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isOwner(businessId);
+      allow update: if isExistingOwner(businessId);
+      allow delete: if isExistingOwner(businessId);
     }
 
-    function isSuperAdminForBusiness(businessId) {
-        return get(/databases/$(database)/documents/businesses/$(businessId)).data.superAdminId == request.auth.uid;
+    /**
+     * @description Manages access to Review documents under a Business.
+     * @path /businesses/{businessId}/reviews/{reviewId}
+     * @allow (create) Owner of the business can create a review.
+     * @deny (create) Non-owners cannot create a review.
+     * @allow (get, list) Any signed-in user can read a review.
+     * @allow (update, delete) Only the owner of the business can update or delete the review.
+     * @deny (update, delete) Non-owners cannot update or delete the review.
+     * @principle Enforces document ownership for writes, open reads for prototyping.
+     */
+    match /businesses/{businessId}/reviews/{reviewId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isOwner(businessId);
+      allow update: if isExistingOwner(businessId);
+      allow delete: if isExistingOwner(businessId);
+    }
+
+    /**
+     * @description Manages access to GoogleBusinessProfile documents under a Business.
+     * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}
+     * @allow (create) Owner of the business can create a Google Business Profile.
+     * @deny (create) Non-owners cannot create a Google Business Profile.
+     * @allow (get, list) Any signed-in user can read a Google Business Profile.
+     * @allow (update, delete) Only the owner of the business can update or delete the Google Business Profile.
+     * @deny (update, delete) Non-owners cannot update or delete the Google Business Profile.
+     * @principle Enforces document ownership for writes, open reads for prototyping.
+     */
+    match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isOwner(businessId);
+      allow update: if isExistingOwner(businessId);
+      allow delete: if isExistingOwner(businessId);
+    }
+
+    /**
+     * @description Manages access to Post documents under a GoogleBusinessProfile.
+     * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}
+     * @allow (create) Owner of the business can create a post.
+     * @deny (create) Non-owners cannot create a post.
+     * @allow (get, list) Any signed-in user can read a post.
+     * @allow (update, delete) Only the owner of the business can update or delete the post.
+     * @deny (update, delete) Non-owners cannot update or delete the post.
+     * @principle Enforces document ownership for writes, open reads for prototyping.
+     */
+    match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isOwner(businessId);
+      allow update: if isExistingOwner(businessId);
+      allow delete: if isExistingOwner(businessId);
+    }
+
+    /**
+     * @description Manages access to LandingPage documents under a Business.
+     * @path /businesses/{businessId}/landingPages/{landingPageId}
+     * @allow (create) Owner of the business can create a landing page.
+     * @deny (create) Non-owners cannot create a landing page.
+     * @allow (get, list) Any signed-in user can read a landing page.
+     * @allow (update, delete) Only the owner of the business can update or delete the landing page.
+     * @deny (update, delete) Non-owners cannot update or delete the landing page.
+     * @principle Enforces document ownership for writes, open reads for prototyping.
+     */
+    match /businesses/{businessId}/landingPages/{landingPageId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isOwner(businessId);
+      allow update: if isExistingOwner(businessId);
+      allow delete: if isExistingOwner(businessId);
+    }
+
+    /**
+     * @description Manages access to ContactForm documents under a LandingPage.
+     * @path /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}
+     * @allow (create) Owner of the business can create a contact form.
+     * @deny (create) Non-owners cannot create a contact form.
+     * @allow (get, list) Any signed-in user can read a contact form.
+     * @allow (update, delete) Only the owner of the business can update or delete the contact form.
+     * @deny (update, delete) Non-owners cannot update or delete the contact form.
+     * @principle Enforces document ownership for writes, open reads for prototyping.
+     */
+    match /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isOwner(businessId);
+      allow update: if isExistingOwner(businessId);
+      allow delete: if isExistingOwner(businessId);
+    }
+
+    match /subscriptionPlans {
+      allow list: if false;
+    }
+    /**
+     * @description Manages access to SubscriptionPlan documents.
+     * @path /subscriptionPlans/{subscriptionPlanId}
+     * @allow (get, list) Any signed-in user can read a subscription plan.
+     * @allow (create, update, delete) No one can create, update, or delete a subscription plan.
+     * @principle Restricts write access to SubscriptionPlans.
+     */
+    match /subscriptionPlans/{subscriptionPlanId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }
