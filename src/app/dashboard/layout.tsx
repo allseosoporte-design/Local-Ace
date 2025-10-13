@@ -23,12 +23,10 @@ export default function DashboardLayout({
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Wait until firebase auth and firestore are initialized
     if (isUserLoading || !firestore) {
       return; 
     }
 
-    // If there is no user, redirect to login page.
     if (!user) {
       router.replace('/login');
       return;
@@ -39,19 +37,21 @@ export default function DashboardLayout({
         const adminDocRef = doc(firestore, 'superAdmins', user.uid);
         const adminDoc = await getDoc(adminDocRef);
         const isSuperAdmin = adminDoc.exists();
-        const onAdminPath = pathname.startsWith('/dashboard/admin');
-        const onStandardDashboard = pathname === '/dashboard';
-
-        if (isSuperAdmin && !onAdminPath) {
+        
+        // This is the problematic part. We should not redirect if the user is already in a dashboard path
+        // other than the standard user one.
+        if (isSuperAdmin && pathname === '/dashboard') {
+          // If super admin is on the standard user dashboard, redirect to admin dashboard.
           router.replace('/dashboard/admin');
-        } else if (!isSuperAdmin && onAdminPath) {
+        } else if (!isSuperAdmin && pathname.startsWith('/dashboard/admin')) {
+          // If a non-admin tries to access an admin path, redirect to standard dashboard.
           router.replace('/dashboard');
         } else {
+          // Otherwise, the user is in the correct place.
           setIsReady(true);
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
-        // Fallback for safety: if something fails, send non-admins to standard dash
         if (pathname.startsWith('/dashboard/admin')) {
            router.replace('/dashboard');
         } else {
