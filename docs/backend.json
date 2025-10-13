@@ -309,69 +309,41 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/superAdmins/{superAdminId}",
-        "definition": {
-          "entityName": "SuperAdmin",
-          "schema": {
-            "$ref": "#/backend/entities/SuperAdmin"
-          },
-          "description": "Stores super administrator accounts. Used for authentication and authorization."
-        }
+    "/superAdmins/{superAdminId}": {
+      "schema": {
+        "$ref": "#/entities/SuperAdmin"
       },
-      {
-        "path": "/businesses/{businessId}",
-        "definition": {
-          "entityName": "Business",
-          "schema": {
-            "$ref": "#/backend/entities/Business"
-          },
-          "description": "Stores business accounts managed by super admins."
-        }
+      "description": "Stores super administrator accounts. Used for authentication and authorization."
+    },
+    "/businesses/{businessId}": {
+      "schema": {
+        "$ref": "#/entities/Business"
       },
-      {
-        "path": "/businesses/{businessId}/reviews/{reviewId}",
-        "definition": {
-          "entityName": "Review",
-          "schema": {
-            "$ref": "#/backend/entities/Review"
-          },
-          "description": "Stores reviews associated with a specific business."
-        }
+      "description": "Stores business accounts managed by super admins."
+    },
+    "/businesses/{businessId}/reviews/{reviewId}": {
+      "schema": {
+        "$ref": "#/entities/Review"
       },
-      {
-        "path": "/businesses/{businessId}/landingPages/{landingPageId}",
-        "definition": {
-          "entityName": "LandingPage",
-          "schema": {
-            "$ref": "#/backend/entities/LandingPage"
-          },
-          "description": "Stores landing pages associated with a specific business."
-        }
+      "description": "Stores reviews associated with a specific business."
+    },
+    "/businesses/{businessId}/landingPages/{landingPageId}": {
+      "schema": {
+        "$ref": "#/entities/LandingPage"
       },
-       {
-        "path": "/subscriptionPlans/{planId}",
-        "definition": {
-          "entityName": "SubscriptionPlan",
-          "schema": {
-            "$ref": "#/backend/entities/SubscriptionPlan"
-          },
-          "description": "Stores all available subscription plans for the platform."
-        }
+      "description": "Stores landing pages associated with a specific business."
+    },
+    "/subscriptionPlans/{planId}": {
+      "schema": {
+        "$ref": "#/entities/SubscriptionPlan"
       },
-      {
-        "path": "/paymentSettings/{planSettingsId}",
-        "definition": {
-          "entityName": "PaymentSettings",
-          "schema": {
-            "$ref": "#/backend/entities/PaymentSettings"
-          },
-          "description": "Stores payment method configurations for subscription plans. Access is restricted to super admins."
-        }
-      }
-    ]
+      "description": "Stores all available subscription plans for the platform."
+    },
+    "/paymentSettings/{planSettingsId}": {
+      "schema": {
+        "$ref": "#/entities/PaymentSettings"
+      },
+      "description": "Stores payment method configurations for subscription plans. Access is restricted to super admins."
+    }
   }
 }
-
-    
