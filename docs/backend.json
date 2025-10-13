@@ -376,6 +376,48 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "email", "firstName", "lastName"]
+    },
+    "PendingPayment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PendingPayment",
+      "type": "object",
+      "description": "Represents a payment awaiting manual verification.",
+      "properties": {
+        "empresaNombre": { "type": "string" },
+        "empresaId": { "type": "string" },
+        "planSolicitado": { "type": "string" },
+        "fechaSolicitud": { "type": "string", "format": "date-time" },
+        "estadoPago": { "type": "string", "enum": ["pendiente", "aprobado", "rechazado"] },
+        "comprobanteURL": { "type": "string", "format": "uri" },
+        "idAdminRevisor": { "type": "string" }
+      },
+      "required": ["empresaNombre", "empresaId", "planSolicitado", "fechaSolicitud", "estadoPago"]
+    },
+    "Subscription": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Subscription",
+        "type": "object",
+        "description": "Represents an active subscription for a business.",
+        "properties": {
+            "empresaId": { "type": "string" },
+            "planActivo": { "type": "string" },
+            "fechaInicio": { "type": "string", "format": "date-time" },
+            "fechaVencimiento": { "type": "string", "format": "date-time" }
+        },
+        "required": ["empresaId", "planActivo", "fechaInicio", "fechaVencimiento"]
+    },
+    "ActivityLog": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "ActivityLog",
+        "type": "object",
+        "description": "Logs actions performed by administrators.",
+        "properties": {
+            "tipoAccion": { "type": "string" },
+            "idAdmin": { "type": "string" },
+            "empresaId": { "type": "string" },
+            "timestamp": { "type": "string", "format": "date-time" }
+        },
+        "required": ["tipoAccion", "idAdmin", "timestamp"]
     }
   },
   "auth": {
@@ -387,7 +429,7 @@
   "firestore": {
     "/businesses/{businessId}": {
       "schema": { "$ref": "#/entities/Business" },
-      "description": "Stores business entities.  `businessId` is the unique identifier for each business."
+      "description": "Stores business entities. `businessId` is the unique identifier for each business."
     },
     "/businesses/{businessId}/reviews/{reviewId}": {
       "schema": { "$ref": "#/entities/Review" },
@@ -420,6 +462,18 @@
     "/superAdmins/{superAdminId}": {
       "schema": { "$ref": "#/entities/SuperAdmin" },
       "description": "Stores super administrator user profiles."
+    },
+    "/pendingPayments/{paymentId}": {
+        "schema": { "$ref": "#/entities/PendingPayment" },
+        "description": "Stores pending payment requests awaiting manual approval."
+    },
+    "/subscriptions/{subscriptionId}": {
+        "schema": { "$ref": "#/entities/Subscription" },
+        "description": "Stores active subscriptions for businesses."
+    },
+    "/activityLogs/{logId}": {
+        "schema": { "$ref": "#/entities/ActivityLog" },
+        "description": "Stores logs of administrative actions."
     }
   }
 }

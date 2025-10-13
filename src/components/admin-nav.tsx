@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Users, CreditCard, User, Settings } from "lucide-react";
+import { Users, CreditCard, User, Settings, Wallet } from "lucide-react";
 import { EditorLandingIcon } from "./icons/editor-landing";
 import { PaymentIcon } from "./icons/payment";
 
@@ -20,6 +20,11 @@ const links = [
     href: "/dashboard/admin/subscription-plans",
     label: "Gestión de Planes",
     icon: <CreditCard />,
+  },
+  {
+    href: "/dashboard/admin/pending-payments",
+    label: "Pagos Pendientes",
+    icon: <Wallet />,
   },
   {
     href: "/dashboard/admin/editor-landing",

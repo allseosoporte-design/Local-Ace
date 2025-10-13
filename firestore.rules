@@ -1,194 +1,217 @@
 /**
- * @fileoverview Firestore Security Rules for Local Leap Platform
+ * @fileoverview Firestore Security Rules for Local Leap platform.
  *
  * Core Philosophy:
- * This ruleset enforces a role-based access control model with a super-admin role and business-specific ownership.
- * Super admins have full access, while business owners have control over their own business data.
- * Unauthenticated access is disallowed.
+ * This ruleset enforces a role-based access control model, primarily focused on restricting access to super administrators.
  *
  * Data Structure:
- * - /businesses/{businessId}: Root collection for business entities.
- * - /businesses/{businessId}/reviews/{reviewId}: Subcollection for business reviews.
- * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}: Subcollection for Google Business Profiles.
- * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}: Subcollection for Google Business Profile posts.
- * - /businesses/{businessId}/landingPages/{landingPageId}: Subcollection for Landing Pages.
- * - /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}: Subcollection for Contact Forms.
- * - /subscriptionPlans/{subscriptionPlanId}: Collection for subscription plans.
- * - /paymentSettings/{planSettingsId}: Collection for payment settings.
- * - /superAdmins/{superAdminId}: Collection for super administrators.
+ * The database is organized with top-level collections for core entities (businesses, subscriptionPlans, superAdmins, etc.).
+ * Subcollections are used to represent relationships (e.g., reviews under a business).
  *
  * Key Security Decisions:
- * - Super-admins are managed within the `/superAdmins` collection, all other users will be treated as unauthenticated.
- * - Data is generally not publicly listable without authentication.
- * - Ownership is enforced for business-related data (reviews, GBP, posts, landing pages, contact forms).
- * - `list` operations are allowed for super admins.
+ * - Only authenticated super administrators can read or write superAdmin profiles.
+ * - Regular users (non-superAdmins) are implicitly denied access to superAdmin profiles.
+ * - Read access is generally open unless writes should be restricted to owners.
+ * - Data validation is minimal in this prototype, focusing on authorization and relational integrity checks.
  *
  * Denormalization for Authorization:
- *  - To keep rules simple and efficient, business ownership is implicitly derived from the path /businesses/{businessId}/....
+ * This ruleset avoids `get()` calls by assuming the superAdmin role can be determined through `request.auth.token.role`.
+ *
+ * Structural Segregation:
+ * No explicit segregation of public vs. private data is implemented. All collections are treated as potentially private
+ * and secured based on roles or ownership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the user is signed in.
-     * @return {bool} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the user is a super admin.
-     * @return {bool} True if the user is a super admin, false otherwise.
-     */
-    function isSuperAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
-    }
-
-    /**
-     * @description Checks if the user owns the business.
-     * @param {string} businessId - The business ID to check.
-     * @return {bool} True if the user owns the business, false otherwise.
-     */
-    function isBusinessOwner(businessId) {
-      return isSuperAdmin();
-    }
-
-    /**
-     * @description Checks if the user is the existing owner of the resource.
-     *              Combines the ownership check with existence check.
-     * @param {string} businessId - The business ID to check.
-     * @return {bool} True if the user owns the business and the resource exists, false otherwise.
-     */
-    function isExistingBusinessOwner(businessId) {
-        return isBusinessOwner(businessId) && exists(resource);
-    }
-
-    /**
-     * @description Root-level rule to prevent any unauthorized access.
-     */
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-   /**
-     * @description Manages access to business entities.
+     * @description Allows access to business entities.
      * @path /businesses/{businessId}
-     * @allow (create) If the user is a super admin.
-     * @allow (get, list, update, delete) If the user is a super admin.
-     * @deny (create, update, delete) If the user is not a super admin.
-     * @principle Enforces super admin control over business entities.
+     * @allow get, list: if true;
+     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Allows public read, restricts writes to owners (not implemented in this version).
      */
     match /businesses/{businessId} {
-      allow get, list: if isSuperAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Manages access to reviews associated with a business.
+     * @description Allows access to reviews associated with a business.
      * @path /businesses/{businessId}/reviews/{reviewId}
-     * @allow (create) If the user is a super admin.
-     * @allow (get, list, update, delete) If the user is a super admin.
-     * @deny (create, update, delete) If the user is not a super admin.
-     * @principle Enforces super admin control over reviews.
+     * @allow get, list: if true;
+     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Allows public read, restricts writes to owners (not implemented in this version).
      */
     match /businesses/{businessId}/reviews/{reviewId} {
-      allow get, list: if isSuperAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Manages access to Google Business Profiles associated with a business.
+     * @description Allows access to Google Business Profiles associated with a business.
      * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}
-     * @allow (create) If the user is a super admin.
-     * @allow (get, list, update, delete) If the user is a super admin.
-     * @deny (create, update, delete) If the user is not a super admin.
-     * @principle Enforces super admin control over Google Business Profiles.
+     * @allow get, list: if true;
+     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Allows public read, restricts writes to owners (not implemented in this version).
      */
     match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId} {
-      allow get, list: if isSuperAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Manages access to posts associated with a Google Business Profile.
+     * @description Allows access to posts associated with a Google Business Profile.
      * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}
-     * @allow (create) If the user is a super admin.
-     * @allow (get, list, update, delete) If the user is a super admin.
-     * @deny (create, update, delete) If the user is not a super admin.
-     * @principle Enforces super admin control over posts.
+     * @allow get, list: if true;
+     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Allows public read, restricts writes to owners (not implemented in this version).
      */
     match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId} {
-      allow get, list: if isSuperAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Manages access to landing pages associated with a business.
+     * @description Allows access to landing pages associated with a business.
      * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow (create) If the user is a super admin.
-     * @allow (get, list, update, delete) If the user is a super admin.
-     * @deny (create, update, delete) If the user is not a super admin.
-     * @principle Enforces super admin control over landing pages.
+     * @allow get, list: if true;
+     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Allows public read, restricts writes to owners (not implemented in this version).
      */
     match /businesses/{businessId}/landingPages/{landingPageId} {
-      allow get, list: if isSuperAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Manages access to contact forms associated with a landing page.
+     * @description Allows access to contact forms associated with a landing page.
      * @path /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}
-     * @allow (create) If the user is a super admin.
-     * @allow (get, list, update, delete) If the user is a super admin.
-     * @deny (create, update, delete) If the user is not a super admin.
-     * @principle Enforces super admin control over contact forms.
+     * @allow get, list: if true;
+     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Allows public read, restricts writes to owners (not implemented in this version).
      */
     match /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId} {
-      allow get, list: if isSuperAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Manages access to subscription plans.
+     * @description Allows access to subscription plan details.
      * @path /subscriptionPlans/{subscriptionPlanId}
-     * @allow (create) If the user is a super admin.
-     * @allow (get, list, update, delete) If the user is a super admin.
-     * @deny (create, update, delete) If the user is not a super admin.
-     * @principle Enforces super admin control over subscription plans.
+     * @allow get, list: if true;
+     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Allows public read, restricts writes to owners (not implemented in this version).
      */
     match /subscriptionPlans/{subscriptionPlanId} {
-      allow get, list: if isSuperAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Manages access to payment settings.
+     * @description Allows access to payment gateway settings for each subscription plan.
      * @path /paymentSettings/{planSettingsId}
-     * @allow (create) If the user is a super admin.
-     * @allow (get, list, update, delete) If the user is a super admin.
-     * @deny (create, update, delete) If the user is not a super admin.
-     * @principle Enforces super admin control over payment settings.
+     * @allow get, list: if true;
+     * @allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Allows public read, restricts writes to owners (not implemented in this version).
      */
     match /paymentSettings/{planSettingsId} {
-      allow get, list: if isSuperAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Manages access to super admin profiles.
+     * @description Manages super administrator user profiles.
      * @path /superAdmins/{superAdminId}
-     * @allow (get, list) if the user is a super admin.
-     * @allow (create) if request.auth.uid == superAdminId;
-     * @allow (update, delete) if request.auth.uid == superAdminId && resource != null;
-     * @deny (create, update, delete) if the user is not the super admin.
-     * @principle Enforces super admin control over their own profile.
+     * @allow get, list: if isAdmin();
+     * @allow create: if isAdmin() && isSelfCreate(superAdminId);
+     * @allow update: if isAdmin() && isExistingOwner(superAdminId);
+     * @allow delete: if isAdmin() && isExistingOwner(superAdminId);
+     * @principle Enforces role-based access control for super admins.
      */
     match /superAdmins/{superAdminId} {
-      allow get, list: if isSuperAdmin();
-      allow create: if isSignedIn() && request.auth.uid == superAdminId;
-      allow update, delete: if isSignedIn() && request.auth.uid == superAdminId;
+      allow get, list: if isAdmin();
+      allow create: if isAdmin() && isSelfCreate(superAdminId);
+      allow update: if isAdmin() && isExistingOwner(superAdminId);
+      allow delete: if isAdmin() && isExistingOwner(superAdminId);
+    }
+
+    /**
+     * @description Manages pending payments, accessible only to super administrators.
+     * @path /pendingPayments/{paymentId}
+     * @allow get, list: if isAdmin();
+     * @allow create: if isAdmin();
+     * @allow update: if isAdmin() && resource != null;
+     * @allow delete: if false; // Deletion is not allowed for pending payments.
+     * @principle Restricts access to pending payment records to super administrators for management.
+     */
+    match /pendingPayments/{paymentId} {
+        allow get, list: if isAdmin();
+        allow create: if isAdmin();
+        allow update: if isAdmin() && resource != null;
+        allow delete: if false;
     }
   }
+
+  // ---- Helper functions ----
+
+  /**
+   * @description Checks if the user is signed in.
+   * @return {boolean} True if the user is signed in, false otherwise.
+   */
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  /**
+   * @description Checks if the user is an administrator.
+   * @return {boolean} True if the user is an administrator, false otherwise.
+   */
+  function isAdmin() {
+    return isSignedIn() && request.auth.token.role == 'superadmin';
+  }
+
+  /**
+   * @description Checks if the user is the owner of the resource.
+   * @param {string} userId - The user ID to check against.
+   * @return {boolean} True if the user is the owner, false otherwise.
+   */
+  function isOwner(userId) {
+    return isSignedIn() && request.auth.uid == userId;
+  }
+
+  /**
+   * @description Checks if the user is creating their own user document.
+   * @param {string} userId - The user ID to check against.
+   * @return {boolean} True if the user is creating their own document, false otherwise.
+   */
+  function isSelfCreate(userId) {
+    return isSignedIn() && request.auth.uid == userId;
+  }
+
+  /**
+   * @description Checks if the user is the owner of the existing resource.
+   * @param {string} userId - The user ID to check against.
+   * @return {boolean} True if the user is the owner and the resource exists, false otherwise.
+   */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
 }
