@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -32,6 +33,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Save, Upload, Loader2 } from 'lucide-react';
 import { uploadImage } from '@/ai/flows/upload-image';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 
 const NequiIcon = () => (
@@ -64,10 +67,9 @@ const StripeIcon = () => (
 
 const MercadoPagoIcon = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M17.433 4.00018C15.659 4.00018 14.195 5.10518 13.682 6.64018H5.973C5.114 6.64018 4.5 7.25418 4.5 8.11318V13.8442C4.5 14.7042 5.114 15.3172 5.973 15.3172H9.011C9.171 16.5982 10.158 17.5682 11.393 17.5682C12.632 17.5682 13.621 16.5942 13.777 15.3172H18.75C19.107 15.3172 19.5 15.0102 19.5 14.5672V8.11318C19.5 5.86118 18.23 4.00018 17.433 4.00018ZM11.393 16.0312C10.999 16.0312 10.655 15.7222 10.551 15.3172H12.234C12.131 15.7222 11.787 16.0312 11.393 16.0312ZM18 13.8442H13.847C14.053 13.3442 14.172 12.7882 14.172 12.2032C14.172 10.2312 12.946 8.54418 11.393 8.18818C9.839 8.54418 8.613 10.2312 8.613 12.2032C8.613 12.7882 8.732 13.3442 8.938 13.8442H5.973C5.908 13.8442 5.871 13.8442 5.871 13.8442V8.11318C5.871 8.11318 5.908 8.11318 5.973 8.11318H13.149C13.268 7.39118 13.918 6.64018 14.541 6.64018C15.11 6.64018 15.772 7.33418 15.772 8.11318C15.772 8.89218 15.11 9.58618 14.541 9.58618C13.918 9.58618 13.268 8.83518 13.149 8.11318H12.923C13.435 9.64818 14.899 10.7542 16.673 10.7542C17.65 10.7542 18 10.2222 18 9.58618V8.11318C18 8.11318 18 13.8442 18 13.8442Z" fill="#009EE3"></path>
+        <path d="M17.433 4.00018C15.659 4.00018 14.195 5.10518 13.682 6.64018H5.973C5.114 6.64018 4.5 7.25418 4.5 8.11318V13.8442C4.5 14.7042 5.114 15.3172 5.973 15.3172H9.011C9.171 16.5982 10.158 17.5682 11.393 17.5682C12.632 17.5682 13.621 16.5942 13.777 15.3172H18.75C19.107 15.3172 19.5 15.0102 19.5 14.5672V8.11318C19.5 5.86118 18.23 4.00018 17.433 4.00018ZM11.393 16.0312C10.999 16.0312 10.655 15.7222 10.551 15.3172H12.234C12.131 15.7222 11.787 16.0312 11.393 16.0312ZM18 13.8442H13.847C14.053 13.3442 14.172 12.7882 14.172 12.2032C14.172 10.2312 12.946 8.54418 11.393 8.18818C9.839 8.54418 8.613 10.2312 8.613 12.2032C8.613 12.7882 8.732 13.3442 8.938 13.8442H5.973C5.908 13.8442 5.871 13.8442 5.871 13.8442V8.11318C5.871 8.11318 5.908 8.11318 5.973 8.11318H13.149C13.268 7.39118 13.918 6.64018 14.541 6.64018C15.110 6.64018 15.772 7.33418 15.772 8.11318C15.772 8.89218 15.110 9.58618 14.541 9.58618C13.918 9.58618 13.268 8.83518 13.149 8.11318H12.923C13.435 9.64818 14.899 10.7542 16.673 10.7542C17.650 10.7542 18 10.2222 18 9.58618V8.11318C18 8.11318 18 13.8442 18 13.8442Z" fill="#009EE3"></path>
     </svg>
 );
-
 
 const PaymentMethodForm = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
     <AccordionItem value={title}>
@@ -87,9 +89,25 @@ const PaymentMethodForm = ({ icon, title, children }: { icon: React.ReactNode, t
     </AccordionItem>
 );
 
-const QRForm = ({methodName}: {methodName: 'Nequi' | 'Bancolombia'}) => {
+interface QRFormData {
+  enabled: boolean;
+  qrImageUrl: string | null;
+  accountNumber: string;
+  holderName: string;
+  idDocument: string;
+  phone: string;
+  isMainQR: boolean;
+  instructions: string;
+}
+
+interface QRFormProps {
+    methodName: 'Nequi' | 'Bancolombia';
+    data: QRFormData;
+    setData: (data: QRFormData) => void;
+}
+
+const QRForm = ({methodName, data, setData}: QRFormProps) => {
     const { toast } = useToast();
-    const [qrImageUrl, setQrImageUrl] = useState<string | null>("https://picsum.photos/seed/qr1/200/200");
     const [isUploading, setIsUploading] = useState(false);
     
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,7 +126,7 @@ const QRForm = ({methodName}: {methodName: 'Nequi' | 'Bancolombia'}) => {
                 });
 
                 if (result.imageUrl) {
-                  setQrImageUrl(result.imageUrl);
+                  setData({ ...data, qrImageUrl: result.imageUrl });
                   toast({
                     title: 'Imagen subida',
                     description: 'El código QR se ha actualizado correctamente.',
@@ -126,24 +144,33 @@ const QRForm = ({methodName}: {methodName: 'Nequi' | 'Bancolombia'}) => {
             setIsUploading(false);
         }
     };
+    
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { id, value } = e.target;
+        setData({ ...data, [id]: value });
+    };
 
     return (
         <>
             <div className="flex justify-end">
                 <div className="flex items-center gap-2">
                     <Label htmlFor={`switch-${methodName.toLowerCase()}`}>{methodName} está activado</Label>
-                    <Switch id={`switch-${methodName.toLowerCase()}`} defaultChecked />
+                    <Switch 
+                        id="enabled"
+                        checked={data.enabled}
+                        onCheckedChange={(checked) => setData({ ...data, enabled: checked })}
+                    />
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor={`qr-code-url-${methodName.toLowerCase()}`}>Imagen con Código QR (URL)</Label>
+                        <Label htmlFor="qrImageUrl">Imagen con Código QR (URL)</Label>
                         <Input 
-                            id={`qr-code-url-${methodName.toLowerCase()}`} 
+                            id="qrImageUrl"
                             placeholder='https://...' 
-                            value={qrImageUrl || ''}
-                            onChange={(e) => setQrImageUrl(e.target.value)}
+                            value={data.qrImageUrl || ''}
+                            onChange={(e) => setData({ ...data, qrImageUrl: e.target.value })}
                         />
                     </div>
                     <div className="space-y-2">
@@ -157,16 +184,16 @@ const QRForm = ({methodName}: {methodName: 'Nequi' | 'Bancolombia'}) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor={`account-number-${methodName.toLowerCase()}`}>Número de cuenta asociado*</Label>
-                        <Input id={`account-number-${methodName.toLowerCase()}`} placeholder='3116028254' />
+                        <Label htmlFor="accountNumber">Número de cuenta asociado*</Label>
+                        <Input id="accountNumber" value={data.accountNumber} onChange={handleInputChange} placeholder='3116028254' />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor={`holder-name-${methodName.toLowerCase()}`}>Nombre del titular*</Label>
-                        <Input id={`holder-name-${methodName.toLowerCase()}`} placeholder='Alexander Jerez Fernandez' />
+                        <Label htmlFor="holderName">Nombre del titular*</Label>
+                        <Input id="holderName" value={data.holderName} onChange={handleInputChange} placeholder='Alexander Jerez Fernandez' />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor={`id-document-${methodName.toLowerCase()}`}>Documento de identidad*</Label>
-                        <Input id={`id-document-${methodName.toLowerCase()}`} placeholder='1111846661' />
+                        <Label htmlFor="idDocument">Documento de identidad*</Label>
+                        <Input id="idDocument" value={data.idDocument} onChange={handleInputChange} placeholder='1111846661' />
                     </div>
                 </div>
                 <div className="space-y-4">
@@ -175,34 +202,137 @@ const QRForm = ({methodName}: {methodName: 'Nequi' | 'Bancolombia'}) => {
                         <div className="w-[240px] h-[240px] bg-gray-200 rounded-md flex items-center justify-center mx-auto border">
                              {isUploading ? (
                                 <Loader2 className="h-8 w-8 animate-spin" />
-                             ) : qrImageUrl ? (
-                                <Image src={qrImageUrl} alt="QR Code Preview" width={240} height={240} className="rounded-md object-contain" />
+                             ) : data.qrImageUrl ? (
+                                <Image src={data.qrImageUrl} alt="QR Code Preview" width={240} height={240} className="rounded-md object-contain" />
                             ) : (
                                 <p className="text-sm text-muted-foreground">Sube una imagen</p>
                             )}
                         </div>
                         <div className="flex items-center gap-2 mt-2 justify-center">
-                            <Checkbox id={`main-qr-${methodName.toLowerCase()}`} />
-                            <Label htmlFor={`main-qr-${methodName.toLowerCase()}`}>Establecer como QR principal</Label>
+                            <Checkbox 
+                                id="isMainQR"
+                                checked={data.isMainQR}
+                                onCheckedChange={(checked) => setData({ ...data, isMainQR: !!checked })}
+                            />
+                            <Label htmlFor="isMainQR">Establecer como QR principal</Label>
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor={`phone-${methodName.toLowerCase()}`}>Teléfono</Label>
-                        <Input id={`phone-${methodName.toLowerCase()}`} placeholder='(+57) 3116028254' />
+                        <Label htmlFor="phone">Teléfono</Label>
+                        <Input id="phone" value={data.phone} onChange={handleInputChange} placeholder='(+57) 3116028254' />
                     </div>
                 </div>
             </div>
             <div className="space-y-2">
-                <Label htmlFor={`instructions-${methodName.toLowerCase()}`}>Instrucción para el cliente</Label>
-                <Textarea id={`instructions-${methodName.toLowerCase()}`} placeholder='Para validar tu pago, envía el comprobante a nuestro WhatsApp. Luego, nuestro equipo confirmará y activará tu plan.' />
+                <Label htmlFor="instructions">Instrucción para el cliente</Label>
+                <Textarea id="instructions" value={data.instructions} onChange={handleInputChange} placeholder='Para validar tu pago, envía el comprobante a nuestro WhatsApp. Luego, nuestro equipo confirmará y activará tu plan.' />
             </div>
         </>
     );
 };
 
+const initialQRData: QRFormData = {
+  enabled: false,
+  qrImageUrl: null,
+  accountNumber: '',
+  holderName: '',
+  idDocument: '',
+  phone: '',
+  isMainQR: false,
+  instructions: '',
+};
+
+interface StripeData {
+    enabled: boolean;
+    publicKey: string;
+    secretKey: string;
+}
+const initialStripeData: StripeData = { enabled: false, publicKey: '', secretKey: '' };
+
+interface MercadoPagoData {
+    enabled: boolean;
+    accessToken: string;
+    publicKey: string;
+    mode: 'production' | 'sandbox';
+    instructions: string;
+}
+const initialMercadoPagoData: MercadoPagoData = { enabled: false, accessToken: '', publicKey: '', mode: 'production', instructions: '' };
+
+interface PlanPaymentSettings {
+    nequi: QRFormData;
+    bancolombia: QRFormData;
+    stripe: StripeData;
+    mercadoPago: MercadoPagoData;
+}
+
+const initialPlanSettings: PlanPaymentSettings = {
+    nequi: initialQRData,
+    bancolombia: initialQRData,
+    stripe: initialStripeData,
+    mercadoPago: initialMercadoPagoData
+};
+
 
 export default function PaymentSettingsPage() {
   const [activeTab, setActiveTab] = useState('starter');
+  const [settings, setSettings] = useState<PlanPaymentSettings>(initialPlanSettings);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const settingsDocRef = useMemoFirebase(() => {
+      if (!firestore) return null;
+      const docId = `plan_${activeTab}`;
+      return doc(firestore, 'paymentSettings', docId);
+  }, [firestore, activeTab]);
+
+  const { data: initialData, isLoading: isLoadingData } = useDoc<PlanPaymentSettings>(settingsDocRef);
+
+  useEffect(() => {
+    if (initialData) {
+      // Merge initialData with the default structure to avoid missing fields
+      setSettings(prev => ({
+        nequi: { ...prev.nequi, ...initialData.nequi },
+        bancolombia: { ...prev.bancolombia, ...initialData.bancolombia },
+        stripe: { ...prev.stripe, ...initialData.stripe },
+        mercadoPago: { ...prev.mercadoPago, ...initialData.mercadoPago },
+      }));
+    } else if (!isLoadingData) {
+      setSettings(initialPlanSettings);
+    }
+  }, [initialData, isLoadingData]);
+  
+  const handleSaveSettings = async () => {
+    if (!settingsDocRef) {
+      toast({ variant: "destructive", title: "Error", description: "No se puede conectar a la base de datos." });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await setDoc(settingsDocRef, { ...settings, updatedAt: serverTimestamp() }, { merge: true });
+      toast({ title: 'Configuración guardada', description: 'Los ajustes de pago han sido actualizados.' });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Error", description: "No se pudo guardar la configuración." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const handleStripeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setSettings(prev => ({ ...prev, stripe: { ...prev.stripe, [id]: value } }));
+  };
+
+  const handleMercadoPagoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setSettings(prev => ({ ...prev, mercadoPago: { ...prev.mercadoPago, [id]: value } }));
+  };
+
+  const handleSetData = (method: 'nequi' | 'bancolombia') => (data: QRFormData) => {
+    setSettings(prev => ({...prev, [method]: data}));
+  };
 
   return (
     <div className="space-y-6">
@@ -220,30 +350,35 @@ export default function PaymentSettingsPage() {
           <TabsTrigger value="business">Plan Business</TabsTrigger>
         </TabsList>
         <TabsContent value="starter">
+            { isLoadingData ? <Loader2 className="animate-spin my-12 mx-auto"/> : (
             <Accordion type="multiple" defaultValue={['Nequi con Código QR']} className="w-full space-y-4">
                 <PaymentMethodForm icon={<NequiIcon />} title="Nequi con Código QR">
-                    <QRForm methodName="Nequi" />
+                    <QRForm methodName="Nequi" data={settings.nequi} setData={handleSetData('nequi')} />
                 </PaymentMethodForm>
 
                 <PaymentMethodForm icon={<BancolombiaIcon />} title="Bancolombia con Código QR">
-                     <QRForm methodName="Bancolombia" />
+                     <QRForm methodName="Bancolombia" data={settings.bancolombia} setData={handleSetData('bancolombia')} />
                 </PaymentMethodForm>
 
                 <PaymentMethodForm icon={<StripeIcon />} title="Stripe">
                      <div className="flex justify-end">
                         <div className="flex items-center gap-2">
                             <Label htmlFor="switch-stripe">Stripe está activado</Label>
-                            <Switch id="switch-stripe" />
+                            <Switch 
+                                id="switch-stripe" 
+                                checked={settings.stripe.enabled}
+                                onCheckedChange={(checked) => setSettings(p => ({ ...p, stripe: {...p.stripe, enabled: checked}}))}
+                            />
                         </div>
                     </div>
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="stripe-pk">Public Key</Label>
-                            <Input id="stripe-pk" type="password" placeholder="pk_test_************************" />
+                            <Label htmlFor="publicKey">Public Key</Label>
+                            <Input id="publicKey" type="password" placeholder="pk_test_************************" value={settings.stripe.publicKey} onChange={handleStripeChange} />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="stripe-sk">Secret Key</Label>
-                            <Input id="stripe-sk" type="password" placeholder="sk_test_************************" />
+                            <Label htmlFor="secretKey">Secret Key</Label>
+                            <Input id="secretKey" type="password" placeholder="sk_test_************************" value={settings.stripe.secretKey} onChange={handleStripeChange} />
                         </div>
                     </div>
                 </PaymentMethodForm>
@@ -252,22 +387,29 @@ export default function PaymentSettingsPage() {
                      <div className="flex justify-end">
                         <div className="flex items-center gap-2">
                             <Label htmlFor="switch-mp">Mercado Pago está activado</Label>
-                            <Switch id="switch-mp" />
+                            <Switch 
+                                id="switch-mp"
+                                checked={settings.mercadoPago.enabled}
+                                onCheckedChange={(checked) => setSettings(p => ({ ...p, mercadoPago: {...p.mercadoPago, enabled: checked}}))}
+                            />
                         </div>
                     </div>
                      <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="mp-token">Access Token</Label>
-                            <Input id="mp-token" type="password" placeholder="APP_USR-********************************" />
+                            <Label htmlFor="accessToken">Access Token</Label>
+                            <Input id="accessToken" type="password" placeholder="APP_USR-********************************" value={settings.mercadoPago.accessToken} onChange={handleMercadoPagoChange} />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="mp-pk">Public Key</Label>
-                            <Input id="mp-pk" type="password" placeholder="APP_USR-********-****-****-****-************" />
+                            <Label htmlFor="publicKey">Public Key</Label>
+                            <Input id="publicKey" type="password" placeholder="APP_USR-********-****-****-****-************" value={settings.mercadoPago.publicKey} onChange={handleMercadoPagoChange} />
                         </div>
                         <div className="space-y-2">
-                             <Label htmlFor="mp-mode">Modo de entorno</Label>
-                            <Select defaultValue="production">
-                                <SelectTrigger id="mp-mode">
+                             <Label htmlFor="mode">Modo de entorno</Label>
+                            <Select 
+                                value={settings.mercadoPago.mode} 
+                                onValueChange={(value: 'production' | 'sandbox') => setSettings(p => ({ ...p, mercadoPago: {...p.mercadoPago, mode: value}}))}
+                            >
+                                <SelectTrigger id="mode">
                                     <SelectValue placeholder="Seleccionar modo" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -277,8 +419,8 @@ export default function PaymentSettingsPage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="mp-instructions">Instrucción para el cliente</Label>
-                            <Textarea id="mp-instructions" placeholder='Completa tu pago a través de Mercado Pago. Justo después de confirmar tu suscripción, serás redirigido a la página de pagos.' />
+                            <Label htmlFor="instructions">Instrucción para el cliente</Label>
+                            <Textarea id="instructions" placeholder='Completa tu pago a través de Mercado Pago. Justo después de confirmar tu suscripción, serás redirigido a la página de pagos.' value={settings.mercadoPago.instructions} onChange={handleMercadoPagoChange} />
                         </div>
                          <div className="flex justify-end">
                             <Button>Guardar Configuración de Mercado Pago</Button>
@@ -286,6 +428,7 @@ export default function PaymentSettingsPage() {
                     </div>
                 </PaymentMethodForm>
             </Accordion>
+            )}
         </TabsContent>
         <TabsContent value="professional">
              <p className="text-center text-muted-foreground py-12">Configuración para el Plan Professional.</p>
@@ -296,13 +439,11 @@ export default function PaymentSettingsPage() {
       </Tabs>
       
       <div className="flex justify-end mt-8">
-        <Button size="lg">
-            <Save className="mr-2 h-4 w-4" />
+        <Button size="lg" onClick={handleSaveSettings} disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Guardar Configuración General
         </Button>
       </div>
     </div>
   );
 }
-
-    
