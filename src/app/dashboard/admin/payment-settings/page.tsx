@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Save } from 'lucide-react';
+import { Save, Upload } from 'lucide-react';
 
 const NequiIcon = () => (
   <svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -94,9 +94,16 @@ const QRForm = ({methodName}: {methodName: 'Nequi' | 'Bancolombia'}) => (
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor={`qr-code-${methodName.toLowerCase()}`}>Imagen con Código QR (URL/PNG/JPG, auto-fit)</Label>
-                    <Input id={`qr-code-${methodName.toLowerCase()}`} placeholder='https://...' />
+                 <div className="space-y-2">
+                    <Label htmlFor={`qr-code-url-${methodName.toLowerCase()}`}>Imagen con Código QR (URL)</Label>
+                    <Input id={`qr-code-url-${methodName.toLowerCase()}`} placeholder='https://...' />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor={`qr-code-file-${methodName.toLowerCase()}`}>o sube el archivo</Label>
+                    <div className="flex items-center gap-2">
+                        <Input id={`qr-code-file-${methodName.toLowerCase()}`} type="file" className="flex-grow"/>
+                        <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Subir</Button>
+                    </div>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor={`account-number-${methodName.toLowerCase()}`}>Número de cuenta asociado*</Label>
@@ -114,10 +121,10 @@ const QRForm = ({methodName}: {methodName: 'Nequi' | 'Bancolombia'}) => (
             <div className="space-y-4">
                 <div className="space-y-2">
                     <Label>Vista Previa del QR</Label>
-                    <div className="w-full aspect-square bg-gray-200 rounded-md flex items-center justify-center">
-                        <Image src="https://picsum.photos/seed/qr1/200/200" alt="QR Code Preview" width={150} height={150} />
+                    <div className="w-[240px] h-[240px] bg-gray-200 rounded-md flex items-center justify-center mx-auto">
+                        <Image src="https://picsum.photos/seed/qr1/200/200" alt="QR Code Preview" width={200} height={200} className="rounded-md" />
                     </div>
-                     <div className="flex items-center gap-2 mt-2">
+                     <div className="flex items-center gap-2 mt-2 justify-center">
                          <Checkbox id={`main-qr-${methodName.toLowerCase()}`} />
                         <Label htmlFor={`main-qr-${methodName.toLowerCase()}`}>Establecer como QR principal</Label>
                      </div>
