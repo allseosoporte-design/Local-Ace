@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Loader2, Eye } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import {
   collection,
   query,
@@ -48,6 +48,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { getIdTokenResult } from 'firebase/auth';
 
 interface AuditLog {
   id: string;
@@ -80,22 +81,48 @@ const entityMap: { [key: string]: string } = {
 
 export default function AuditPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [entityFilter, setEntityFilter] = useState('all');
   const [actionFilter, setActionFilter] = useState('all');
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (user) {
+        try {
+          const tokenResult = await getIdTokenResult(user, true);
+          if (tokenResult.claims.isSuperAdmin) {
+            setIsSuperAdmin(true);
+          }
+        } catch (error) {
+          console.error("Error verifying super admin status:", error);
+          setIsSuperAdmin(false);
+        }
+      }
+    };
+    checkAdminStatus();
+  }, [user]);
+
   const auditQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    const constraints = [orderBy('timestamp', 'desc')];
+    if (!firestore || !isSuperAdmin) return null;
+    let q = query(collection(firestore, 'globalAuditLogs'), orderBy('timestamp', 'desc'));
+    
+    const constraints = [];
     if (entityFilter !== 'all') {
       constraints.push(where('entity', '==', entityFilter));
     }
     if (actionFilter !== 'all') {
       constraints.push(where('action', '==', actionFilter));
     }
-    return query(collection(firestore, 'globalAuditLogs'), ...constraints);
-  }, [firestore, entityFilter, actionFilter]);
+    
+    if(constraints.length > 0) {
+      q = query(collection(firestore, 'globalAuditLogs'), orderBy('timestamp', 'desc'), ...constraints);
+    }
+    
+    return q;
+  }, [firestore, isSuperAdmin, entityFilter, actionFilter]);
 
   const { data: logs, isLoading } = useCollection<AuditLog>(auditQuery);
 
@@ -238,3 +265,5 @@ export default function AuditPage() {
     </div>
   );
 }
+
+    
