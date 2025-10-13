@@ -63,9 +63,10 @@ export default function AdminProfilePage() {
   };
 
   const handleSaveChanges = async () => {
-    if (!superAdminRef) return;
+    if (!superAdminRef || !user) return;
     setIsSaving(true);
     try {
+      const displayName = `${profileData.firstName} ${profileData.lastName}`.trim();
       const dataToSave: Partial<SuperAdminProfile> & { updatedAt: any } = {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
@@ -75,8 +76,9 @@ export default function AdminProfilePage() {
 
       await updateDoc(superAdminRef, dataToSave);
 
-      if (user && (user.displayName !== `${profileData.firstName} ${profileData.lastName}`)) {
-         await updateProfile(user, { displayName: `${profileData.firstName} ${profileData.lastName}`.trim() });
+      if (user.displayName !== displayName) {
+         await updateProfile(user, { displayName });
+         await user.reload();
       }
 
       toast({
@@ -150,12 +152,10 @@ export default function AdminProfilePage() {
         });
 
         if (result.imageUrl) {
-          // Update Firestore
           await updateDoc(superAdminRef, { avatarUrl: result.imageUrl });
-          // Update Firebase Auth profile
           await updateProfile(user, { photoURL: result.imageUrl });
+          await user.reload(); // Force refresh of user object
           
-          // The local state will update automatically via the useDoc hook
           toast({
             title: 'Foto actualizada',
             description: 'Tu foto de perfil se ha subido y guardado correctamente.',
