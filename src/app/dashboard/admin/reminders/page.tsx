@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -60,10 +60,11 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { getIdTokenResult } from 'firebase/auth';
 
 // --- Types ---
 interface ReminderRule {
@@ -112,11 +113,40 @@ const history: ReminderLog[] = [
 
 export default function RemindersPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-  const rulesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'reminderRules'), orderBy('name')) : null, [firestore]);
-  const templatesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'reminderTemplates'), orderBy('name')) : null, [firestore]);
-  const logsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'reminderLogs'), orderBy('sentAt', 'desc')) : null, [firestore]);
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        try {
+          const tokenResult = await getIdTokenResult(user, true);
+          setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+        } catch (error) {
+          console.error("Error fetching token claims:", error);
+          setIsSuperAdmin(false);
+        }
+      }
+    };
+    checkAdmin();
+  }, [user]);
+
+  const rulesQuery = useMemoFirebase(() => {
+    if (!firestore || !isSuperAdmin) return null;
+    return query(collection(firestore, 'reminderRules'), orderBy('name'));
+  }, [firestore, isSuperAdmin]);
+
+  const templatesQuery = useMemoFirebase(() => {
+    if (!firestore || !isSuperAdmin) return null;
+    return query(collection(firestore, 'reminderTemplates'), orderBy('name'));
+  }, [firestore, isSuperAdmin]);
+
+  const logsQuery = useMemoFirebase(() => {
+    if (!firestore || !isSuperAdmin) return null;
+    return query(collection(firestore, 'reminderLogs'), orderBy('sentAt', 'desc'));
+  }, [firestore, isSuperAdmin]);
+
 
   const { data: rulesData, isLoading: isLoadingRules } = useCollection<ReminderRule>(rulesQuery);
   const { data: templatesData, isLoading: isLoadingTemplates } = useCollection<ReminderTemplate>(templatesQuery);
@@ -275,7 +305,7 @@ export default function RemindersPage() {
                         {isLoadingRules && (
                            <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" /></TableCell></TableRow>
                         )}
-                        {(rulesData || configurations).map((config) => (
+                        {!isLoadingRules && (rulesData || configurations).map((config) => (
                             <TableRow key={config.id}>
                                 <TableCell className="font-medium">{config.name}</TableCell>
                                 <TableCell>{`${config.days} días ${config.triggerType === 'before' ? 'antes' : 'después'} de la expiración`}</TableCell>
@@ -304,7 +334,7 @@ export default function RemindersPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                      {isLoadingTemplates && <Loader2 className="mx-auto my-8 h-8 w-8 animate-spin text-muted-foreground" />}
-                    {(templatesData || templates).map((template) => (
+                    {!isLoadingTemplates && (templatesData || templates).map((template) => (
                         <div key={template.id} className="border p-4 rounded-lg flex justify-between items-center">
                            <div>
                               <p className="font-medium">{template.name}</p>
@@ -354,7 +384,7 @@ export default function RemindersPage() {
                         {isLoadingLogs && (
                             <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" /></TableCell></TableRow>
                         )}
-                        {(logsData || history).map((item) => (
+                        {!isLoadingLogs && (logsData || history).map((item) => (
                             <TableRow key={item.id}>
                                 <TableCell className="font-medium">{item.businessName}</TableCell>
                                 <TableCell>{item.ruleName}</TableCell>
@@ -401,5 +431,3 @@ export default function RemindersPage() {
     </div>
   );
 }
-
-    
