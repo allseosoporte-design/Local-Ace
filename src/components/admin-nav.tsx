@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Users, CreditCard } from "lucide-react";
+import { Users, CreditCard, User } from "lucide-react";
 import { EditorLandingIcon } from "./icons/editor-landing";
 
 
@@ -25,6 +25,11 @@ const links = [
     label: "Editor de Landing",
     icon: <EditorLandingIcon />,
   },
+  {
+    href: "/dashboard/admin/profile",
+    label: "Perfil",
+    icon: <User />,
+  },
 ];
 
 export function AdminNav() {
@@ -36,7 +41,7 @@ export function AdminNav() {
         <SidebarMenuItem key={link.href}>
           <SidebarMenuButton
             asChild
-            isActive={pathname.startsWith(link.href)}
+            isActive={pathname.startsWith(link.href) && (link.href !== '/dashboard/admin' || pathname === '/dashboard/admin')}
             tooltip={link.label}
           >
             <Link href={link.href}>
