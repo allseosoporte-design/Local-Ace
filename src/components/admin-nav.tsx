@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Users, CreditCard, User, Settings, Wallet, BellRing, MessageSquare, ShieldCheck } from "lucide-react";
+import { Users, CreditCard, User, Settings, Wallet, BellRing, MessageSquare, ShieldCheck, Wrench } from "lucide-react";
 import { EditorLandingIcon } from "./icons/editor-landing";
 import { PaymentIcon } from "./icons/payment";
 
@@ -40,6 +40,11 @@ const links = [
     href: "/dashboard/admin/audit",
     label: "Auditoría",
     icon: <ShieldCheck />,
+  },
+  {
+    href: "/dashboard/admin/maintenance",
+    label: "Mantenimiento",
+    icon: <Wrench />,
   },
   {
     href: "/dashboard/admin/editor-landing",
