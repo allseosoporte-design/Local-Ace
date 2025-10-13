@@ -6,6 +6,7 @@ import { EditorLandingForm } from "@/components/editor-landing-form";
 import { EditorLandingPreview, type LandingPageData } from "@/components/editor-landing-preview";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditorSections } from "@/components/editor-sections";
+import { EditorTestimonials } from "@/components/editor-testimonials";
 
 export default function EditorLandingPage() {
   const [data, setData] = useState<LandingPageData>({
@@ -25,6 +26,26 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
     textColor: "#000000",
     buttonColor: "#FF4500",
     sections: [],
+    testimonialsTitle: "Lo que opinan nuestros clientes",
+    testimonialsSubtitle: "La satisfacción de nuestros usuarios impulsa lo que hacemos",
+    testimonials: [
+      {
+        id: "1",
+        authorName: "Ana López",
+        authorRole: "Dueña, Restaurante Sabor del Sol",
+        text: "¡WebSapMax ha transformado mi negocio! Mis ventas han aumentado un 30% desde que implementé el menú digital.",
+        avatarUrl: "https://picsum.photos/seed/testi1/100/100",
+        rating: 5,
+      },
+      {
+        id: "2",
+        authorName: "Juan Martínez",
+        authorRole: "Gerente, Burger Hub",
+        text: "La gestión de pedidos y mesas es increíblemente intuitiva. He reducido los errores en las órdenes a casi cero.",
+        avatarUrl: "https://picsum.photos/seed/testi2/100/100",
+        rating: 5,
+      }
+    ],
   });
 
   return (
@@ -41,7 +62,7 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
                 <TabsList>
                     <TabsTrigger value="hero">Hero</TabsTrigger>
                     <TabsTrigger value="sections">Secciones</TabsTrigger>
-                    <TabsTrigger value="testimonials" disabled>Testimonios</TabsTrigger>
+                    <TabsTrigger value="testimonials">Testimonios</TabsTrigger>
                     <TabsTrigger value="seo" disabled>SEO</TabsTrigger>
                 </TabsList>
                 <TabsContent value="hero">
@@ -49,6 +70,9 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
                 </TabsContent>
                 <TabsContent value="sections">
                     <EditorSections data={data} setData={setData} />
+                </TabsContent>
+                <TabsContent value="testimonials">
+                    <EditorTestimonials data={data} setData={setData} />
                 </TabsContent>
             </Tabs>
         </div>

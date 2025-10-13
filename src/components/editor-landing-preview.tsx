@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { Star } from 'lucide-react';
 
 export interface Subsection {
   id: string;
@@ -24,6 +25,14 @@ export interface Section {
   subsections: Subsection[];
 }
 
+export interface Testimonial {
+  id: string;
+  authorName: string;
+  authorRole: string;
+  text: string;
+  avatarUrl: string;
+  rating: number;
+}
 
 export interface LandingPageData {
   title: string;
@@ -36,6 +45,9 @@ export interface LandingPageData {
   textColor: string;
   buttonColor: string;
   sections: Section[];
+  testimonialsTitle: string;
+  testimonialsSubtitle: string;
+  testimonials: Testimonial[];
 }
 
 interface EditorLandingPreviewProps {
@@ -116,6 +128,37 @@ export function EditorLandingPreview({ data }: EditorLandingPreviewProps) {
           </section>
         ))}
 
+        {data.testimonials && data.testimonials.length > 0 && (
+          <section className="py-12 px-6 bg-muted/30">
+            <div className="container mx-auto text-center">
+              <h2 className="text-3xl font-bold mb-2">{data.testimonialsTitle}</h2>
+              <p className="text-xl text-muted-foreground mb-12">{data.testimonialsSubtitle}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {data.testimonials.map((testimonial) => (
+                  <div key={testimonial.id} className="bg-card p-6 rounded-lg shadow-md text-left flex flex-col">
+                    <div className="flex items-center mb-4">
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden mr-4">
+                        <Image src={testimonial.avatarUrl} alt={testimonial.authorName} layout="fill" objectFit="cover" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold">{testimonial.authorName}</h4>
+                        <p className="text-sm text-muted-foreground">{testimonial.authorRole}</p>
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground italic mb-4 flex-grow">"{formatContent(testimonial.text)}"</p>
+                    <div className="flex">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className={cn("h-5 w-5", i < testimonial.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300")} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+
         {/* Call to Action Section */}
         <section className="p-8 md:p-12 text-center">
           <Link href={data.ctaUrl}>
@@ -135,4 +178,3 @@ export function EditorLandingPreview({ data }: EditorLandingPreviewProps) {
     </div>
   );
 }
-
