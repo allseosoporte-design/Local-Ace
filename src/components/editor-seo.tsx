@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -38,11 +37,13 @@ export function EditorSeo({ data, setData }: EditorSeoProps) {
   const handleAddKeyword = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && keywordInput.trim() !== '') {
       e.preventDefault();
-      const newKeywords = [...data.seo.keywords, keywordInput.trim()];
-      setData((prev) => ({
-        ...prev,
-        seo: { ...prev.seo, keywords: newKeywords },
-      }));
+      if (!data.seo.keywords.includes(keywordInput.trim())) {
+        const newKeywords = [...data.seo.keywords, keywordInput.trim()];
+        setData((prev) => ({
+          ...prev,
+          seo: { ...prev.seo, keywords: newKeywords },
+        }));
+      }
       setKeywordInput('');
     }
   };
