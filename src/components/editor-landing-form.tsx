@@ -6,7 +6,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,44 +31,42 @@ export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
   }
 
   return (
-    <Card className="h-full overflow-y-auto">
+    <Card className="h-full overflow-y-auto border-t-0 rounded-t-none">
       <CardHeader>
-        <CardTitle>Configuración del Hero</CardTitle>
-        <CardDescription>
-          Modifica el título, subtítulo, contenido y la imagen principal de tu
-          página.
-        </CardDescription>
+        <CardTitle className="text-lg">Configuración del Hero</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="title">Título Principal</Label>
-          <Input
-            id="title"
-            name="title"
-            value={data.title}
-            onChange={handleChange}
-            placeholder="Moderniza tu negocio y aumenta tus ventas."
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+                <Label htmlFor="title">Título Principal</Label>
+                <Input
+                    id="title"
+                    name="title"
+                    value={data.title}
+                    onChange={handleChange}
+                    placeholder="Moderniza tu negocio y aumenta tus ventas."
+                />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="subtitle">Subtítulo</Label>
+                <Input
+                    id="subtitle"
+                    name="subtitle"
+                    value={data.subtitle}
+                    onChange={handleChange}
+                    placeholder="La herramienta definitiva para potenciar tu negocio."
+                />
+            </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="subtitle">Subtítulo</Label>
-          <Input
-            id="subtitle"
-            name="subtitle"
-            value={data.subtitle}
-            onChange={handleChange}
-            placeholder="La herramienta definitiva para potenciar tu negocio gastronómico."
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="content">Contenido Adicional (HTML permitido)</Label>
+          <Label htmlFor="content">Contenido Adicional (HTML)</Label>
           <Textarea
             id="content"
             name="content"
             value={data.content}
             onChange={handleChange}
             placeholder="Describe la revolución para tu NEGOCIO..."
-            className="min-h-[200px]"
+            className="min-h-[250px]"
           />
         </div>
         <div className="space-y-2">
@@ -82,7 +79,7 @@ export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
             placeholder="https://example.com/image.png"
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="ctaText">Texto del Botón</Label>
             <Input
@@ -148,7 +145,7 @@ export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
             <RotateCcw className="mr-2 h-4 w-4" />
             Cargar Default
           </Button>
-          <Button style={{ backgroundColor: data.buttonColor }}>
+          <Button style={{ backgroundColor: data.buttonColor, color: '#FFFFFF' }}>
             <Save className="mr-2 h-4 w-4" />
             Guardar Cambios
           </Button>

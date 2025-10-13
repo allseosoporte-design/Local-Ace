@@ -4,6 +4,9 @@
 import { useState } from "react";
 import { EditorLandingForm } from "@/components/editor-landing-form";
 import { EditorLandingPreview, type LandingPageData } from "@/components/editor-landing-preview";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+
 
 export default function EditorLandingPage() {
   const [data, setData] = useState<LandingPageData>({
@@ -27,16 +30,26 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
   return (
     <div className="container mx-auto p-0">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Editor de Landing Page</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Editor Landing</h1>
         <p className="text-muted-foreground">
-          Edita el contenido de la página principal y visualiza los cambios en tiempo real.
+          Edita la configuración de la página principal
         </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-        <div className="lg:col-span-1 h-full">
-          <EditorLandingForm data={data} setData={setData} />
+        <div className="lg:col-span-2">
+            <Tabs defaultValue="hero">
+                <TabsList>
+                    <TabsTrigger value="hero">Hero</TabsTrigger>
+                    <TabsTrigger value="sections" disabled>Secciones</TabsTrigger>
+                    <TabsTrigger value="testimonials" disabled>Testimonios</TabsTrigger>
+                    <TabsTrigger value="seo" disabled>SEO</TabsTrigger>
+                </TabsList>
+                <TabsContent value="hero">
+                    <EditorLandingForm data={data} setData={setData} />
+                </TabsContent>
+            </Tabs>
         </div>
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-lg overflow-y-auto">
+        <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
           <EditorLandingPreview data={data} />
         </div>
       </div>
