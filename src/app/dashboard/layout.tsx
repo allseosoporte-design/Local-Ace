@@ -20,48 +20,42 @@ export default function DashboardLayout({
   const router = useRouter();
   const firestore = useFirestore();
   const pathname = usePathname();
-  const [authChecked, setAuthChecked] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (isUserLoading) {
+    // Wait until firebase auth and firestore are initialized
+    if (isUserLoading || !firestore) {
       return; 
     }
 
+    // If there is no user, redirect to login page.
     if (!user) {
-      setIsRedirecting(true);
       router.replace('/login');
       return;
     }
 
     const checkAdminAndRoute = async () => {
-      if (!firestore) {
-        setAuthChecked(true); 
-        return;
-      }
-
       try {
         const adminDocRef = doc(firestore, 'superAdmins', user.uid);
         const adminDoc = await getDoc(adminDocRef);
         const isSuperAdmin = adminDoc.exists();
         const onAdminPath = pathname.startsWith('/dashboard/admin');
+        const onStandardDashboard = pathname === '/dashboard';
 
         if (isSuperAdmin && !onAdminPath) {
-          setIsRedirecting(true);
           router.replace('/dashboard/admin');
         } else if (!isSuperAdmin && onAdminPath) {
-          setIsRedirecting(true);
           router.replace('/dashboard');
         } else {
-          setAuthChecked(true);
+          setIsReady(true);
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
+        // Fallback for safety: if something fails, send non-admins to standard dash
         if (pathname.startsWith('/dashboard/admin')) {
-           setIsRedirecting(true);
            router.replace('/dashboard');
         } else {
-           setAuthChecked(true);
+           setIsReady(true);
         }
       }
     };
@@ -71,7 +65,7 @@ export default function DashboardLayout({
   }, [isUserLoading, user, firestore, pathname, router]);
 
 
-  if (!authChecked || isRedirecting) {
+  if (!isReady) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
