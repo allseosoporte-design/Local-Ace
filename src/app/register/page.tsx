@@ -14,12 +14,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore } from '@/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -45,20 +46,18 @@ export default function RegisterPage() {
     }
 
     try {
-      // 1. Crear usuario en Authentication
-      console.log('🔄 Creando usuario en Authentication...');
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      console.log('✅ Usuario creado en Auth:', user.uid);
       
-      // 2. Verificar si debe ser superAdmin
       const emailLower = email.toLowerCase().trim();
-      console.log('🔍 Verificando email:', emailLower);
       
       if (emailLower === 'allseosoporte@gmail.com') {
-        console.log('🔄 Creando documento en Firestore superAdmins...');
         
         try {
+          const functions = getFunctions(auth.app);
+          const addSuperAdminRole = httpsCallable(functions, 'addSuperAdminRole');
+          await addSuperAdminRole({ email: user.email });
+
           const superAdminRef = doc(firestore, 'superAdmins', user.uid);
           const docData = {
             id: user.uid,
@@ -70,8 +69,7 @@ export default function RegisterPage() {
           };
           
           await setDoc(superAdminRef, docData);
-          
-          console.log('✅ Documento superAdmin creado exitosamente');
+          await updateProfile(user, { displayName: 'Alexander Jerez Fernandez' });
           
           toast({
             title: '¡Registro exitoso!',
@@ -80,20 +78,16 @@ export default function RegisterPage() {
           
           router.push('/dashboard/admin');
 
-        } catch (firestoreError: any) {
-          console.error('❌ Error creando documento en Firestore:', firestoreError);
-          
+        } catch (functionError: any) {
+          console.error('Error setting custom claim:', functionError);
           toast({
             variant: 'destructive',
-            title: 'Error al crear perfil de administrador',
-            description: `Error: ${firestoreError.message}. El usuario fue creado en autenticación, pero no se pudo asignar el rol de administrador. Verifica las reglas de seguridad de Firestore.`,
+            title: 'Error de permisos',
+            description: `No se pudo asignar el rol de administrador.`,
             duration: 10000,
           });
-          // No redirigir para que el usuario vea el error
         }
       } else {
-        console.log('✅ Usuario normal registrado');
-        
         toast({
           title: '¡Registro exitoso!',
           description: 'Tu cuenta ha sido creada. Ahora puedes iniciar sesión.',
@@ -103,8 +97,6 @@ export default function RegisterPage() {
       }
 
     } catch (error: any) {
-      console.error('❌ Error en registro:', error);
-      
       let errorMessage = 'Ocurrió un error durante el registro. Por favor, inténtalo de nuevo.';
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Este correo electrónico ya está en uso.';

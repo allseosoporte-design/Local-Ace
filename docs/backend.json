@@ -309,6 +309,73 @@
       "required": [
         "id"
       ]
+    },
+    "PaymentSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PaymentSettings",
+      "type": "object",
+      "description": "Represents the payment settings for a specific subscription plan.",
+      "properties": {
+        "nequi": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "qrImageUrl": { "type": "string", "format": "uri" },
+            "accountNumber": { "type": "string" },
+            "holderName": { "type": "string" },
+            "idDocument": { "type": "string" },
+            "phone": { "type": "string" },
+            "isMainQR": { "type": "boolean" },
+            "instructions": { "type": "string" }
+          }
+        },
+        "bancolombia": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "qrImageUrl": { "type": "string", "format": "uri" },
+            "accountNumber": { "type": "string" },
+            "holderName": { "type": "string" },
+            "idDocument": { "type": "string" },
+            "phone": { "type": "string" },
+            "isMainQR": { "type": "boolean" },
+            "instructions": { "type": "string" }
+          }
+        },
+        "stripe": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "publicKey": { "type": "string" },
+            "secretKey": { "type": "string" }
+          }
+        },
+        "mercadoPago": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "accessToken": { "type": "string" },
+            "publicKey": { "type": "string" },
+            "mode": { "type": "string", "enum": ["production", "sandbox"] },
+            "instructions": { "type": "string" }
+          }
+        }
+      }
+    },
+    "SuperAdmin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SuperAdmin",
+      "type": "object",
+      "description": "Represents a super administrator with full access to the platform.",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "firstName", "lastName"]
     }
   },
   "auth": {
@@ -318,148 +385,41 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/businesses/{businessId}",
-        "definition": {
-          "entityName": "Business",
-          "schema": {
-            "$ref": "#/backend/entities/Business"
-          },
-          "description": "Stores business entities.  `businessId` is the unique identifier for each business.",
-          "params": [
-            {
-              "name": "businessId",
-              "description": "Unique identifier for the Business entity."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/businesses/{businessId}/reviews/{reviewId}",
-        "definition": {
-          "entityName": "Review",
-          "schema": {
-            "$ref": "#/backend/entities/Review"
-          },
-          "description": "Stores reviews associated with a business.  Includes denormalized business information as necessary for authorization independence.",
-          "params": [
-            {
-              "name": "businessId",
-              "description": "Unique identifier for the Business entity."
-            },
-            {
-              "name": "reviewId",
-              "description": "Unique identifier for the Review entity."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}",
-        "definition": {
-          "entityName": "GoogleBusinessProfile",
-          "schema": {
-            "$ref": "#/backend/entities/GoogleBusinessProfile"
-          },
-          "description": "Stores Google Business Profiles associated with a business.",
-          "params": [
-            {
-              "name": "businessId",
-              "description": "Unique identifier for the Business entity."
-            },
-            {
-              "name": "googleBusinessProfileId",
-              "description": "Unique identifier for the GoogleBusinessProfile entity."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}",
-        "definition": {
-          "entityName": "Post",
-          "schema": {
-            "$ref": "#/backend/entities/Post"
-          },
-          "description": "Stores posts associated with a Google Business Profile.",
-          "params": [
-            {
-              "name": "businessId",
-              "description": "Unique identifier for the Business entity."
-            },
-            {
-              "name": "googleBusinessProfileId",
-              "description": "Unique identifier for the GoogleBusinessProfile entity."
-            },
-            {
-              "name": "postId",
-              "description": "Unique identifier for the Post entity."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/businesses/{businessId}/landingPages/{landingPageId}",
-        "definition": {
-          "entityName": "LandingPage",
-          "schema": {
-            "$ref": "#/backend/entities/LandingPage"
-          },
-          "description": "Stores landing pages associated with a business.",
-          "params": [
-            {
-              "name": "businessId",
-              "description": "Unique identifier for the Business entity."
-            },
-            {
-              "name": "landingPageId",
-              "description": "Unique identifier for the LandingPage entity."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}",
-        "definition": {
-          "entityName": "ContactForm",
-          "schema": {
-            "$ref": "#/backend/entities/ContactForm"
-          },
-          "description": "Stores contact forms associated with a landing page.",
-          "params": [
-            {
-              "name": "businessId",
-              "description": "Unique identifier for the Business entity."
-            },
-            {
-              "name": "landingPageId",
-              "description": "Unique identifier for the LandingPage entity."
-            },
-            {
-              "name": "contactFormId",
-              "description": "Unique identifier for the ContactForm entity."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/subscriptionPlans/{subscriptionPlanId}",
-        "definition": {
-          "entityName": "SubscriptionPlan",
-          "schema": {
-            "$ref": "#/backend/entities/SubscriptionPlan"
-          },
-          "description": "Stores subscription plan details.",
-          "params": [
-            {
-              "name": "subscriptionPlanId",
-              "description": "Unique identifier for the SubscriptionPlan entity."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "This Firestore structure prioritizes authorization independence and QAPs (Rules are not Filters) as mandated. It leverages structural segregation to ensure homogeneous security postures within collections and subcollections.  \n\n*   **Businesses:** The `businesses` collection stores business-related data. Each business document is identified by a unique `businessId`.  \n*   **Reviews:** Reviews are stored in a subcollection of the business (`/businesses/{businessId}/reviews/{reviewId}`). This allows efficient querying of reviews associated with a specific business.  \n*   **Google Business Profiles:** Google Business Profiles are stored in a subcollection of the business (`/businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}`). This approach allows efficient querying of Google Business Profiles associated with a specific business.\n*   **Posts:** Posts are stored in a subcollection of the Google Business Profile (`/businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}`).\n*   **Landing Pages:** Landing Pages are stored in a subcollection of the business (`/businesses/{businessId}/landingPages/{landingPageId}`). This allows efficient querying of landing pages associated with a specific business. \n*   **Contact Forms:** Contact Forms are stored in a subcollection of the landing page (`/businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}`).  This allows efficient querying of contact forms associated with a specific landing page. \n*   **Subscription Plans:** The `subscriptionPlans` collection stores subscription plan details.  \n\n**Authorization Independence:**\n\n*   The structure enables authorization independence by avoiding `get()` calls in the security rules. For example, access to `/businesses/{businessId}/reviews/{reviewId}` will rely on the existence of the business document and potentially on denormalized data within the review document itself (e.g., copying business ownership details into the review). \n\n**QAPs (Rules are not Filters):**\n\n*   Structural segregation supports QAPs. For instance, if there were a need to separate public and private reviews, they would be stored in separate collections or subcollections (e.g., `/businesses/{businessId}/public_reviews/{reviewId}` and `/businesses/{businessId}/private_reviews/{reviewId}`), each with its own security rules. This prevents the need to filter based on review content in the rules, which is an anti-pattern."
+    "/businesses/{businessId}": {
+      "schema": { "$ref": "#/entities/Business" },
+      "description": "Stores business entities.  `businessId` is the unique identifier for each business."
+    },
+    "/businesses/{businessId}/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Stores reviews associated with a business. Includes denormalized business information as necessary for authorization independence."
+    },
+    "/businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}": {
+      "schema": { "$ref": "#/entities/GoogleBusinessProfile" },
+      "description": "Stores Google Business Profiles associated with a business."
+    },
+    "/businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}": {
+      "schema": { "$ref": "#/entities/Post" },
+      "description": "Stores posts associated with a Google Business Profile."
+    },
+    "/businesses/{businessId}/landingPages/{landingPageId}": {
+      "schema": { "$ref": "#/entities/LandingPage" },
+      "description": "Stores landing pages associated with a business."
+    },
+    "/businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}": {
+      "schema": { "$ref": "#/entities/ContactForm" },
+      "description": "Stores contact forms associated with a landing page."
+    },
+    "/subscriptionPlans/{subscriptionPlanId}": {
+      "schema": { "$ref": "#/entities/SubscriptionPlan" },
+      "description": "Stores subscription plan details."
+    },
+    "/paymentSettings/{planSettingsId}": {
+      "schema": { "$ref": "#/entities/PaymentSettings" },
+      "description": "Stores payment gateway settings for each subscription plan. `planSettingsId` could be 'plan_starter', 'plan_professional', etc."
+    },
+    "/superAdmins/{superAdminId}": {
+      "schema": { "$ref": "#/entities/SuperAdmin" },
+      "description": "Stores super administrator user profiles."
+    }
   }
 }
