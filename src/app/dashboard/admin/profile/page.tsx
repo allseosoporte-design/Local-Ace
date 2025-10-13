@@ -11,6 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Upload } from "lucide-react";
 
 export default function AdminProfilePage() {
   return (
@@ -28,23 +30,41 @@ export default function AdminProfilePage() {
           <CardDescription>Actualiza los detalles de tu cuenta de administrador.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="first-name">Nombre</Label>
-              <Input id="first-name" defaultValue="Alexander" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1 flex flex-col items-center gap-4">
+                <Avatar className="h-32 w-32">
+                    <AvatarImage src="https://avatar.vercel.sh/alexander.png" alt="Admin Avatar" />
+                    <AvatarFallback>AJ</AvatarFallback>
+                </Avatar>
+                <Button variant="outline">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Subir nueva foto
+                </Button>
             </div>
-             <div className="space-y-2">
-              <Label htmlFor="last-name">Apellido</Label>
-              <Input id="last-name" defaultValue="Jerez Fernandez" />
+            <div className="md:col-span-2 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                    <Label htmlFor="first-name">Nombre</Label>
+                    <Input id="first-name" defaultValue="Alexander" />
+                    </div>
+                    <div className="space-y-2">
+                    <Label htmlFor="last-name">Apellido</Label>
+                    <Input id="last-name" defaultValue="Jerez Fernandez" />
+                    </div>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="email">Correo Electrónico</Label>
+                    <Input id="email" type="email" defaultValue="allseosoporte@gmail.com" readOnly />
+                    <p className="text-xs text-muted-foreground pt-1">El correo electrónico no se puede modificar.</p>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="phone">Teléfono de Contacto</Label>
+                    <Input id="phone" type="tel" placeholder="+1 234 567 890" />
+                </div>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Correo Electrónico</Label>
-            <Input id="email" type="email" defaultValue="allseosoporte@gmail.com" readOnly />
-             <p className="text-xs text-muted-foreground pt-1">El correo electrónico no se puede modificar.</p>
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="border-t pt-6 flex justify-end">
           <Button>Guardar Cambios</Button>
         </CardFooter>
       </Card>
