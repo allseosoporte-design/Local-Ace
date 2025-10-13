@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
 import { Users, CreditCard } from "lucide-react";
+import { EditorLandingIcon } from "./icons/editor-landing";
 
 
 const links = [
@@ -17,6 +19,11 @@ const links = [
     href: "/dashboard/admin/subscription-plans",
     label: "Gestión de Planes",
     icon: <CreditCard />,
+  },
+  {
+    href: "/dashboard/admin/editor-landing",
+    label: "Editor de Landing",
+    icon: <EditorLandingIcon />,
   },
 ];
 
