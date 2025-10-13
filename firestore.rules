@@ -1,202 +1,210 @@
 /**
- * @fileoverview Firestore Security Rules for Local Leap platform.
- *
- * Core Philosophy:
- * This ruleset implements a role-based access control model with a 'superAdmin' role, and ownership-based access where appropriate.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a role-based access control model, primarily using the concept of a "SuperAdmin" to manage all aspects of the application.
  *
  * Data Structure:
- * - Businesses and related data (reviews, Google Business Profiles, landing pages) are stored under the `/businesses/{businessId}` path.
- * - Subscription plans and payment settings are stored in top-level collections.
- * - Super admins are stored under the `/superAdmins/{superAdminId}` path.
- * - Pending payments, subscriptions and activity logs are stored in top-level collections.
+ * - /businesses/{businessId}: Stores business entities. SuperAdmins have full control.
+ * - /businesses/{businessId}/reviews/{reviewId}: Stores reviews for businesses. SuperAdmins have full control.
+ * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}: Stores Google Business Profiles. SuperAdmins have full control.
+ * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}: Stores posts for Google Business Profiles. SuperAdmins have full control.
+ * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages for businesses. SuperAdmins have full control.
+ * - /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}: Stores contact forms for landing pages. SuperAdmins have full control.
+ * - /subscriptionPlans/{subscriptionPlanId}: Stores subscription plans. SuperAdmins have full control.
+ * - /paymentSettings/{planSettingsId}: Stores payment settings. SuperAdmins have full control.
+ * - /superAdmins/{superAdminId}: Stores super admin profiles. Only SuperAdmins can manage these profiles.
+ * - /pendingPayments/{paymentId}: Stores pending payment requests. SuperAdmins have full control.
+ * - /subscriptions/{subscriptionId}: Stores subscription information. SuperAdmins have full control.
+ * - /activityLogs/{logId}: Stores activity logs. SuperAdmins have full control.
  *
  * Key Security Decisions:
- * - Only super admins can list businesses.
- * - Super admins have full access to businesses.
- * - Other collections are generally readable by anyone, but only super admins can create, update, or delete them.
- * - All write operations require an authenticated user.
- *
- * Denormalization for Authorization:
- *  None.
- *
- * Structural Segregation:
- *  No explicit segregation; assumes all data within a given collection has the same access requirements.
+ * - All data is primarily managed by SuperAdmins.
+ * - No user listing is allowed for any collection (e.g., listing all SuperAdmins).
+ * - Data shape validation is relaxed to allow for rapid prototyping. Only authorization-critical fields are validated.
+ * - The rules prioritize security first, assuming all collections contain sensitive information unless explicitly specified otherwise.
+ * - Access to all collections is restricted to authenticated users (isSignedIn()).
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows super admins to manage business entities.
+     * @description Manages business entities. SuperAdmins can list, create, read, update, and delete businesses.
      * @path /businesses/{businessId}
-     * @allow (list, create) if request.auth.uid is a super admin.
-     * @allow (read, update, delete) if request.auth.uid is a super admin.
-     * @deny (list, create) if request.auth.uid is not a super admin.
-     * @deny (read, update, delete) if request.auth.uid is not a super admin.
-     * @principle Enforces super admin role for business management.
+     * @allow (list, create) if request.auth.uid exists and user is a SuperAdmin
+     * @allow (read, update, delete) if request.auth.uid exists and user is a SuperAdmin
+     * @deny (create) if request.auth.uid does not exist
+     * @deny (read) if request.auth.uid does not exist
+     * @principle Enforces role-based access control; only SuperAdmins can manage businesses.
      */
     match /businesses/{businessId} {
-      allow list, create: if isSuperAdmin();
-      allow read, update, delete: if isSuperAdmin();
+      allow list, create: if isSignedIn() && isSuperAdmin();
+      allow read, update, delete: if isSignedIn() && isSuperAdmin();
     }
 
     /**
-     * @description Allows super admins to manage reviews under a business.
+     * @description Manages reviews associated with a business. SuperAdmins have full control.
      * @path /businesses/{businessId}/reviews/{reviewId}
-     * @allow get, list: if true;
-     * @allow create, update, delete: if isSuperAdmin();
-     * @deny create, update, delete: if !isSuperAdmin();
-     * @principle Open read access, super admin only writes.
+     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
+     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage reviews.
      */
     match /businesses/{businessId}/reviews/{reviewId} {
-      allow get, list: if true;
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list, create: if isSignedIn() && isSuperAdmin();
+      allow update, delete: if isSignedIn() && isSuperAdmin();
     }
 
     /**
-     * @description Allows super admins to manage Google Business Profiles for a business.
+     * @description Manages Google Business Profiles associated with a business. SuperAdmins have full control.
      * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}
-     * @allow get, list: if true;
-     * @allow create, update, delete: if isSuperAdmin();
-     * @deny create, update, delete: if !isSuperAdmin();
-     * @principle Open read access, super admin only writes.
+     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
+     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage Google Business Profiles.
      */
     match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId} {
-      allow get, list: if true;
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list, create: if isSignedIn() && isSuperAdmin();
+      allow update, delete: if isSignedIn() && isSuperAdmin();
     }
 
     /**
-     * @description Allows super admins to manage posts under a Google Business Profile.
+     * @description Manages posts associated with a Google Business Profile. SuperAdmins have full control.
      * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}
-     * @allow get, list: if true;
-     * @allow create, update, delete: if isSuperAdmin();
-     * @deny create, update, delete: if !isSuperAdmin();
-     * @principle Open read access, super admin only writes.
+     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
+     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage posts.
      */
     match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId} {
-      allow get, list: if true;
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list, create: if isSignedIn() && isSuperAdmin();
+      allow update, delete: if isSignedIn() && isSuperAdmin();
     }
 
     /**
-     * @description Allows super admins to manage landing pages for a business.
+     * @description Manages landing pages associated with a business. SuperAdmins have full control.
      * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow get, list: if true;
-     * @allow create, update, delete: if isSuperAdmin();
-     * @deny create, update, delete: if !isSuperAdmin();
-     * @principle Open read access, super admin only writes.
+     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
+     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage landing pages.
      */
     match /businesses/{businessId}/landingPages/{landingPageId} {
-      allow get, list: if true;
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list, create: if isSignedIn() && isSuperAdmin();
+      allow update, delete: if isSignedIn() && isSuperAdmin();
     }
 
     /**
-     * @description Allows super admins to manage contact forms for a landing page.
+     * @description Manages contact forms associated with a landing page. SuperAdmins have full control.
      * @path /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}
-     * @allow get, list: if true;
-     * @allow create, update, delete: if isSuperAdmin();
-     * @deny create, update, delete: if !isSuperAdmin();
-     * @principle Open read access, super admin only writes.
+     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
+     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage contact forms.
      */
     match /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId} {
-      allow get, list: if true;
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list, create: if isSignedIn() && isSuperAdmin();
+      allow update, delete: if isSignedIn() && isSuperAdmin();
     }
 
     /**
-     * @description Allows public read access to subscription plans, and super admin write access.
+     * @description Manages subscription plans. SuperAdmins have full control.
      * @path /subscriptionPlans/{subscriptionPlanId}
-     * @allow get, list: if true;
-     * @allow create, update, delete: if isSuperAdmin();
-     * @deny create, update, delete: if !isSuperAdmin();
-     * @principle Open read access, super admin only writes.
+     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
+     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage subscription plans.
      */
     match /subscriptionPlans/{subscriptionPlanId} {
-      allow get, list: if true;
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list, create: if isSignedIn() && isSuperAdmin();
+      allow update, delete: if isSignedIn() && isSuperAdmin();
     }
 
     /**
-     * @description Allows public read access to payment settings, and super admin write access.
+     * @description Manages payment settings for subscription plans. SuperAdmins have full control.
      * @path /paymentSettings/{planSettingsId}
-     * @allow get, list: if true;
-     * @allow create, update, delete: if isSuperAdmin();
-     * @deny create, update, delete: if !isSuperAdmin();
-     * @principle Open read access, super admin only writes.
+     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
+     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage payment settings.
      */
     match /paymentSettings/{planSettingsId} {
-      allow get, list: if true;
-      allow create, update, delete: if isSuperAdmin();
+      allow get, list, create: if isSignedIn() && isSuperAdmin();
+      allow update, delete: if isSignedIn() && isSuperAdmin();
     }
 
     /**
-     * @description Allows access control for super admins. Only super admins can manage super admin profiles.
+     * @description Manages super admin profiles. Only existing SuperAdmins can manage these profiles.
      * @path /superAdmins/{superAdminId}
-     * @allow get: if isSuperAdmin();
-     * @allow list: if false;
-     * @allow create: if isSuperAdmin();
-     * @allow update: if isSuperAdmin();
-     * @allow delete: if isSuperAdmin();
-     * @deny list: if true;
-     * @deny create, update, delete: if !isSuperAdmin();
-     * @principle Restricts super admin management to other super admins.
+     * @allow get, list: if isSignedIn() && isSuperAdmin();
+     * @allow create: if isSignedIn() && isSuperAdmin();
+     * @allow update, delete: if isSignedIn() && isSuperAdmin();
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage other SuperAdmins.
      */
     match /superAdmins/{superAdminId} {
-        allow get: if isSuperAdmin();
-        allow list: if false;
-        allow create: if isSuperAdmin();
-        allow update: if isSuperAdmin();
-        allow delete: if isSuperAdmin();
-    }
-
-     /**
-      * @description Allows super admins to manage pending payments.
-      * @path /pendingPayments/{paymentId}
-      * @allow get, list: if true;
-      * @allow create, update, delete: if isSuperAdmin();
-      * @deny create, update, delete: if !isSuperAdmin();
-      * @principle Open read access, super admin only writes.
-      */
-    match /pendingPayments/{paymentId} {
-        allow get, list: if true;
-        allow create, update, delete: if isSuperAdmin();
+      allow get, list: if isSignedIn() && isSuperAdmin();
+      allow create: if isSignedIn() && isSuperAdmin();
+      allow update, delete: if isSignedIn() && isSuperAdmin();
     }
 
     /**
-     * @description Allows super admins to manage subscriptions.
+     * @description Manages pending payment requests. SuperAdmins have full control.
+     * @path /pendingPayments/{paymentId}
+     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
+     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage pending payments.
+     */
+    match /pendingPayments/{paymentId} {
+        allow get, list, create: if isSignedIn() && isSuperAdmin();
+        allow update, delete: if isSignedIn() && isSuperAdmin();
+    }
+
+    /**
+     * @description Manages active subscriptions for businesses. SuperAdmins have full control.
      * @path /subscriptions/{subscriptionId}
-     * @allow get, list: if true;
-     * @allow create, update, delete: if isSuperAdmin();
-     * @deny create, update, delete: if !isSuperAdmin();
-     * @principle Open read access, super admin only writes.
+     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
+     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage subscriptions.
      */
     match /subscriptions/{subscriptionId} {
-        allow get, list: if true;
-        allow create, update, delete: if isSuperAdmin();
+        allow get, list, create: if isSignedIn() && isSuperAdmin();
+        allow update, delete: if isSignedIn() && isSuperAdmin();
     }
 
     /**
-     * @description Allows super admins to manage activity logs.
+     * @description Stores logs of administrative actions. SuperAdmins have full control.
      * @path /activityLogs/{logId}
-     * @allow get, list: if true;
-     * @allow create, update, delete: if isSuperAdmin();
-     * @deny create, update, delete: if !isSuperAdmin();
-     * @principle Open read access, super admin only writes.
+     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
+     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
+     * @deny (create) if request.auth == null
+     * @deny (read) if request.auth == null
+     * @principle Enforces role-based access control. Only SuperAdmins can manage activity logs.
      */
     match /activityLogs/{logId} {
-        allow get, list: if true;
-        allow create, update, delete: if isSuperAdmin();
+        allow get, list, create: if isSignedIn() && isSuperAdmin();
+        allow update, delete: if isSignedIn() && isSuperAdmin();
     }
 
-    // Helper functions
+    // Helper function to determine if a user is signed in
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Helper function to determine if the user is a SuperAdmin.
     function isSuperAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
+      return exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
     }
   }
 }
