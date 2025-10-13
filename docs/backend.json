@@ -253,6 +253,53 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+     "PaymentSettings": {
+      "title": "PaymentSettings",
+      "type": "object",
+      "description": "Stores payment method configurations for a subscription plan.",
+      "properties": {
+        "planId": { "type": "string", "description": "The ID of the subscription plan (e.g., 'starter')." },
+        "nequi": { "$ref": "#/entities/QRPaymentMethod" },
+        "bancolombia": { "$ref": "#/entities/QRPaymentMethod" },
+        "stripe": { "$ref": "#/entities/StripePaymentMethod" },
+        "mercadoPago": { "$ref": "#/entities/MercadoPagoPaymentMethod" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "QRPaymentMethod": {
+      "title": "QRPaymentMethod",
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "qrImageUrl": { "type": "string", "format": "uri" },
+        "accountNumber": { "type": "string" },
+        "holderName": { "type": "string" },
+        "idDocument": { "type": "string" },
+        "phone": { "type": "string" },
+        "isMainQR": { "type": "boolean" },
+        "instructions": { "type": "string" }
+      }
+    },
+    "StripePaymentMethod": {
+      "title": "StripePaymentMethod",
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "publicKey": { "type": "string" },
+        "secretKey": { "type": "string" }
+      }
+    },
+    "MercadoPagoPaymentMethod": {
+      "title": "MercadoPagoPaymentMethod",
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "accessToken": { "type": "string" },
+        "publicKey": { "type": "string" },
+        "mode": { "type": "string", "enum": ["production", "sandbox"] },
+        "instructions": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -312,7 +359,19 @@
           },
           "description": "Stores all available subscription plans for the platform."
         }
+      },
+      {
+        "path": "/paymentSettings/{planSettingsId}",
+        "definition": {
+          "entityName": "PaymentSettings",
+          "schema": {
+            "$ref": "#/backend/entities/PaymentSettings"
+          },
+          "description": "Stores payment method configurations for subscription plans. Access is restricted to super admins."
+        }
       }
     ]
   }
 }
+
+    
