@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { uploadImage } from '@/ai/flows/upload-image';
-import { updatePassword } from 'firebase/auth';
+import { updatePassword, updateProfile } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 
 interface SuperAdminProfile {
@@ -40,7 +40,6 @@ export default function AdminProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profileData, setProfileData] = useState<Partial<SuperAdminProfile>>({});
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -67,15 +66,19 @@ export default function AdminProfilePage() {
     if (!superAdminRef) return;
     setIsSaving(true);
     try {
-      const dataToSave: Partial<SuperAdminProfile> = {
+      const dataToSave: Partial<SuperAdminProfile> & { updatedAt: any } = {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
         phone: profileData.phone,
-        avatarUrl: profileData.avatarUrl,
-        updatedAt: serverTimestamp() as any,
+        updatedAt: serverTimestamp(),
       };
 
       await updateDoc(superAdminRef, dataToSave);
+
+      if (user && (user.displayName !== `${profileData.firstName} ${profileData.lastName}`)) {
+         await updateProfile(user, { displayName: `${profileData.firstName} ${profileData.lastName}`.trim() });
+      }
+
       toast({
         title: 'Cambios guardados',
         description: 'Tu información personal ha sido actualizada.',
@@ -106,7 +109,6 @@ export default function AdminProfilePage() {
     try {
       await updatePassword(user, newPassword);
       setNewPassword('');
-      setCurrentPassword(''); // For security, clear fields after use
       toast({
         title: 'Contraseña actualizada',
         description: 'Tu contraseña ha sido cambiada exitosamente.',
@@ -134,7 +136,7 @@ export default function AdminProfilePage() {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !user || !superAdminRef) return;
 
     setIsUploading(true);
     try {
@@ -144,17 +146,19 @@ export default function AdminProfilePage() {
         const fileAsDataUrl = reader.result as string;
         const result = await uploadImage({
           fileAsDataUrl,
-          folder: `super-admins/${user?.uid}`
+          folder: `super-admins/${user.uid}`
         });
 
         if (result.imageUrl) {
-          setProfileData(prev => ({ ...prev, avatarUrl: result.imageUrl }));
-          if (superAdminRef) {
-            await updateDoc(superAdminRef, { avatarUrl: result.imageUrl });
-          }
+          // Update Firestore
+          await updateDoc(superAdminRef, { avatarUrl: result.imageUrl });
+          // Update Firebase Auth profile
+          await updateProfile(user, { photoURL: result.imageUrl });
+          
+          // The local state will update automatically via the useDoc hook
           toast({
             title: 'Foto actualizada',
-            description: 'Tu foto de perfil se ha subido correctamente.',
+            description: 'Tu foto de perfil se ha subido y guardado correctamente.',
           });
         }
       };
@@ -198,7 +202,7 @@ export default function AdminProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1 flex flex-col items-center gap-4">
               <Avatar className="h-32 w-32">
-                <AvatarImage src={profileData.avatarUrl} alt="Admin Avatar" />
+                <AvatarImage src={user?.photoURL || profileData.avatarUrl} alt="Admin Avatar" />
                 <AvatarFallback>{profileData.firstName?.charAt(0)}{profileData.lastName?.charAt(0)}</AvatarFallback>
               </Avatar>
               <input
