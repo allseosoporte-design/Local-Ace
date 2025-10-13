@@ -34,17 +34,21 @@ export function EditorSeo({ data, setData }: EditorSeoProps) {
     }));
   };
 
-  const handleAddKeyword = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && keywordInput.trim() !== '') {
-      e.preventDefault();
-      if (!data.seo.keywords.includes(keywordInput.trim())) {
+  const handleAddKeyword = () => {
+    if (keywordInput.trim() !== '' && !data.seo.keywords.includes(keywordInput.trim())) {
         const newKeywords = [...data.seo.keywords, keywordInput.trim()];
         setData((prev) => ({
-          ...prev,
-          seo: { ...prev.seo, keywords: newKeywords },
+            ...prev,
+            seo: { ...prev.seo, keywords: newKeywords },
         }));
-      }
-      setKeywordInput('');
+    }
+    setKeywordInput('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddKeyword();
     }
   };
 
@@ -95,7 +99,7 @@ export function EditorSeo({ data, setData }: EditorSeoProps) {
             id="seo-keywords"
             value={keywordInput}
             onChange={(e) => setKeywordInput(e.target.value)}
-            onKeyDown={handleAddKeyword}
+            onKeyDown={handleKeyDown}
             placeholder="Añade una palabra y presiona Enter..."
           />
           <div className="flex flex-wrap gap-2 mt-2">
