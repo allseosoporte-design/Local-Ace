@@ -14,7 +14,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, Globe, Save } from 'lucide-react';
-import type { LandingPageData, SeoData } from './editor-landing-preview';
+import type { LandingPageData } from './editor-landing-preview';
+import { useToast } from '@/hooks/use-toast';
 
 interface EditorSeoProps {
   data: LandingPageData;
@@ -23,6 +24,7 @@ interface EditorSeoProps {
 
 export function EditorSeo({ data, setData }: EditorSeoProps) {
   const [keywordInput, setKeywordInput] = useState('');
+  const { toast } = useToast();
 
   const handleSeoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setData((prev) => ({
@@ -60,6 +62,15 @@ export function EditorSeo({ data, setData }: EditorSeoProps) {
     }));
   };
 
+  const handleSaveChanges = () => {
+    // Aquí iría la lógica para guardar en Firebase
+    console.log("Saving SEO data:", data.seo);
+    toast({
+      title: 'SEO guardado',
+      description: 'La configuración SEO ha sido guardada exitosamente.',
+    });
+  };
+
   return (
     <Card className="h-full overflow-y-auto border-t-0 rounded-t-none bg-[#FEFBF9]">
       <CardHeader>
@@ -95,14 +106,17 @@ export function EditorSeo({ data, setData }: EditorSeoProps) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="seo-keywords">Palabras Clave</Label>
-          <Input
-            id="seo-keywords"
-            value={keywordInput}
-            onChange={(e) => setKeywordInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Añade una palabra y presiona Enter..."
-          />
-          <div className="flex flex-wrap gap-2 mt-2">
+          <div className="flex items-center gap-2">
+            <Input
+              id="seo-keywords"
+              value={keywordInput}
+              onChange={(e) => setKeywordInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Añade una palabra y presiona Enter..."
+            />
+            <Button onClick={handleAddKeyword} variant="outline">Añadir</Button>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-2 min-h-[2.5rem]">
             {data.seo.keywords.map((keyword, index) => (
               <Badge key={index} variant="secondary" className="text-sm py-1 pl-3 pr-1">
                 {keyword}
@@ -117,7 +131,7 @@ export function EditorSeo({ data, setData }: EditorSeoProps) {
           </div>
         </div>
          <div className="flex justify-end gap-2 pt-4 border-t mt-6">
-          <Button style={{ backgroundColor: '#FF8550', color: '#FFFFFF' }}>
+          <Button onClick={handleSaveChanges} style={{ backgroundColor: '#FF8550', color: '#FFFFFF' }}>
             <Save className="mr-2 h-4 w-4" />
             Guardar Cambios SEO
           </Button>
