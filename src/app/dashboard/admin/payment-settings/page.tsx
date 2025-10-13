@@ -29,7 +29,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, Upload } from 'lucide-react';
+import { Save, Upload, Loader2 } from 'lucide-react';
+import { uploadImage } from '@/ai/flows/upload-image';
+import { useToast } from '@/hooks/use-toast';
+
 
 const NequiIcon = () => (
   <svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -84,63 +87,118 @@ const PaymentMethodForm = ({ icon, title, children }: { icon: React.ReactNode, t
     </AccordionItem>
 );
 
-const QRForm = ({methodName}: {methodName: 'Nequi' | 'Bancolombia'}) => (
-    <>
-        <div className="flex justify-end">
-            <div className="flex items-center gap-2">
-                <Label htmlFor={`switch-${methodName.toLowerCase()}`}>{methodName} está activado</Label>
-                <Switch id={`switch-${methodName.toLowerCase()}`} defaultChecked />
-            </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-                 <div className="space-y-2">
-                    <Label htmlFor={`qr-code-url-${methodName.toLowerCase()}`}>Imagen con Código QR (URL)</Label>
-                    <Input id={`qr-code-url-${methodName.toLowerCase()}`} placeholder='https://...' />
+const QRForm = ({methodName}: {methodName: 'Nequi' | 'Bancolombia'}) => {
+    const { toast } = useToast();
+    const [qrImageUrl, setQrImageUrl] = useState<string | null>("https://picsum.photos/seed/qr1/200/200");
+    const [isUploading, setIsUploading] = useState(false);
+    
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = async () => {
+                const fileAsDataUrl = reader.result as string;
+                const result = await uploadImage({
+                  fileAsDataUrl,
+                  folder: `payment-qrs/${methodName.toLowerCase()}`
+                });
+
+                if (result.imageUrl) {
+                  setQrImageUrl(result.imageUrl);
+                  toast({
+                    title: 'Imagen subida',
+                    description: 'El código QR se ha actualizado correctamente.',
+                  });
+                }
+            };
+        } catch (error) {
+            console.error('Error subiendo imagen:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error de subida',
+                description: 'No se pudo subir la imagen del código QR.',
+            });
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    return (
+        <>
+            <div className="flex justify-end">
+                <div className="flex items-center gap-2">
+                    <Label htmlFor={`switch-${methodName.toLowerCase()}`}>{methodName} está activado</Label>
+                    <Switch id={`switch-${methodName.toLowerCase()}`} defaultChecked />
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor={`qr-code-file-${methodName.toLowerCase()}`}>o sube el archivo</Label>
-                    <div className="flex items-center gap-2">
-                        <Input id={`qr-code-file-${methodName.toLowerCase()}`} type="file" className="flex-grow"/>
-                        <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Subir</Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor={`qr-code-url-${methodName.toLowerCase()}`}>Imagen con Código QR (URL)</Label>
+                        <Input 
+                            id={`qr-code-url-${methodName.toLowerCase()}`} 
+                            placeholder='https://...' 
+                            value={qrImageUrl || ''}
+                            onChange={(e) => setQrImageUrl(e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor={`qr-code-file-${methodName.toLowerCase()}`}>o sube el archivo</Label>
+                        <Input 
+                            id={`qr-code-file-${methodName.toLowerCase()}`} 
+                            type="file" 
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            disabled={isUploading}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor={`account-number-${methodName.toLowerCase()}`}>Número de cuenta asociado*</Label>
+                        <Input id={`account-number-${methodName.toLowerCase()}`} placeholder='3116028254' />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor={`holder-name-${methodName.toLowerCase()}`}>Nombre del titular*</Label>
+                        <Input id={`holder-name-${methodName.toLowerCase()}`} placeholder='Alexander Jerez Fernandez' />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor={`id-document-${methodName.toLowerCase()}`}>Documento de identidad*</Label>
+                        <Input id={`id-document-${methodName.toLowerCase()}`} placeholder='1111846661' />
                     </div>
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor={`account-number-${methodName.toLowerCase()}`}>Número de cuenta asociado*</Label>
-                    <Input id={`account-number-${methodName.toLowerCase()}`} placeholder='3116028254' />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor={`holder-name-${methodName.toLowerCase()}`}>Nombre del titular*</Label>
-                    <Input id={`holder-name-${methodName.toLowerCase()}`} placeholder='Alexander Jerez Fernandez' />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor={`id-document-${methodName.toLowerCase()}`}>Documento de identidad*</Label>
-                    <Input id={`id-document-${methodName.toLowerCase()}`} placeholder='1111846661' />
-                </div>
-            </div>
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Label>Vista Previa del QR</Label>
-                    <div className="w-[240px] h-[240px] bg-gray-200 rounded-md flex items-center justify-center mx-auto">
-                        <Image src="https://picsum.photos/seed/qr1/200/200" alt="QR Code Preview" width={200} height={200} className="rounded-md" />
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Vista Previa del QR</Label>
+                        <div className="w-[240px] h-[240px] bg-gray-200 rounded-md flex items-center justify-center mx-auto border">
+                             {isUploading ? (
+                                <Loader2 className="h-8 w-8 animate-spin" />
+                             ) : qrImageUrl ? (
+                                <Image src={qrImageUrl} alt="QR Code Preview" width={240} height={240} className="rounded-md object-contain" />
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Sube una imagen</p>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-2 justify-center">
+                            <Checkbox id={`main-qr-${methodName.toLowerCase()}`} />
+                            <Label htmlFor={`main-qr-${methodName.toLowerCase()}`}>Establecer como QR principal</Label>
+                        </div>
                     </div>
-                     <div className="flex items-center gap-2 mt-2 justify-center">
-                         <Checkbox id={`main-qr-${methodName.toLowerCase()}`} />
-                        <Label htmlFor={`main-qr-${methodName.toLowerCase()}`}>Establecer como QR principal</Label>
-                     </div>
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor={`phone-${methodName.toLowerCase()}`}>Teléfono</Label>
-                    <Input id={`phone-${methodName.toLowerCase()}`} placeholder='(+57) 3116028254' />
+                    <div className="space-y-2">
+                        <Label htmlFor={`phone-${methodName.toLowerCase()}`}>Teléfono</Label>
+                        <Input id={`phone-${methodName.toLowerCase()}`} placeholder='(+57) 3116028254' />
+                    </div>
                 </div>
             </div>
-        </div>
-         <div className="space-y-2">
-            <Label htmlFor={`instructions-${methodName.toLowerCase()}`}>Instrucción para el cliente</Label>
-            <Textarea id={`instructions-${methodName.toLowerCase()}`} placeholder='Para validar tu pago, envía el comprobante a nuestro WhatsApp. Luego, nuestro equipo confirmará y activará tu plan.' />
-        </div>
-    </>
-);
+            <div className="space-y-2">
+                <Label htmlFor={`instructions-${methodName.toLowerCase()}`}>Instrucción para el cliente</Label>
+                <Textarea id={`instructions-${methodName.toLowerCase()}`} placeholder='Para validar tu pago, envía el comprobante a nuestro WhatsApp. Luego, nuestro equipo confirmará y activará tu plan.' />
+            </div>
+        </>
+    );
+};
 
 
 export default function PaymentSettingsPage() {
@@ -246,3 +304,5 @@ export default function PaymentSettingsPage() {
     </div>
   );
 }
+
+    
