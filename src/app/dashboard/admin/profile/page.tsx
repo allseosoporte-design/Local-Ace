@@ -1,4 +1,7 @@
 
+'use client';
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,8 +16,61 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useRef } from 'react';
 
 export default function AdminProfilePage() {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [firstName, setFirstName] = useState("Alexander");
+  const [lastName, setLastName] = useState("Jerez Fernandez");
+  const [phone, setPhone] = useState("+1 234 567 890");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
+  const handleSaveChanges = () => {
+    // Lógica para guardar cambios en Firebase/backend
+    console.log("Saving changes:", { firstName, lastName, phone });
+    toast({
+      title: "Cambios guardados",
+      description: "Tu información personal ha sido actualizada.",
+    });
+  };
+  
+  const handleUpdatePassword = () => {
+    // Lógica para actualizar contraseña
+    if (!currentPassword || !newPassword) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Por favor, rellena ambos campos de contraseña.",
+      });
+      return;
+    }
+    console.log("Updating password...");
+    toast({
+      title: "Contraseña actualizada",
+      description: "Tu contraseña ha sido cambiada exitosamente.",
+    });
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      console.log("File selected:", file.name);
+      // Aquí iría la lógica para subir la imagen a Cloudinary y actualizar el estado del avatar
+      toast({
+        title: "Imagen seleccionada",
+        description: `${file.name} lista para subir.`,
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -36,7 +92,14 @@ export default function AdminProfilePage() {
                     <AvatarImage src="https://avatar.vercel.sh/alexander.png" alt="Admin Avatar" />
                     <AvatarFallback>AJ</AvatarFallback>
                 </Avatar>
-                <Button variant="outline">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept="image/*"
+                />
+                <Button variant="outline" onClick={handleUploadClick}>
                     <Upload className="mr-2 h-4 w-4" />
                     Subir nueva foto
                 </Button>
@@ -45,11 +108,11 @@ export default function AdminProfilePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                     <Label htmlFor="first-name">Nombre</Label>
-                    <Input id="first-name" defaultValue="Alexander" />
+                    <Input id="first-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                     <Label htmlFor="last-name">Apellido</Label>
-                    <Input id="last-name" defaultValue="Jerez Fernandez" />
+                    <Input id="last-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
                     </div>
                 </div>
                  <div className="space-y-2">
@@ -59,13 +122,13 @@ export default function AdminProfilePage() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="phone">Teléfono de Contacto</Label>
-                    <Input id="phone" type="tel" placeholder="+1 234 567 890" />
+                    <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 </div>
             </div>
           </div>
         </CardContent>
         <CardFooter className="border-t pt-6 flex justify-end">
-          <Button>Guardar Cambios</Button>
+          <Button onClick={handleSaveChanges}>Guardar Cambios</Button>
         </CardFooter>
       </Card>
       
@@ -79,15 +142,15 @@ export default function AdminProfilePage() {
         <CardContent className="space-y-4">
            <div className="space-y-2">
             <Label htmlFor="current-password">Contraseña Actual</Label>
-            <Input id="current-password" type="password" />
+            <Input id="current-password" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
           </div>
            <div className="space-y-2">
             <Label htmlFor="new-password">Nueva Contraseña</Label>
-            <Input id="new-password" type="password" />
+            <Input id="new-password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
           </div>
         </CardContent>
         <CardFooter>
-          <Button>Actualizar Contraseña</Button>
+          <Button onClick={handleUpdatePassword}>Actualizar Contraseña</Button>
         </CardFooter>
       </Card>
 
