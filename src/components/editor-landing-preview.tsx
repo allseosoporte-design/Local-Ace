@@ -34,6 +34,12 @@ export interface Testimonial {
   rating: number;
 }
 
+export interface SeoData {
+  title: string;
+  description: string;
+  keywords: string[];
+}
+
 export interface LandingPageData {
   title: string;
   subtitle: string;
@@ -48,6 +54,7 @@ export interface LandingPageData {
   testimonialsTitle: string;
   testimonialsSubtitle: string;
   testimonials: Testimonial[];
+  seo: SeoData;
 }
 
 interface EditorLandingPreviewProps {

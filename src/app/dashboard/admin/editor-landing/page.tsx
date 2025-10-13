@@ -7,6 +7,7 @@ import { EditorLandingPreview, type LandingPageData } from "@/components/editor-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditorSections } from "@/components/editor-sections";
 import { EditorTestimonials } from "@/components/editor-testimonials";
+import { EditorSeo } from "@/components/editor-seo";
 
 export default function EditorLandingPage() {
   const [data, setData] = useState<LandingPageData>({
@@ -46,6 +47,11 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
         rating: 5,
       }
     ],
+    seo: {
+      title: "Moderniza tu negocio y aumenta tus ventas",
+      description: "Descubre la revolución para tu NEGOCIO. Con nuestro menú digital interactivo, tus clientes explorarán tus platos con fotos de alta calidad y descripciones detalladas, facilitando su elección y aumentando su satisfacción.",
+      keywords: ["Aumenta tus ventas", "Negocio digital", "Herramientas tecnológicas", "Éxito empresarial"],
+    }
   });
 
   return (
@@ -63,7 +69,7 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
                     <TabsTrigger value="hero">Hero</TabsTrigger>
                     <TabsTrigger value="sections">Secciones</TabsTrigger>
                     <TabsTrigger value="testimonials">Testimonios</TabsTrigger>
-                    <TabsTrigger value="seo" disabled>SEO</TabsTrigger>
+                    <TabsTrigger value="seo">SEO</TabsTrigger>
                 </TabsList>
                 <TabsContent value="hero">
                     <EditorLandingForm data={data} setData={setData} />
@@ -73,6 +79,9 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
                 </TabsContent>
                 <TabsContent value="testimonials">
                     <EditorTestimonials data={data} setData={setData} />
+                </TabsContent>
+                 <TabsContent value="seo">
+                    <EditorSeo data={data} setData={setData} />
                 </TabsContent>
             </Tabs>
         </div>
