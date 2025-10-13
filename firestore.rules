@@ -1,210 +1,255 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a role-based access control model, primarily using the concept of a "SuperAdmin" to manage all aspects of the application.
+ * @fileoverview Firestore Security Rules for Local Leap platform.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes secure access control based on clearly defined ownership.
+ * SuperAdmins are granted elevated privileges.  Schema validation is relaxed for rapid prototyping.
  *
  * Data Structure:
- * - /businesses/{businessId}: Stores business entities. SuperAdmins have full control.
- * - /businesses/{businessId}/reviews/{reviewId}: Stores reviews for businesses. SuperAdmins have full control.
- * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}: Stores Google Business Profiles. SuperAdmins have full control.
- * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}: Stores posts for Google Business Profiles. SuperAdmins have full control.
- * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages for businesses. SuperAdmins have full control.
- * - /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}: Stores contact forms for landing pages. SuperAdmins have full control.
- * - /subscriptionPlans/{subscriptionPlanId}: Stores subscription plans. SuperAdmins have full control.
- * - /paymentSettings/{planSettingsId}: Stores payment settings. SuperAdmins have full control.
- * - /superAdmins/{superAdminId}: Stores super admin profiles. Only SuperAdmins can manage these profiles.
- * - /pendingPayments/{paymentId}: Stores pending payment requests. SuperAdmins have full control.
- * - /subscriptions/{subscriptionId}: Stores subscription information. SuperAdmins have full control.
- * - /activityLogs/{logId}: Stores activity logs. SuperAdmins have full control.
+ * - /businesses/{businessId}: Root collection for businesses.
+ * - /businesses/{businessId}/reviews/{reviewId}: Subcollection for business reviews.
+ * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}: Subcollection for Google Business Profiles.
+ * - /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}: Subcollection for GBP posts.
+ * - /businesses/{businessId}/landingPages/{landingPageId}: Subcollection for Landing Pages.
+ * - /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}: Subcollection for Contact Forms.
+ * - /subscriptionPlans/{subscriptionPlanId}: Root collection for Subscription Plans.
+ * - /paymentSettings/{planSettingsId}: Root collection for Payment Settings.
+ * - /superAdmins/{superAdminId}: Root collection for Super Admins.
+ * - /pendingPayments/{paymentId}: Root collection for Pending Payments.
+ * - /subscriptions/{subscriptionId}: Root collection for Subscriptions.
+ * - /activityLogs/{logId}: Root collection for Activity Logs.
  *
  * Key Security Decisions:
- * - All data is primarily managed by SuperAdmins.
- * - No user listing is allowed for any collection (e.g., listing all SuperAdmins).
- * - Data shape validation is relaxed to allow for rapid prototyping. Only authorization-critical fields are validated.
- * - The rules prioritize security first, assuming all collections contain sensitive information unless explicitly specified otherwise.
- * - Access to all collections is restricted to authenticated users (isSignedIn()).
+ * - SuperAdmins have full read/write access to all collections.
+ * - Businesses and their subcollections (reviews, GBP, posts, landingPages, contactForms) are generally not listable publicly without authentication.
+ * - Owner-only write access is enforced for many collections, relying on ID matching between the path and document data.
+ * - Public read access is enabled only where explicitly intended (e.g., subscriptionPlans).
+ *
+ * Denormalization for Authorization:
+ * - For simplicity and performance, the rules assume that relevant ownership information (e.g., businessId) is present within documents,
+ *   rather than relying on complex `get()` operations to related documents.
+ *
+ * Structural Segregation:
+ * - Private data (e.g., superAdmin profiles) and public data (e.g., subscription plans) are stored in separate root-level collections.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages business entities. SuperAdmins can list, create, read, update, and delete businesses.
-     * @path /businesses/{businessId}
-     * @allow (list, create) if request.auth.uid exists and user is a SuperAdmin
-     * @allow (read, update, delete) if request.auth.uid exists and user is a SuperAdmin
-     * @deny (create) if request.auth.uid does not exist
-     * @deny (read) if request.auth.uid does not exist
-     * @principle Enforces role-based access control; only SuperAdmins can manage businesses.
+     * @description Allows SuperAdmins full access.
      */
-    match /businesses/{businessId} {
-      allow list, create: if isSignedIn() && isSuperAdmin();
-      allow read, update, delete: if isSignedIn() && isSuperAdmin();
+    function isSuperAdmin() {
+      return exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
     }
 
     /**
-     * @description Manages reviews associated with a business. SuperAdmins have full control.
-     * @path /businesses/{businessId}/reviews/{reviewId}
-     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
-     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage reviews.
+     * @description Checks if the user is signed in.
+     * @allow (read, write) Signed-in users.
+     * @deny (read, write) Anonymous users.
      */
-    match /businesses/{businessId}/reviews/{reviewId} {
-      allow get, list, create: if isSignedIn() && isSuperAdmin();
-      allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    /**
-     * @description Manages Google Business Profiles associated with a business. SuperAdmins have full control.
-     * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}
-     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
-     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage Google Business Profiles.
-     */
-    match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId} {
-      allow get, list, create: if isSignedIn() && isSuperAdmin();
-      allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    /**
-     * @description Manages posts associated with a Google Business Profile. SuperAdmins have full control.
-     * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}
-     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
-     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage posts.
-     */
-    match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId} {
-      allow get, list, create: if isSignedIn() && isSuperAdmin();
-      allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    /**
-     * @description Manages landing pages associated with a business. SuperAdmins have full control.
-     * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
-     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage landing pages.
-     */
-    match /businesses/{businessId}/landingPages/{landingPageId} {
-      allow get, list, create: if isSignedIn() && isSuperAdmin();
-      allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    /**
-     * @description Manages contact forms associated with a landing page. SuperAdmins have full control.
-     * @path /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}
-     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
-     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage contact forms.
-     */
-    match /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId} {
-      allow get, list, create: if isSignedIn() && isSuperAdmin();
-      allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    /**
-     * @description Manages subscription plans. SuperAdmins have full control.
-     * @path /subscriptionPlans/{subscriptionPlanId}
-     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
-     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage subscription plans.
-     */
-    match /subscriptionPlans/{subscriptionPlanId} {
-      allow get, list, create: if isSignedIn() && isSuperAdmin();
-      allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    /**
-     * @description Manages payment settings for subscription plans. SuperAdmins have full control.
-     * @path /paymentSettings/{planSettingsId}
-     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
-     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage payment settings.
-     */
-    match /paymentSettings/{planSettingsId} {
-      allow get, list, create: if isSignedIn() && isSuperAdmin();
-      allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    /**
-     * @description Manages super admin profiles. Only existing SuperAdmins can manage these profiles.
-     * @path /superAdmins/{superAdminId}
-     * @allow get, list: if isSignedIn() && isSuperAdmin();
-     * @allow create: if isSignedIn() && isSuperAdmin();
-     * @allow update, delete: if isSignedIn() && isSuperAdmin();
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage other SuperAdmins.
-     */
-    match /superAdmins/{superAdminId} {
-      allow get, list: if isSignedIn() && isSuperAdmin();
-      allow create: if isSignedIn() && isSuperAdmin();
-      allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    /**
-     * @description Manages pending payment requests. SuperAdmins have full control.
-     * @path /pendingPayments/{paymentId}
-     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
-     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage pending payments.
-     */
-    match /pendingPayments/{paymentId} {
-        allow get, list, create: if isSignedIn() && isSuperAdmin();
-        allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    /**
-     * @description Manages active subscriptions for businesses. SuperAdmins have full control.
-     * @path /subscriptions/{subscriptionId}
-     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
-     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage subscriptions.
-     */
-    match /subscriptions/{subscriptionId} {
-        allow get, list, create: if isSignedIn() && isSuperAdmin();
-        allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    /**
-     * @description Stores logs of administrative actions. SuperAdmins have full control.
-     * @path /activityLogs/{logId}
-     * @allow (get, list, create) if isSignedIn() && isSuperAdmin()
-     * @allow (update, delete) if isSignedIn() && isSuperAdmin()
-     * @deny (create) if request.auth == null
-     * @deny (read) if request.auth == null
-     * @principle Enforces role-based access control. Only SuperAdmins can manage activity logs.
-     */
-    match /activityLogs/{logId} {
-        allow get, list, create: if isSignedIn() && isSuperAdmin();
-        allow update, delete: if isSignedIn() && isSuperAdmin();
-    }
-
-    // Helper function to determine if a user is signed in
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Helper function to determine if the user is a SuperAdmin.
-    function isSuperAdmin() {
-      return exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
+    /**
+     * @description Checks if the authenticated user ID matches the provided user ID.
+     * @param {string} userId - The user ID to compare against.
+     * @return {boolean} True if the authenticated user ID matches the provided user ID, false otherwise.
+     * @allow (read, write) User with matching ID.
+     * @deny (read, write) User with non-matching ID.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+     /**
+      * @description Checks if the authenticated user is the owner of an existing document.
+      * It combines the ownership check with the existence check, ensuring the document exists.
+      * @param {string} userId - The user ID to compare against.
+      * @return {boolean} True if the authenticated user is the owner of the existing document, false otherwise.
+      */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Rules for the /businesses collection.
+     * @path /businesses/{businessId}
+     * @allow (create) User with auth.uid matching the businessId in the request data.
+     * @deny (create) User with mismatched auth.uid and businessId.
+     * @allow (get) Any authenticated user can get a business.
+     * @deny (get) Unauthenticated users.
+     * @principle Owner-only write, authenticated read.
+     */
+    match /businesses/{businessId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.id == businessId && request.auth.uid == request.resource.data.ownerId;
+      allow update: if isSuperAdmin() || (isSignedIn() && request.auth.uid == resource.data.ownerId);
+      allow delete: if isSuperAdmin() || (isSignedIn() && request.auth.uid == resource.data.ownerId);
+    }
+
+    /**
+     * @description Rules for the /businesses/{businessId}/reviews collection.
+     * @path /businesses/{businessId}/reviews/{reviewId}
+     * @allow (create) Any signed-in user can create a review for a business.
+     * @deny (create) Anonymous users cannot create reviews.
+     * @allow (read) Any signed-in user can read reviews.
+     * @deny (read) Unauthenticated users.
+     * @principle Authenticated read, authenticated write.
+     */
+    match /businesses/{businessId}/reviews/{reviewId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    /**
+     * @description Rules for the /businesses/{businessId}/googleBusinessProfiles collection.
+     * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}
+     * @allow (create) Business owner (matching businessId) can create a Google Business Profile.
+     * @deny (create) Users who are not owners of the business.
+     * @principle Owner-only write, authenticated read.
+     */
+    match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+      allow update: if isSuperAdmin() || (isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid);
+      allow delete: if isSuperAdmin() || (isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid);
+    }
+
+    /**
+     * @description Rules for the /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts collection.
+     * @path /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId}
+     * @allow (create) Business owner (matching businessId) can create a post.
+     * @deny (create) Users who are not owners of the business.
+     * @principle Owner-only write, authenticated read.
+     */
+    match /businesses/{businessId}/googleBusinessProfiles/{googleBusinessProfileId}/posts/{postId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+      allow update: if isSuperAdmin() || (isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid);
+      allow delete: if isSuperAdmin() || (isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid);
+    }
+
+    /**
+     * @description Rules for the /businesses/{businessId}/landingPages collection.
+     * @path /businesses/{businessId}/landingPages/{landingPageId}
+     * @allow (create) Business owner (matching businessId) can create a landing page.
+     * @deny (create) Users who are not owners of the business.
+     * @principle Owner-only write, authenticated read.
+     */
+    match /businesses/{businessId}/landingPages/{landingPageId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+      allow update: if isSuperAdmin() || (isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid);
+      allow delete: if isSuperAdmin() || (isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid);
+    }
+
+    /**
+     * @description Rules for the /businesses/{businessId}/landingPages/{landingPageId}/contactForms collection.
+     * @path /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId}
+     * @allow (create) Business owner (matching businessId) can create a contact form.
+     * @deny (create) Users who are not owners of the business.
+     * @principle Owner-only write, authenticated read.
+     */
+    match /businesses/{businessId}/landingPages/{landingPageId}/contactForms/{contactFormId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+      allow update: if isSuperAdmin() || (isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid);
+      allow delete: if isSuperAdmin() || (isSignedIn() && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid);
+    }
+
+    /**
+     * @description Rules for the /subscriptionPlans collection.
+     * @path /subscriptionPlans/{subscriptionPlanId}
+     * @allow (read) Public read access for all users.
+     * @allow (write) Only SuperAdmins can modify subscription plans.
+     * @principle Public read, SuperAdmin write.
+     */
+    match /subscriptionPlans/{subscriptionPlanId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    /**
+     * @description Rules for the /paymentSettings collection.
+     * @path /paymentSettings/{planSettingsId}
+     * @allow (read) Public read access for all users.
+     * @allow (write) Only SuperAdmins can modify payment settings.
+     * @principle Public read, SuperAdmin write.
+     */
+    match /paymentSettings/{planSettingsId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    /**
+     * @description Rules for the /superAdmins collection.
+     * @path /superAdmins/{superAdminId}
+     * @allow (create) Only allow creation if the user ID matches the superAdminId
+     * @deny (create) If the user ID does not match the superAdminId
+     * @allow (read, write) Only SuperAdmins can access this collection.
+     * @principle SuperAdmin-only access.
+     */
+    match /superAdmins/{superAdminId} {
+      allow get: if isSuperAdmin() || isOwner(superAdminId);
+      allow list: if false;
+      allow create: if isOwner(superAdminId);
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    /**
+     * @description Rules for the /pendingPayments collection.
+     * @path /pendingPayments/{paymentId}
+     * @allow (read, write) Only SuperAdmins can access this collection.
+     */
+    match /pendingPayments/{paymentId} {
+      allow get: if isSuperAdmin();
+      allow list: if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    /**
+     * @description Rules for the /subscriptions collection.
+     * @path /subscriptions/{subscriptionId}
+     * @allow (read, write) Only SuperAdmins can access this collection.
+     */
+    match /subscriptions/{subscriptionId} {
+      allow get: if isSuperAdmin();
+      allow list: if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    /**
+     * @description Rules for the /activityLogs collection.
+     * @path /activityLogs/{logId}
+     * @allow (read, write) Only SuperAdmins can access this collection.
+     */
+    match /activityLogs/{logId} {
+      allow get: if isSuperAdmin();
+      allow list: if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
     }
   }
 }
