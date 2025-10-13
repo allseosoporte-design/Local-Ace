@@ -5,8 +5,7 @@ import { useState } from "react";
 import { EditorLandingForm } from "@/components/editor-landing-form";
 import { EditorLandingPreview, type LandingPageData } from "@/components/editor-landing-preview";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-
+import { EditorSections } from "@/components/editor-sections";
 
 export default function EditorLandingPage() {
   const [data, setData] = useState<LandingPageData>({
@@ -25,6 +24,7 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
     backgroundColor: "#FFFFFF",
     textColor: "#000000",
     buttonColor: "#FF4500",
+    sections: [],
   });
 
   return (
@@ -40,12 +40,15 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
             <Tabs defaultValue="hero">
                 <TabsList>
                     <TabsTrigger value="hero">Hero</TabsTrigger>
-                    <TabsTrigger value="sections" disabled>Secciones</TabsTrigger>
+                    <TabsTrigger value="sections">Secciones</TabsTrigger>
                     <TabsTrigger value="testimonials" disabled>Testimonios</TabsTrigger>
                     <TabsTrigger value="seo" disabled>SEO</TabsTrigger>
                 </TabsList>
                 <TabsContent value="hero">
                     <EditorLandingForm data={data} setData={setData} />
+                </TabsContent>
+                <TabsContent value="sections">
+                    <EditorSections data={data} setData={setData} />
                 </TabsContent>
             </Tabs>
         </div>

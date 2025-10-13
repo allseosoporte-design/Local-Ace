@@ -6,6 +6,25 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
+export interface Subsection {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+}
+
+export interface Section {
+  id: string;
+  title: string;
+  subtitle: string;
+  content: string;
+  backgroundColor: string;
+  textColor: string;
+  sectionColor: string;
+  subsections: Subsection[];
+}
+
+
 export interface LandingPageData {
   title: string;
   subtitle: string;
@@ -16,6 +35,7 @@ export interface LandingPageData {
   backgroundColor: string;
   textColor: string;
   buttonColor: string;
+  sections: Section[];
 }
 
 interface EditorLandingPreviewProps {
@@ -24,7 +44,6 @@ interface EditorLandingPreviewProps {
 
 export function EditorLandingPreview({ data }: EditorLandingPreviewProps) {
   
-  // Basic function to convert newline characters to <br> tags for display
   const formatContent = (text: string) => {
     return text.split('\n').map((str, index, array) => (
       <span key={index}>
@@ -72,6 +91,31 @@ export function EditorLandingPreview({ data }: EditorLandingPreviewProps) {
             )}
         </section>
 
+        {data.sections.map((section) => (
+          <section key={section.id} style={{ backgroundColor: section.backgroundColor, color: section.textColor, borderTop: `4px solid ${section.sectionColor}` }} className="py-12 px-6">
+            <div className="container mx-auto">
+              <h2 className="text-3xl font-bold text-center mb-2" style={{color: section.textColor}}>{section.title}</h2>
+              <p className="text-xl text-center text-muted-foreground mb-8" style={{color: section.textColor, opacity: 0.8}}>{section.subtitle}</p>
+              <div className="text-center mb-12" style={{color: section.textColor, opacity: 0.9}}>
+                {formatContent(section.content)}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {section.subsections.map((subsection) => (
+                  <div key={subsection.id} className="bg-card/80 p-6 rounded-lg shadow-md flex flex-col items-center text-center">
+                    {subsection.imageUrl && (
+                      <div className="relative w-24 h-24 mb-4 rounded-full overflow-hidden">
+                        <Image src={subsection.imageUrl} alt={subsection.title} layout="fill" objectFit="cover" />
+                      </div>
+                    )}
+                    <h3 className="text-xl font-semibold mb-2" style={{color: section.textColor}}>{subsection.title}</h3>
+                    <p className="text-sm" style={{color: section.textColor, opacity: 0.9}}>{formatContent(subsection.description)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ))}
+
         {/* Call to Action Section */}
         <section className="p-8 md:p-12 text-center">
           <Link href={data.ctaUrl}>
@@ -79,7 +123,7 @@ export function EditorLandingPreview({ data }: EditorLandingPreviewProps) {
               size="lg"
               style={{
                 backgroundColor: data.buttonColor,
-                color: '#FFFFFF' // Assuming white text for colored buttons
+                color: '#FFFFFF'
               }}
               className="shadow-md hover:opacity-90 transition-opacity"
             >
@@ -91,3 +135,4 @@ export function EditorLandingPreview({ data }: EditorLandingPreviewProps) {
     </div>
   );
 }
+
