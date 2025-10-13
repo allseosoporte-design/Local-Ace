@@ -38,20 +38,16 @@ export default function DashboardLayout({
         const adminDoc = await getDoc(adminDocRef);
         const isSuperAdmin = adminDoc.exists();
         
-        // This is the problematic part. We should not redirect if the user is already in a dashboard path
-        // other than the standard user one.
-        if (isSuperAdmin && pathname === '/dashboard') {
-          // If super admin is on the standard user dashboard, redirect to admin dashboard.
-          router.replace('/dashboard/admin');
-        } else if (!isSuperAdmin && pathname.startsWith('/dashboard/admin')) {
-          // If a non-admin tries to access an admin path, redirect to standard dashboard.
+        if (!isSuperAdmin && pathname.startsWith('/dashboard/admin')) {
+          // Si un no-administrador intenta acceder a una ruta de admin, redirigir al dashboard estándar.
           router.replace('/dashboard');
         } else {
-          // Otherwise, the user is in the correct place.
+          // Si es un super admin (en cualquier ruta) o un usuario normal en una ruta no-admin, está en el lugar correcto.
           setIsReady(true);
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
+        // En caso de error, por seguridad, si está en una ruta de admin, lo sacamos.
         if (pathname.startsWith('/dashboard/admin')) {
            router.replace('/dashboard');
         } else {
@@ -73,12 +69,12 @@ export default function DashboardLayout({
     );
   }
 
-  // The specific admin layout will render its own sidebar structure
+  // El layout específico de admin renderizará su propia estructura de sidebar.
   if (pathname.startsWith('/dashboard/admin')) {
     return <>{children}</>;
   }
   
-  // Render the standard user dashboard layout
+  // Renderizar el layout del dashboard de usuario estándar.
   return (
     <SidebarProvider>
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
