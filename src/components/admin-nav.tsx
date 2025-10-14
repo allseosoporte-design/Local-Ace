@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Users, CreditCard, User, Settings, Wallet, BellRing, MessageSquare, ShieldCheck, Wrench, Database } from "lucide-react";
+import { Users, CreditCard, User, Settings, Wallet, BellRing, MessageSquare, ShieldCheck, Wrench, Database, Archive } from "lucide-react";
 import { EditorLandingIcon } from "./icons/editor-landing";
 import { PaymentIcon } from "./icons/payment";
 
@@ -50,6 +50,11 @@ const links = [
     href: "/dashboard/admin/database",
     label: "Base de datos",
     icon: <Database />,
+  },
+  {
+    href: "/dashboard/admin/backup",
+    label: "Respaldo",
+    icon: <Archive />,
   },
   {
     href: "/dashboard/admin/editor-landing",
