@@ -50,7 +50,8 @@ export function FormEditor({ data, setData }: FormEditorProps) {
         return;
     }
     try {
-        const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPageConfig/form`);
+        // Corrected path: A top-level collection `landingPageConfig` where each document ID is a business (user) ID.
+        const formConfigRef = doc(firestore, `landingPageConfig/${user.uid}`);
         await setDoc(formConfigRef, {
             ...data,
             updatedAt: serverTimestamp()
