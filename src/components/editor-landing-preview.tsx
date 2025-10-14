@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Star } from 'lucide-react';
+import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export interface Subsection {
   id: string;
@@ -59,9 +61,10 @@ export interface LandingPageData {
 
 interface EditorLandingPreviewProps {
   data: LandingPageData;
+  formConfig?: FormConfigData;
 }
 
-export function EditorLandingPreview({ data }: EditorLandingPreviewProps) {
+export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewProps) {
   
   const formatContent = (text: string) => {
     return text.split('\n').map((str, index, array) => (
@@ -181,6 +184,25 @@ export function EditorLandingPreview({ data }: EditorLandingPreviewProps) {
             </Button>
           </Link>
         </section>
+
+        {formConfig && (
+            <section className="p-8 md:p-12 bg-muted/30">
+                <h3 className="text-lg font-semibold text-center mb-4 text-foreground/80">Vista Previa del Formulario</h3>
+                 <Card className="w-full max-w-md mx-auto shadow-lg">
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-xl font-bold">{formConfig.formTitle}</CardTitle>
+                        <CardDescription>{formConfig.formSubtitle}</CardDescription>
+                    </CardHeader>
+                    <CardContent className='flex justify-center'>
+                        <div className="flex justify-center space-x-1 py-2">
+                            {[1, 2, 3, 4, 5].map(rate => (
+                                <Star key={rate} className="h-10 w-10 text-gray-300 hover:text-yellow-400 transition-colors" />
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </section>
+        )}
       </div>
     </div>
   );
