@@ -29,39 +29,51 @@ export default function AdminDashboardLayout({
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (isUserLoading) return;
+    if (isUserLoading) {
+      // Still waiting for the user object to be resolved from Firebase Auth
+      return;
+    }
+    
     if (!user) {
+      // If loading is finished and there's no user, redirect to login
       router.replace('/login');
       return;
     }
 
+    // User object is available, now we can safely check the custom claims
     const checkAdminStatus = async () => {
       try {
-        const tokenResult = await getIdTokenResult(user, true); // Force refresh
-        if (tokenResult.claims.isSuperAdmin) {
+        const tokenResult = await getIdTokenResult(user, true); // Force refresh the token to get latest claims
+        if (tokenResult.claims.isSuperAdmin === true) {
             setIsSuperAdmin(true);
         } else {
             setIsSuperAdmin(false);
         }
       } catch (error) {
         console.error("Error verifying super admin status:", error);
-        setIsSuperAdmin(false);
+        setIsSuperAdmin(false); // Default to non-admin on error
       }
     };
     
     checkAdminStatus();
+
   }, [user, isUserLoading, router]);
 
   if (isSuperAdmin === null) {
+    // While we are verifying the token, show a loading state.
+    // This is the key to preventing the "Access Denied" flash.
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="ml-2">Verificando permisos...</p>
+      <div className="flex h-screen w-full items-center justify-center bg-muted/40">
+        <div className='flex items-center gap-2'>
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <p className='text-muted-foreground'>Verificando permisos...</p>
+        </div>
       </div>
     );
   }
 
   if (isSuperAdmin === false) {
+    // Once verification is complete and the user is not a super admin, show access denied.
     return (
       <div className="flex h-screen w-full items-center justify-center p-8 bg-muted/40">
         <Card className="text-center w-full max-w-md">
@@ -79,6 +91,7 @@ export default function AdminDashboardLayout({
     );
   }
 
+  // If we reach here, the user is a confirmed super admin. Render the layout.
   return (
     <SidebarProvider>
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">

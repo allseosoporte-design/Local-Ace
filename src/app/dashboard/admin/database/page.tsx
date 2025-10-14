@@ -65,12 +65,17 @@ export default function DatabasePage() {
     // La lógica de permisos ahora está en el layout, por lo que el renderizado de esta página implica que el usuario ya es superadmin.
     const firestoreConfig = backendConfig.firestore;
     const collectionData: CollectionInfo[] = Object.keys(firestoreConfig)
-        .filter(path => !path.includes('{')) // Filter root level collections
-        .map(path => ({
-            name: path.replace(/\//g, ''),
-            path: path,
-            count: '---' // El conteo de documentos no es trivial de obtener en el cliente
-        }));
+        .filter(path => !path.includes('{', 1)) // Filter collections with variables beyond the root
+        .map(path => {
+            const rootPath = path.split('/{')[0];
+            return {
+                name: rootPath.replace(/\//g, ''),
+                path: rootPath,
+                count: '---' // El conteo de documentos no es trivial de obtener en el cliente
+            }
+        })
+        .filter((value, index, self) => self.findIndex(v => v.path === value.path) === index); // Get unique paths
+    
     setCollections(collectionData);
   }, []);
 
