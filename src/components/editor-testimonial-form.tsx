@@ -43,7 +43,7 @@ export function EditorTestimonialForm({ testimonial, updateTestimonial, deleteTe
                 <div className="md:col-span-1 space-y-2 flex flex-col items-center">
                     <Label>Imagen del Autor</Label>
                     <div className="relative w-24 h-24 rounded-full overflow-hidden">
-                        <Image src={testimonial.avatarUrl} alt={testimonial.authorName} layout="fill" objectFit="cover" />
+                        <Image src={testimonial.avatarUrl} alt={testimonial.authorName} fill objectFit="cover" />
                     </div>
                     <Button variant="outline" size="sm">Seleccionar</Button>
                 </div>

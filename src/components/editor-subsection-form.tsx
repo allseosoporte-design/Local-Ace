@@ -47,7 +47,7 @@ export function EditorSubsectionForm({ subsection, index, updateSubsection, dele
                 <Label>Imagen</Label>
                 <div className='flex items-center gap-4'>
                     <div className="relative w-20 h-20 rounded-md overflow-hidden">
-                        <Image src={subsection.imageUrl} alt={subsection.title} layout="fill" objectFit="cover" />
+                        <Image src={subsection.imageUrl} alt={subsection.title} fill objectFit="cover" />
                     </div>
                     <Button variant="outline">Seleccionar</Button>
                 </div>

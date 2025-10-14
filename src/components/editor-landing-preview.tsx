@@ -123,7 +123,7 @@ export function EditorLandingPreview({ data }: EditorLandingPreviewProps) {
                   <div key={subsection.id} className="bg-card/80 p-6 rounded-lg shadow-md flex flex-col items-center text-center">
                     {subsection.imageUrl && (
                       <div className="relative w-24 h-24 mb-4 rounded-full overflow-hidden">
-                        <Image src={subsection.imageUrl} alt={subsection.title} layout="fill" objectFit="cover" />
+                        <Image src={subsection.imageUrl} alt={subsection.title} fill objectFit="cover" />
                       </div>
                     )}
                     <h3 className="text-xl font-semibold mb-2" style={{color: section.textColor}}>{subsection.title}</h3>
@@ -145,7 +145,7 @@ export function EditorLandingPreview({ data }: EditorLandingPreviewProps) {
                   <div key={testimonial.id} className="bg-card p-6 rounded-lg shadow-md text-left flex flex-col">
                     <div className="flex items-center mb-4">
                       <div className="relative w-16 h-16 rounded-full overflow-hidden mr-4">
-                        <Image src={testimonial.avatarUrl} alt={testimonial.authorName} layout="fill" objectFit="cover" />
+                        <Image src={testimonial.avatarUrl} alt={testimonial.authorName} fill objectFit="cover" />
                       </div>
                       <div>
                         <h4 className="font-bold">{testimonial.authorName}</h4>
