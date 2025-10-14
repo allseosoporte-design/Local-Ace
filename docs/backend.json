@@ -511,6 +511,20 @@
         }
       },
       "required": ["id", "companyId", "companyName", "userId", "userEmail", "subject", "message", "status", "priority", "source", "createdAt", "updatedAt"]
+    },
+    "Backup": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Backup",
+      "type": "object",
+      "description": "Represents a backup of the system.",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["Completo", "Incremental"] },
+        "status": { "type": "string", "enum": ["Completado", "Fallido", "En progreso"] },
+        "size": { "type": "string" }
+      },
+      "required": ["id", "date", "type", "status"]
     }
   },
   "auth": {
@@ -587,6 +601,10 @@
     "/supportTickets/{ticketId}": {
       "schema": { "$ref": "#/entities/SupportTicket" },
       "description": "Stores all support tickets from both public and internal sources."
+    },
+    "/backups/{backupId}": {
+      "schema": { "$ref": "#/entities/Backup" },
+      "description": "Stores records of system backups."
     }
   }
 }

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -44,7 +44,6 @@ import {
     DialogFooter,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -55,60 +54,102 @@ import {
   MoreHorizontal,
   Download,
   Trash2,
-  Save,
-  Archive,
+  Loader2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, orderBy, addDoc, deleteDoc, doc, serverTimestamp, updateDoc, Timestamp } from 'firebase/firestore';
+import { getIdTokenResult } from 'firebase/auth';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 type Backup = {
     id: string;
-    date: string;
+    date: Timestamp;
     type: 'Completo' | 'Incremental';
     status: 'Completado' | 'Fallido' | 'En progreso';
     size: string;
+    url?: string;
 };
-
-const mockBackupHistory: Backup[] = [
-    { id: '1', date: 'Jul 30, 2024 at 9:00 PM', type: 'Completo', status: 'Completado', size: '1.2 GB' },
-    { id: '2', date: 'Jul 29, 2024 at 9:00 PM', type: 'Completo', status: 'Completado', size: '1.1 GB' },
-    { id: '3', date: 'Jul 28, 2024 at 9:00 PM', type: 'Incremental', status: 'Fallido', size: 'N/A' },
-    { id: '4', date: 'Jul 24, 2024 at 9:00 PM', type: 'Completo', status: 'Completado', size: '980 MB' },
-];
 
 export default function BackupPage() {
     const { toast } = useToast();
-    const [backups, setBackups] = useState<Backup[]>(mockBackupHistory);
+    const firestore = useFirestore();
+    const { user } = useUser();
+    
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [isBackupAlertOpen, setIsBackupAlertOpen] = useState(false);
     const [isRestoreAlertOpen, setIsRestoreAlertOpen] = useState(false);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     const [selectedBackup, setSelectedBackup] = useState<Backup | null>(null);
 
-    const handleInitiateBackup = () => {
+    useEffect(() => {
+        const checkAdmin = async () => {
+            if (user) {
+                try {
+                    const tokenResult = await getIdTokenResult(user, true);
+                    setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+                } catch (error) {
+                    console.error("Error fetching token claims:", error);
+                    setIsSuperAdmin(false);
+                }
+            }
+        };
+        checkAdmin();
+    }, [user]);
+
+    const backupsQuery = useMemoFirebase(() => {
+        if (!firestore || !isSuperAdmin) return null;
+        return query(collection(firestore, 'backups'), orderBy('date', 'desc'));
+    }, [firestore, isSuperAdmin]);
+
+    const { data: backups, isLoading } = useCollection<Backup>(backupsQuery);
+
+    const handleInitiateBackup = async () => {
+        if (!firestore) return;
         setIsBackupAlertOpen(false);
+        
         toast({
             title: 'Respaldo iniciado',
             description: 'El respaldo completo del sistema ha comenzado. Esto puede tardar varios minutos.',
         });
-        const newBackup: Backup = {
-            id: (backups.length + 1).toString(),
-            date: new Date().toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }).replace(',', ' at'),
-            type: 'Completo',
-            status: 'En progreso',
-            size: '...'
-        };
         
-        // Simulating backup process
-        setTimeout(() => {
-            setBackups(prev => prev.map(b => b.id === newBackup.id ? {...b, status: 'Completado', size: '1.3 GB'} : b));
-             toast({
-                title: 'Respaldo completado',
-                description: 'El respaldo del sistema se ha completado con éxito.',
+        try {
+            const newBackupRef = await addDoc(collection(firestore, 'backups'), {
+                date: serverTimestamp(),
+                type: 'Completo',
+                status: 'En progreso',
+                size: 'Calculando...'
             });
-        }, 5000);
-        
-        setBackups([newBackup, ...backups]);
+
+            // Simulate backup process
+            setTimeout(async () => {
+                try {
+                    await updateDoc(newBackupRef, {
+                        status: 'Completado',
+                        size: '1.3 GB'
+                    });
+                     toast({
+                        title: 'Respaldo completado',
+                        description: 'El respaldo del sistema se ha completado con éxito.',
+                    });
+                } catch (updateError) {
+                    await updateDoc(newBackupRef, { status: 'Fallido' });
+                    toast({
+                        variant: "destructive",
+                        title: 'Error en el respaldo',
+                        description: 'No se pudo completar el proceso de respaldo.',
+                    });
+                }
+            }, 5000);
+        } catch (error) {
+             toast({
+                variant: "destructive",
+                title: 'Error',
+                description: 'No se pudo iniciar el respaldo.',
+            });
+        }
     };
 
     const handleRestoreBackup = () => {
@@ -116,18 +157,28 @@ export default function BackupPage() {
         if(!selectedBackup) return;
         toast({
             title: 'Restauración iniciada',
-            description: `Se está restaurando el sistema desde el respaldo del ${selectedBackup.date}.`,
+            description: `Se está restaurando el sistema desde el respaldo del ${format(selectedBackup.date.toDate(), 'dd/MM/yyyy HH:mm', { locale: es })}.`,
         });
     }
 
-    const handleDeleteBackup = () => {
+    const handleDeleteBackup = async () => {
+        if (!selectedBackup || !firestore) return;
         setIsDeleteAlertOpen(false);
-        if(!selectedBackup) return;
-        setBackups(backups.filter(b => b.id !== selectedBackup.id));
-        toast({
-            title: 'Respaldo eliminado',
-            description: `El respaldo del ${selectedBackup.date} ha sido eliminado.`,
-        });
+        
+        try {
+            await deleteDoc(doc(firestore, 'backups', selectedBackup.id));
+            toast({
+                title: 'Respaldo eliminado',
+                description: `El respaldo del ${format(selectedBackup.date.toDate(), 'dd/MM/yyyy HH:mm', { locale: es })} ha sido eliminado.`,
+            });
+            setSelectedBackup(null);
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudo eliminar el respaldo.',
+            });
+        }
     }
 
   return (
@@ -161,13 +212,13 @@ export default function BackupPage() {
                     <DialogDescription>Selecciona un punto de restauración. Esta acción es irreversible y sobrescribirá los datos actuales.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
-                    <Select onValueChange={(value) => setSelectedBackup(backups.find(b => b.id === value) || null)}>
+                    <Select onValueChange={(value) => setSelectedBackup(backups?.find(b => b.id === value) || null)}>
                         <SelectTrigger>
                             <SelectValue placeholder="Selecciona un respaldo..." />
                         </SelectTrigger>
                         <SelectContent>
-                             {backups.filter(b => b.status === 'Completado').map(b => (
-                                <SelectItem key={b.id} value={b.id}>{`Respaldo del ${b.date} - ${b.size}`}</SelectItem>
+                             {backups?.filter(b => b.status === 'Completado').map(b => (
+                                <SelectItem key={b.id} value={b.id}>{`Respaldo del ${b.date ? format(b.date.toDate(), 'dd/MM/yyyy HH:mm', { locale: es }) : 'N/A'} - ${b.size}`}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -217,9 +268,23 @@ export default function BackupPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {backups.map((backup) => (
+              {isLoading && (
+                 <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+                    </TableCell>
+                </TableRow>
+              )}
+               {!isLoading && backups?.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                        No hay respaldos registrados.
+                    </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && backups?.map((backup) => (
                 <TableRow key={backup.id}>
-                  <TableCell>{backup.date}</TableCell>
+                  <TableCell>{backup.date ? format(backup.date.toDate(), 'dd/MM/yyyy HH:mm', { locale: es }) : '...'}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={backup.type === 'Completo' ? 'border-orange-500 text-orange-500' : 'border-blue-500 text-blue-500'}>
                       {backup.type}
@@ -228,7 +293,7 @@ export default function BackupPage() {
                   <TableCell>
                     <Badge className={
                         backup.status === 'Completado' ? 'bg-green-100 text-green-800' : 
-                        backup.status === 'Fallido' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                        backup.status === 'Fallido' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800 animate-pulse'
                     }>
                       {backup.status}
                     </Badge>
@@ -293,7 +358,7 @@ export default function BackupPage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Esta acción restaurará la base de datos al estado del <span className='font-bold'>{selectedBackup?.date}</span>. Todos los cambios realizados después de esta fecha se perderán.
+                        Esta acción restaurará la base de datos al estado del <span className='font-bold'>{selectedBackup?.date ? format(selectedBackup.date.toDate(), 'dd/MM/yyyy HH:mm') : ''}</span>. Todos los cambios realizados después de esta fecha se perderán.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -307,7 +372,7 @@ export default function BackupPage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>¿Eliminar este respaldo?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Esta acción es irreversible. El archivo de respaldo del <span className='font-bold'>{selectedBackup?.date}</span> será eliminado permanentemente.
+                        Esta acción es irreversible. El archivo de respaldo del <span className='font-bold'>{selectedBackup?.date ? format(selectedBackup.date.toDate(), 'dd/MM/yyyy HH:mm') : ''}</span> será eliminado permanentemente.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -320,3 +385,4 @@ export default function BackupPage() {
   );
 }
 
+    
