@@ -1,6 +1,6 @@
-
 'use client';
 
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -11,8 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Eye, Save, RotateCcw } from 'lucide-react';
+import { Eye, Save, RotateCcw, Loader2 } from 'lucide-react';
 import type { LandingPageData } from './editor-landing-preview';
+import { useFirestore, useUser } from '@/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 interface EditorLandingFormProps {
   data: LandingPageData;
@@ -20,6 +23,11 @@ interface EditorLandingFormProps {
 }
 
 export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -29,6 +37,43 @@ export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
      setData({ ...data, [e.target.name]: e.target.value });
   }
+
+  const handleSave = async () => {
+    if (!user || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Debes iniciar sesión para guardar los cambios.',
+      });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const heroConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'hero');
+      
+      // We only want to save the hero-related data, not sections or testimonials
+      const { sections, testimonials, seo, ...heroData } = data;
+
+      await setDoc(heroConfigRef, {
+        ...heroData,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
+      toast({
+        title: '¡Guardado!',
+        description: 'La configuración del hero ha sido actualizada.',
+      });
+    } catch (error) {
+      console.error('Error saving hero config:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error al Guardar',
+        description: 'No se pudo guardar la configuración del hero. Revisa la consola para más detalles.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <Card className="h-full overflow-y-auto border-t-0 rounded-t-none">
@@ -145,8 +190,8 @@ export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
             <RotateCcw className="mr-2 h-4 w-4" />
             Cargar Default
           </Button>
-          <Button style={{ backgroundColor: data.buttonColor, color: '#FFFFFF' }}>
-            <Save className="mr-2 h-4 w-4" />
+          <Button onClick={handleSave} disabled={isSaving} style={{ backgroundColor: data.buttonColor, color: '#FFFFFF' }}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Guardar Cambios
           </Button>
         </div>
