@@ -76,14 +76,14 @@ export default function DatabasePage() {
           const isAdmin = tokenResult.claims.isSuperAdmin === true;
           setIsSuperAdmin(isAdmin);
           if (isAdmin) {
-            // Procesar el backend.json para obtener las colecciones
+            // Process backend.json to get collections
             const firestoreConfig = backendConfig.firestore;
             const collectionData: CollectionInfo[] = Object.keys(firestoreConfig)
-                .filter(path => !path.includes('{')) // Filtrar colecciones de nivel raíz
+                .filter(path => !path.includes('{')) // Filter root level collections
                 .map(path => ({
                     name: path.replace(/\//g, ''),
                     path: path,
-                    count: '---' // El conteo de documentos no es trivial de obtener en el cliente
+                    count: '---' // Document count is not trivial to get on the client
                 }));
             setCollections(collectionData);
           }
@@ -94,8 +94,11 @@ export default function DatabasePage() {
             setIsLoading(false);
         }
       } else {
-        // if user object is null and not loading, means not logged in or no admin rights.
-        setIsLoading(false);
+        // If user object is null and still loading, wait. If not loading, then not logged in.
+        if (user === null) {
+            setIsLoading(false);
+            setIsSuperAdmin(false);
+        }
       }
     };
     checkAdmin();
@@ -125,7 +128,7 @@ export default function DatabasePage() {
   if (isLoading) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
     );
   }
@@ -133,12 +136,15 @@ export default function DatabasePage() {
   if (!isSuperAdmin) {
      return (
         <div className="flex h-screen w-full items-center justify-center p-8">
-            <Card className="text-center">
+            <Card className="text-center w-full max-w-md">
               <CardHeader>
                 <CardTitle className="text-destructive">Acceso Denegado</CardTitle>
+                <CardDescription>No tienes permiso para ver esta página.</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>No tienes permiso para ver esta página.</p>
+                <p className='text-sm text-muted-foreground'>
+                    Esta sección es exclusiva para superadministradores. Si crees que esto es un error, por favor contacta al soporte técnico.
+                </p>
               </CardContent>
             </Card>
         </div>
