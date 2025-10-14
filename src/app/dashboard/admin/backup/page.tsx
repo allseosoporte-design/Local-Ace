@@ -46,7 +46,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   PlayCircle,
   RotateCcw,
@@ -76,8 +75,9 @@ type Backup = {
 export default function BackupPage() {
     const { toast } = useToast();
     const firestore = useFirestore();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     
+    const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [isBackupAlertOpen, setIsBackupAlertOpen] = useState(false);
     const [isRestoreAlertOpen, setIsRestoreAlertOpen] = useState(false);
@@ -89,22 +89,29 @@ export default function BackupPage() {
             if (user) {
                 try {
                     const tokenResult = await getIdTokenResult(user, true);
-                    setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+                    const claims = tokenResult.claims;
+                    if (claims.isSuperAdmin === true) {
+                      setIsSuperAdmin(true);
+                    }
                 } catch (error) {
                     console.error("Error fetching token claims:", error);
                     setIsSuperAdmin(false);
+                } finally {
+                  setIsCheckingAdmin(false);
                 }
+            } else if (!isUserLoading) {
+              setIsCheckingAdmin(false);
             }
         };
         checkAdmin();
-    }, [user]);
+    }, [user, isUserLoading]);
 
     const backupsQuery = useMemoFirebase(() => {
-        if (!firestore || !isSuperAdmin) return null;
+        if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
         return query(collection(firestore, 'backups'), orderBy('date', 'desc'));
-    }, [firestore, isSuperAdmin]);
+    }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
-    const { data: backups, isLoading } = useCollection<Backup>(backupsQuery);
+    const { data: backups, isLoading: isLoadingBackups } = useCollection<Backup>(backupsQuery);
 
     const handleInitiateBackup = async () => {
         if (!firestore) return;
@@ -123,7 +130,6 @@ export default function BackupPage() {
                 size: 'Calculando...'
             });
 
-            // Simulate backup process
             setTimeout(async () => {
                 try {
                     await updateDoc(newBackupRef, {
@@ -180,6 +186,8 @@ export default function BackupPage() {
             });
         }
     }
+    
+  const isLoading = isUserLoading || isCheckingAdmin || (backupsQuery !== null && isLoadingBackups);
 
   return (
     <div className="space-y-6">
@@ -194,14 +202,14 @@ export default function BackupPage() {
           <CardDescription>Descripción de las operaciones</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Button onClick={() => setIsBackupAlertOpen(true)} className="w-full justify-start text-left" style={{backgroundColor: '#FF8550', color: 'white'}}>
+          <Button onClick={() => setIsBackupAlertOpen(true)} className="w-full justify-start text-left" style={{backgroundColor: '#FF8550', color: 'white'}} disabled={!isSuperAdmin}>
             <PlayCircle className="mr-2 h-5 w-5" />
             Iniciar Respaldo
           </Button>
 
           <Dialog>
             <DialogTrigger asChild>
-                 <Button variant="outline" className="w-full justify-start text-left">
+                 <Button variant="outline" className="w-full justify-start text-left" disabled={!isSuperAdmin}>
                     <RotateCcw className="mr-2 h-5 w-5" />
                     Restaurar
                 </Button>
@@ -232,7 +240,7 @@ export default function BackupPage() {
 
           <Dialog>
              <DialogTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left">
+                <Button variant="outline" className="w-full justify-start text-left" disabled={!isSuperAdmin}>
                     <Settings2 className="mr-2 h-5 w-5" />
                     Configuración
                 </Button>
@@ -275,14 +283,14 @@ export default function BackupPage() {
                     </TableCell>
                 </TableRow>
               )}
-               {!isLoading && backups?.length === 0 && (
+               {!isLoading && (!isSuperAdmin || backups?.length === 0) && (
                 <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
                         No hay respaldos registrados.
                     </TableCell>
                 </TableRow>
               )}
-              {!isLoading && backups?.map((backup) => (
+              {!isLoading && isSuperAdmin && backups?.map((backup) => (
                 <TableRow key={backup.id}>
                   <TableCell>{backup.date ? format(backup.date.toDate(), 'dd/MM/yyyy HH:mm', { locale: es }) : '...'}</TableCell>
                   <TableCell>
@@ -337,7 +345,6 @@ export default function BackupPage() {
         </CardContent>
       </Card>
 
-        {/* AlertDialogs for confirmations */}
         <AlertDialog open={isBackupAlertOpen} onOpenChange={setIsBackupAlertOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>

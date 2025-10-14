@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -111,7 +112,8 @@ const history: ReminderLog[] = [
 
 export default function RemindersPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
@@ -119,35 +121,47 @@ export default function RemindersPage() {
       if (user) {
         try {
           const tokenResult = await getIdTokenResult(user, true);
-          setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+          const claims = tokenResult.claims;
+          if (claims.isSuperAdmin === true) {
+            setIsSuperAdmin(true);
+          }
         } catch (error) {
           console.error("Error fetching token claims:", error);
           setIsSuperAdmin(false);
+        } finally {
+          setIsCheckingAdmin(false);
         }
+      } else if (!isUserLoading) {
+        setIsCheckingAdmin(false);
       }
     };
     checkAdmin();
-  }, [user]);
+  }, [user, isUserLoading]);
 
   const rulesQuery = useMemoFirebase(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return query(collection(firestore, 'reminderRules'), orderBy('name'));
-  }, [firestore, isSuperAdmin]);
+  }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
   const templatesQuery = useMemoFirebase(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return query(collection(firestore, 'reminderTemplates'), orderBy('name'));
-  }, [firestore, isSuperAdmin]);
+  }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
   const logsQuery = useMemoFirebase(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return query(collection(firestore, 'reminderLogs'), orderBy('sentAt', 'desc'));
-  }, [firestore, isSuperAdmin]);
+  }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
 
   const { data: rulesData, isLoading: isLoadingRules } = useCollection<ReminderRule>(rulesQuery);
   const { data: templatesData, isLoading: isLoadingTemplates } = useCollection<ReminderTemplate>(templatesQuery);
   const { data: logsData, isLoading: isLoadingLogs } = useCollection<ReminderLog>(logsQuery);
+  
+  const showRulesLoading = isUserLoading || isCheckingAdmin || (rulesQuery !== null && isLoadingRules);
+  const showTemplatesLoading = isUserLoading || isCheckingAdmin || (templatesQuery !== null && isLoadingTemplates);
+  const showLogsLoading = isUserLoading || isCheckingAdmin || (logsQuery !== null && isLoadingLogs);
+
 
   return (
     <div className="space-y-6">
@@ -237,7 +251,7 @@ export default function RemindersPage() {
                 </div>
                  <Dialog>
                     <DialogTrigger asChild>
-                        <Button>
+                        <Button disabled={!isSuperAdmin}>
                           <PlusCircle className="mr-2 h-4 w-4" />
                           Nueva Configuración
                         </Button>
@@ -299,10 +313,13 @@ export default function RemindersPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoadingRules && (
+                        {showRulesLoading && (
                            <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" /></TableCell></TableRow>
                         )}
-                        {!isLoadingRules && (rulesData || configurations).map((config) => (
+                        {!showRulesLoading && (!isSuperAdmin || (rulesData || configurations).length === 0) && (
+                            <TableRow><TableCell colSpan={4} className="text-center h-24">No hay reglas configuradas.</TableCell></TableRow>
+                        )}
+                        {!showRulesLoading && isSuperAdmin && (rulesData || configurations).map((config) => (
                             <TableRow key={config.id}>
                                 <TableCell className="font-medium">{config.name}</TableCell>
                                 <TableCell>{`${config.days} días ${config.triggerType === 'before' ? 'antes' : 'después'} de la expiración`}</TableCell>
@@ -330,8 +347,8 @@ export default function RemindersPage() {
                     <CardDescription>Edita el contenido de los mensajes de recordatorio.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     {isLoadingTemplates && <Loader2 className="mx-auto my-8 h-8 w-8 animate-spin text-muted-foreground" />}
-                    {!isLoadingTemplates && (templatesData || templates).map((template) => (
+                     {showTemplatesLoading && <div className="flex justify-center py-8"><Loader2 className="mx-auto my-8 h-8 w-8 animate-spin text-muted-foreground" /></div>}
+                    {!showTemplatesLoading && isSuperAdmin && (templatesData || templates).map((template) => (
                         <div key={template.id} className="border p-4 rounded-lg flex justify-between items-center">
                            <div>
                               <p className="font-medium">{template.name}</p>
@@ -357,6 +374,7 @@ export default function RemindersPage() {
                             </Dialog>
                         </div>
                     ))}
+                    {!showTemplatesLoading && !isSuperAdmin && <p className="text-center text-muted-foreground py-8">No tienes permiso para ver las plantillas.</p>}
                 </CardContent>
             </Card>
         </TabsContent>
@@ -378,10 +396,13 @@ export default function RemindersPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoadingLogs && (
+                        {showLogsLoading && (
                             <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" /></TableCell></TableRow>
                         )}
-                        {!isLoadingLogs && (logsData || history).map((item) => (
+                        {!showLogsLoading && (!isSuperAdmin || (logsData || history).length === 0) && (
+                           <TableRow><TableCell colSpan={4} className="text-center h-24">No hay registros en el historial.</TableCell></TableRow>
+                        )}
+                        {!showLogsLoading && isSuperAdmin && (logsData || history).map((item) => (
                             <TableRow key={item.id}>
                                 <TableCell className="font-medium">{item.businessName}</TableCell>
                                 <TableCell>{item.ruleName}</TableCell>
@@ -428,5 +449,3 @@ export default function RemindersPage() {
     </div>
   );
 }
-
-    

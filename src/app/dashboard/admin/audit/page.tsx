@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -29,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Loader2, Eye } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import {
   collection,
   query,
@@ -46,6 +47,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { getIdTokenResult } from 'firebase/auth';
 
 interface AuditLog {
   id: string;
@@ -78,13 +80,39 @@ const entityMap: { [key: string]: string } = {
 
 export default function AuditPage() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [entityFilter, setEntityFilter] = useState('all');
   const [actionFilter, setActionFilter] = useState('all');
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        try {
+          const tokenResult = await getIdTokenResult(user, true);
+          const claims = tokenResult.claims;
+          if (claims.isSuperAdmin === true) {
+            setIsSuperAdmin(true);
+          }
+        } catch (error) {
+          console.error("Error fetching token claims:", error);
+          setIsSuperAdmin(false);
+        } finally {
+          setIsCheckingAdmin(false);
+        }
+      } else if (!isUserLoading) {
+        setIsCheckingAdmin(false);
+      }
+    };
+    checkAdmin();
+  }, [user, isUserLoading]);
 
   const auditQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
+
     let q = query(collection(firestore, 'globalAuditLogs'), orderBy('timestamp', 'desc'));
     
     const constraints = [];
@@ -100,9 +128,9 @@ export default function AuditPage() {
     }
     
     return q;
-  }, [firestore, entityFilter, actionFilter]);
+  }, [firestore, entityFilter, actionFilter, isCheckingAdmin, isSuperAdmin]);
 
-  const { data: logs, isLoading } = useCollection<AuditLog>(auditQuery);
+  const { data: logs, isLoading: isLoadingLogs } = useCollection<AuditLog>(auditQuery);
 
   const filteredLogs = useMemo(() => {
     if (!logs) return [];
@@ -113,6 +141,8 @@ export default function AuditPage() {
       log.entityId.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [logs, searchTerm]);
+
+  const isLoading = isUserLoading || isCheckingAdmin || (auditQuery !== null && isLoadingLogs);
 
   return (
     <div className="space-y-6">
@@ -187,14 +217,14 @@ export default function AuditPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && filteredLogs.length === 0 && (
+              {!isLoading && (!isSuperAdmin || filteredLogs.length === 0) && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center h-24">
                     No se encontraron registros de auditoría.
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && filteredLogs.map((log) => (
+              {!isLoading && isSuperAdmin && filteredLogs.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell>
                     {log.timestamp ? format(log.timestamp.toDate(), 'dd/MM/yyyy HH:mm:ss', { locale: es }) : 'N/A'}

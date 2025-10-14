@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -27,7 +28,6 @@ import {
   where,
   orderBy,
   doc,
-  updateDoc,
   writeBatch,
   serverTimestamp,
   Timestamp
@@ -47,10 +47,11 @@ interface PendingPayment {
 
 export default function PendingPaymentsPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
@@ -58,26 +59,33 @@ export default function PendingPaymentsPage() {
       if (user) {
         try {
           const tokenResult = await getIdTokenResult(user, true);
-          setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+          const claims = tokenResult.claims;
+          if (claims.isSuperAdmin === true) {
+            setIsSuperAdmin(true);
+          }
         } catch (error) {
           console.error("Error fetching token claims:", error);
           setIsSuperAdmin(false);
+        } finally {
+          setIsCheckingAdmin(false);
         }
+      } else if (!isUserLoading) {
+        setIsCheckingAdmin(false);
       }
     };
     checkAdmin();
-  }, [user]);
+  }, [user, isUserLoading]);
 
   const paymentsQuery = useMemoFirebase(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return query(
       collection(firestore, 'pendingPayments'),
       where('estadoPago', '==', 'pendiente'),
       orderBy('fechaSolicitud', 'desc')
     );
-  }, [firestore, isSuperAdmin]);
+  }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
-  const { data: payments, isLoading, error } = useCollection<PendingPayment>(paymentsQuery);
+  const { data: payments, isLoading: isLoadingPayments, error } = useCollection<PendingPayment>(paymentsQuery);
 
   const filteredPayments = useMemo(() => {
     if (!payments) return [];
@@ -96,7 +104,6 @@ export default function PendingPaymentsPage() {
       try {
         const batch = writeBatch(firestore);
         
-        // 1. Update pending payment status
         const paymentRef = doc(firestore, 'pendingPayments', paymentId);
         batch.update(paymentRef, { 
           estadoPago: newStatus,
@@ -105,7 +112,6 @@ export default function PendingPaymentsPage() {
         });
 
         if (newStatus === 'aprobado') {
-          // 2. Create subscription document
           const subscriptionRef = doc(collection(firestore, 'subscriptions'));
           const startDate = new Date();
           const endDate = new Date();
@@ -119,7 +125,6 @@ export default function PendingPaymentsPage() {
             paymentId: paymentId
           });
 
-          // 3. Log activity
           const logRef = doc(collection(firestore, 'activityLogs'));
           batch.set(logRef, {
             tipoAccion: 'Aprobación de pago',
@@ -151,10 +156,10 @@ export default function PendingPaymentsPage() {
   );
   
   const refreshData = () => {
-    // This is a bit of a hack to force re-fetch, ideally use a state management library
-    // For now, just showing a toast
     toast({ title: "Datos actualizados", description: "Se han recargado los pagos pendientes."})
   }
+  
+  const isLoading = isUserLoading || isCheckingAdmin || (paymentsQuery !== null && isLoadingPayments);
 
   return (
     <div className="space-y-6">
@@ -207,14 +212,14 @@ export default function PendingPaymentsPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && filteredPayments.length === 0 && (
+              {!isLoading && (!isSuperAdmin || filteredPayments.length === 0) && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center h-24">
                     No hay pagos pendientes.
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading &&
+              {!isLoading && isSuperAdmin &&
                 filteredPayments.map((payment) => (
                   <TableRow key={payment.id}>
                     <TableCell>

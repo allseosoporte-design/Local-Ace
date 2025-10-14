@@ -3,7 +3,8 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { PlusCircle, BarChart, CheckCircle, Star, Loader2 } from 'lucide-react';
@@ -27,7 +28,7 @@ import { getIdTokenResult } from 'firebase/auth';
 
 export default function SubscriptionPlansPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   
   const [showInactive, setShowInactive] = useState(false);
@@ -35,6 +36,7 @@ export default function SubscriptionPlansPage() {
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [planToDelete, setPlanToDelete] = useState<SubscriptionPlan | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
@@ -42,22 +44,29 @@ export default function SubscriptionPlansPage() {
       if (user) {
         try {
           const tokenResult = await getIdTokenResult(user, true);
-          setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+          const claims = tokenResult.claims;
+          if (claims.isSuperAdmin === true) {
+            setIsSuperAdmin(true);
+          }
         } catch (error) {
           console.error("Error fetching token claims:", error);
           setIsSuperAdmin(false);
+        } finally {
+          setIsCheckingAdmin(false);
         }
+      } else if (!isUserLoading) {
+         setIsCheckingAdmin(false);
       }
     };
     checkAdmin();
-  }, [user]);
+  }, [user, isUserLoading]);
 
   const plansQuery = useMemoFirebase(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return collection(firestore, 'subscriptionPlans');
-  }, [firestore, isSuperAdmin]);
+  }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
-  const { data: allPlans, isLoading } = useCollection<SubscriptionPlan>(plansQuery);
+  const { data: allPlans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
 
   const plans = useMemo(() => {
     if (!allPlans) return [];
@@ -143,7 +152,7 @@ export default function SubscriptionPlansPage() {
     }
   };
 
-  const showLoading = isLoading && isSuperAdmin;
+  const showLoading = isUserLoading || isCheckingAdmin || (plansQuery !== null && isLoadingPlans);
 
   return (
     <div className="space-y-6">
@@ -154,7 +163,7 @@ export default function SubscriptionPlansPage() {
             Administra los planes que se muestran en la página principal.
           </p>
         </div>
-        <Button onClick={handleCreate}>
+        <Button onClick={handleCreate} disabled={!isSuperAdmin}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Crear Plan
         </Button>
@@ -198,7 +207,7 @@ export default function SubscriptionPlansPage() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {showLoading && Array.from({length: 4}).map((_, i) => <Card key={i} className="h-[450px] flex flex-col"><CardHeader><Skeleton className="h-5 w-2/4" /><Skeleton className="h-4 w-full mt-2" /></CardHeader><CardContent className="flex-grow"><Skeleton className="h-8 w-1/3 mb-4" /><Skeleton className="h-px w-full" /><div className="space-y-2 mt-4"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/4" /></div></CardContent><CardFooter><Skeleton className="h-10 w-full" /></CardFooter></Card>)}
-        {plans?.map((plan) => (
+        {!showLoading && isSuperAdmin && plans?.map((plan) => (
           <PlanCard 
             key={plan.id} 
             plan={plan} 
@@ -208,9 +217,9 @@ export default function SubscriptionPlansPage() {
           />
         ))}
       </div>
-       {!showLoading && plans?.length === 0 && (
+       {!showLoading && (!isSuperAdmin || plans?.length === 0) && (
           <div className="col-span-full text-center py-12 text-muted-foreground">
-            <p>No se encontraron planes. ¡Crea el primero!</p>
+            <p>No se encontraron planes o no tienes permisos para verlos.</p>
           </div>
         )}
 

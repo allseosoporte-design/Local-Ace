@@ -53,13 +53,14 @@ type Business = {
 
 export default function AdminDashboardPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [businessToDelete, setBusinessToDelete] = useState<Business | null>(null);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
@@ -67,22 +68,29 @@ export default function AdminDashboardPage() {
       if (user) {
         try {
           const tokenResult = await getIdTokenResult(user, true); // Force refresh
-          setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+          const claims = tokenResult.claims;
+          if (claims.isSuperAdmin === true) {
+            setIsSuperAdmin(true);
+          }
         } catch (error) {
           console.error("Error fetching token claims:", error);
           setIsSuperAdmin(false);
+        } finally {
+          setIsCheckingAdmin(false);
         }
+      } else if (!isUserLoading) {
+        setIsCheckingAdmin(false);
       }
     };
     checkAdmin();
-  }, [user]);
+  }, [user, isUserLoading]);
 
   const businessesQuery = useMemoFirebase(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return query(collection(firestore, "businesses"));
-  }, [firestore, isSuperAdmin]);
+  }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
-  const { data: businesses, isLoading } = useCollection<Business>(businessesQuery);
+  const { data: businesses, isLoading: isLoadingBusinesses } = useCollection<Business>(businessesQuery);
 
   const handleCreate = () => {
     setEditingBusiness(null);
@@ -135,7 +143,7 @@ export default function AdminDashboardPage() {
     }
   };
   
-  const showLoading = isLoading && isSuperAdmin;
+  const showLoading = isUserLoading || isCheckingAdmin || (businessesQuery !== null && isLoadingBusinesses);
 
   return (
     <>
@@ -146,7 +154,7 @@ export default function AdminDashboardPage() {
               <CardTitle>Gestión de Clientes</CardTitle>
               <CardDescription>Crea, modifica y gestiona las cuentas de tus clientes.</CardDescription>
             </div>
-            <Button onClick={handleCreate}>
+            <Button onClick={handleCreate} disabled={!isSuperAdmin}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Crear Negocio
             </Button>
@@ -164,8 +172,8 @@ export default function AdminDashboardPage() {
             </TableHeader>
             <TableBody>
               {showLoading && <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></TableCell></TableRow>}
-              {!showLoading && businesses?.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No hay negocios registrados.</TableCell></TableRow>}
-              {!showLoading && businesses?.map((business) => (
+              {!showLoading && (!isSuperAdmin || businesses?.length === 0) && <TableRow><TableCell colSpan={4} className="text-center">No hay negocios registrados o no tienes permisos.</TableCell></TableRow>}
+              {!showLoading && isSuperAdmin && businesses?.map((business) => (
                 <TableRow key={business.id}>
                   <TableCell className="font-medium">{business.name}</TableCell>
                   <TableCell>

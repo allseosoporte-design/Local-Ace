@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -35,7 +36,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Eye, MessageSquare, Loader2 } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import {
   collection,
   query,
@@ -45,6 +46,7 @@ import {
 } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getIdTokenResult } from 'firebase/auth';
 
 interface SupportTicket {
   id: string;
@@ -72,13 +74,38 @@ const statusMap = {
 
 export default function AdminSupportPage() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
   const [activeTab, setActiveTab] = useState<'internal' | 'public'>('internal');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        try {
+          const tokenResult = await getIdTokenResult(user, true);
+          const claims = tokenResult.claims;
+          if (claims.isSuperAdmin === true) {
+            setIsSuperAdmin(true);
+          }
+        } catch (error) {
+          console.error("Error fetching token claims:", error);
+          setIsSuperAdmin(false);
+        } finally {
+          setIsCheckingAdmin(false);
+        }
+      } else if (!isUserLoading) {
+        setIsCheckingAdmin(false);
+      }
+    };
+    checkAdmin();
+  }, [user, isUserLoading]);
 
   const ticketsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     
     let q = collection(firestore, 'supportTickets');
     
@@ -96,9 +123,9 @@ export default function AdminSupportPage() {
 
     return query(q, ...constraints);
 
-  }, [firestore, activeTab, statusFilter, priorityFilter]);
+  }, [firestore, activeTab, statusFilter, priorityFilter, isCheckingAdmin, isSuperAdmin]);
 
-  const { data: tickets, isLoading } = useCollection<SupportTicket>(ticketsQuery);
+  const { data: tickets, isLoading: isLoadingTickets } = useCollection<SupportTicket>(ticketsQuery);
 
   const filteredTickets = useMemo(() => {
     if (!tickets) return [];
@@ -109,6 +136,8 @@ export default function AdminSupportPage() {
         ticket.subject.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [tickets, searchTerm]);
+
+  const isLoading = isUserLoading || isCheckingAdmin || (ticketsQuery !== null && isLoadingTickets);
 
   return (
     <div className="space-y-6">
@@ -197,14 +226,14 @@ export default function AdminSupportPage() {
                           </TableCell>
                         </TableRow>
                       )}
-                      {!isLoading && filteredTickets.length === 0 && (
+                      {!isLoading && (!isSuperAdmin || filteredTickets.length === 0) && (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center h-24">
                             No hay tickets que coincidan con los filtros.
                           </TableCell>
                         </TableRow>
                       )}
-                      {!isLoading &&
+                      {!isLoading && isSuperAdmin &&
                         filteredTickets.map((ticket) => (
                           <TableRow key={ticket.id}>
                             <TableCell>
