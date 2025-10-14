@@ -11,11 +11,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Save, Eye, Star } from 'lucide-react';
+import { Save, Eye, Star, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useState } from 'react';
 
 export interface FormConfigData {
   redirectUrl: string;
@@ -39,6 +40,7 @@ export function FormEditor({ data, setData }: FormEditorProps) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setData({ ...data, [e.target.name]: e.target.value });
@@ -49,6 +51,7 @@ export function FormEditor({ data, setData }: FormEditorProps) {
         toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para guardar.' });
         return;
     }
+    setIsSaving(true);
     try {
         const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPageConfig`, 'form');
         await setDoc(formConfigRef, {
@@ -58,7 +61,9 @@ export function FormEditor({ data, setData }: FormEditorProps) {
         toast({ title: 'Configuración guardada', description: 'La configuración del formulario ha sido actualizada.' });
     } catch (error) {
         console.error("Error saving form config:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la configuración.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la configuración. Revisa los permisos de la base de datos.' });
+    } finally {
+        setIsSaving(false);
     }
   }
 
@@ -178,8 +183,8 @@ export function FormEditor({ data, setData }: FormEditorProps) {
             <Eye className="mr-2 h-4 w-4" />
             Vista Previa Completa
           </Button>
-          <Button onClick={handleSave}>
-            <Save className="mr-2 h-4 w-4" />
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Guardar Cambios
           </Button>
         </div>

@@ -15,11 +15,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -54,15 +55,13 @@ export default function LoginPage() {
       if (adminDoc.exists()) {
         router.push('/dashboard/admin');
       } else {
-        // --- INICIO: LÓGICA CLAVE ---
-        // Al ser un usuario normal, asegurarse de que su documento de negocio exista.
+        const batch = writeBatch(firestore);
         const businessRef = doc(firestore, 'businesses', user.uid);
         const businessDoc = await getDoc(businessRef);
 
         if (!businessDoc.exists()) {
           // Si el negocio no existe, lo crea con valores por defecto.
-          // Esto es crucial para que las reglas de seguridad funcionen.
-          await setDoc(businessRef, {
+          batch.set(businessRef, {
             name: user.email, // Usa el email como nombre inicial
             adminEmail: user.email,
             status: "Active",
@@ -70,12 +69,28 @@ export default function LoginPage() {
             updatedAt: serverTimestamp(),
           });
           
+          // Crea también la configuración inicial del formulario
+          const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPageConfig`, 'form');
+          batch.set(formConfigRef, {
+            redirectUrl: `https://www.google.com/maps/search/?api=1&query=${user.uid}`,
+            notificationEmail: user.email,
+            formTitle: "¿Cómo fue tu experiencia?",
+            formSubtitle: "Tus comentarios nos ayudan a mejorar.",
+            negativeFeedbackTitle: "Déjanos tus comentarios",
+            negativeFeedbackSubtitle: "Lamentamos que tu experiencia no haya sido perfecta. Por favor, dinos cómo podemos mejorar.",
+            positiveFeedbackTitle: "¡Gracias por tu reseña!",
+            positiveFeedbackSubtitle: "Nos alegra que hayas tenido una gran experiencia. Ayuda a otros a descubrirnos compartiendo tu opinión en Google.",
+            thankYouTitle: "¡Gracias!",
+            thankYouSubtitle: "Tus comentarios son muy valiosos para nosotros.",
+            updatedAt: serverTimestamp()
+          });
+
           if (!user.displayName) {
              await updateProfile(user, { displayName: user.email });
           }
         }
-        // --- FIN: LÓGICA CLAVE ---
         
+        await batch.commit();
         router.push('/dashboard');
       }
 
