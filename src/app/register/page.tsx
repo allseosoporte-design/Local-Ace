@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore } from '@/firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
@@ -31,7 +31,7 @@ export default function RegisterPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegisterOrAssignRole = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -45,73 +45,78 @@ export default function RegisterPage() {
       return;
     }
 
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      const emailLower = email.toLowerCase().trim();
-      
-      if (emailLower === 'allseosoporte@gmail.com') {
-        
-        try {
-          const functions = getFunctions(auth.app);
-          const addSuperAdminRole = httpsCallable(functions, 'addSuperAdminRole');
-          await addSuperAdminRole({ email: user.email });
+    const emailLower = email.toLowerCase().trim();
 
-          const superAdminRef = doc(firestore, 'superAdmins', user.uid);
-          const docData = {
+    if (emailLower === 'allseosoporte@gmail.com') {
+      try {
+        // Step 1: Sign in the user to ensure they are authenticated
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Step 2: Call the Cloud Function to assign the super admin role
+        const functions = getFunctions(auth.app);
+        const addSuperAdminRole = httpsCallable(functions, 'addSuperAdminRole');
+        await addSuperAdminRole({ email: user.email });
+
+        // Step 3: Ensure the superadmin doc exists
+        const superAdminRef = doc(firestore, 'superAdmins', user.uid);
+        await setDoc(superAdminRef, {
             id: user.uid,
             email: user.email,
             firstName: 'Alexander',
             lastName: 'Jerez Fernandez',
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
-          };
-          
-          await setDoc(superAdminRef, docData);
-          await updateProfile(user, { displayName: 'Alexander Jerez Fernandez' });
-          
-          toast({
-            title: '¡Registro exitoso!',
-            description: 'Cuenta de SuperAdmin creada. Redirigiendo...',
-          });
-          
-          router.push('/dashboard/admin');
+        }, { merge: true }); // Use merge to avoid overwriting existing data if any
+        
+        await updateProfile(user, { displayName: 'Alexander Jerez Fernandez' });
 
-        } catch (functionError: any) {
-          console.error('Error setting custom claim:', functionError);
-          toast({
-            variant: 'destructive',
-            title: 'Error de permisos',
-            description: `No se pudo asignar el rol de administrador.`,
-            duration: 10000,
-          });
+
+        toast({
+          title: '¡Rol de SuperAdmin asignado!',
+          description: 'Cierra sesión y vuelve a iniciarla para que los cambios tomen efecto.',
+          duration: 7000,
+        });
+
+        router.push('/dashboard/admin');
+
+      } catch (error: any) {
+        let errorMessage = 'Ocurrió un error al asignar el rol. ¿Las credenciales son correctas?';
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+          errorMessage = 'La contraseña es incorrecta.';
         }
-      } else {
+        console.error('Error assigning super admin role:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error al Asignar Rol',
+          description: errorMessage,
+        });
+      }
+    } else {
+      // Standard user registration
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
         toast({
           title: '¡Registro exitoso!',
           description: 'Tu cuenta ha sido creada. Ahora puedes iniciar sesión.',
         });
-        
         router.push('/login');
+      } catch (error: any) {
+        let errorMessage = 'Ocurrió un error durante el registro. Por favor, inténtalo de nuevo.';
+        if (error.code === 'auth/email-already-in-use') {
+          errorMessage = 'Este correo electrónico ya está en uso.';
+        } else if (error.code === 'auth/weak-password') {
+          errorMessage = 'La contraseña debe tener al menos 6 caracteres.';
+        }
+        toast({
+          variant: 'destructive',
+          title: 'Error de registro',
+          description: errorMessage,
+        });
       }
-
-    } catch (error: any) {
-      let errorMessage = 'Ocurrió un error durante el registro. Por favor, inténtalo de nuevo.';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Este correo electrónico ya está en uso.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'La contraseña debe tener al menos 6 caracteres.';
-      }
-      
-      toast({
-        variant: 'destructive',
-        title: 'Error de registro',
-        description: errorMessage,
-      });
-    } finally {
-      setIsLoading(false);
     }
+
+    setIsLoading(false);
   };
 
   return (
@@ -121,10 +126,10 @@ export default function RegisterPage() {
           <Link href="/" className="flex justify-center items-center">
             <LocalLeap className="w-12 h-12 mx-auto text-primary" />
           </Link>
-          <CardTitle className="text-2xl font-bold mt-4">Crear una Cuenta</CardTitle>
-          <CardDescription>Comienza a optimizar tu negocio hoy mismo.</CardDescription>
+          <CardTitle className="text-2xl font-bold mt-4">Crear o Asignar Rol</CardTitle>
+          <CardDescription>Regístrate o inicia sesión para asignar el rol de SuperAdmin.</CardDescription>
         </CardHeader>
-        <form onSubmit={handleRegister}>
+        <form onSubmit={handleRegisterOrAssignRole}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Correo Electrónico</Label>
@@ -152,7 +157,7 @@ export default function RegisterPage() {
           <CardFooter className="flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Registrarse
+              Continuar
             </Button>
             <p className="text-xs text-center text-muted-foreground">
               ¿Ya tienes una cuenta?{' '}
