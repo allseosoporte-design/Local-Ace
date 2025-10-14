@@ -34,22 +34,31 @@ export default function DashboardLayout({
 
     // CRITICAL: Ensure the business document exists for the logged-in user.
     const ensureBusinessDocExists = async () => {
+      // Only run if firestore and user are available.
       if (user && firestore) {
         const businessRef = doc(firestore, "businesses", user.uid);
-        const businessDoc = await getDoc(businessRef);
-        if (!businessDoc.exists()) {
-          // If the business document doesn't exist, create it.
-          // This is crucial for security rules that check ownership.
-          await setDoc(businessRef, {
-            name: user.displayName || user.email,
-            adminEmail: user.email,
-            status: "Active",
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
+        try {
+            const businessDoc = await getDoc(businessRef);
+            if (!businessDoc.exists()) {
+              // If the business document doesn't exist, create it.
+              // This is crucial for security rules that check ownership.
+              await setDoc(businessRef, {
+                name: user.displayName || user.email,
+                adminEmail: user.email,
+                status: "Active",
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              });
+            }
+        } catch (error) {
+            console.error("Error ensuring business document exists:", error);
+        } finally {
+            setIsReady(true);
         }
+      } else if (!firestore) {
+        // If firestore is not ready yet, just wait for the next effect run.
+        return;
       }
-      setIsReady(true);
     };
 
     ensureBusinessDocExists();
