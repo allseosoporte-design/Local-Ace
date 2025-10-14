@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditorSections } from "@/components/editor-sections";
 import { EditorTestimonials } from "@/components/editor-testimonials";
 import { EditorSeo } from "@/components/editor-seo";
+import { FormEditor, type FormConfigData } from "@/components/dashboard/landing/FormEditor";
 
 export default function LandingPageBuilder() {
   const [data, setData] = useState<LandingPageData>({
@@ -31,6 +32,20 @@ export default function LandingPageBuilder() {
     }
   });
 
+  const [formConfig, setFormConfig] = useState<FormConfigData>({
+    redirectUrl: "https://www.google.com/maps/search/?api=1&query=YOUR_BUSINESS_ID",
+    notificationEmail: "tu@email.com",
+    formTitle: "¿Cómo fue tu experiencia?",
+    formSubtitle: "Tus comentarios nos ayudan a mejorar.",
+    negativeFeedbackTitle: "Déjanos tus comentarios",
+    negativeFeedbackSubtitle: "Lamentamos que tu experiencia no haya sido perfecta. Por favor, dinos cómo podemos mejorar.",
+    positiveFeedbackTitle: "¡Gracias por tu reseña!",
+    positiveFeedbackSubtitle: "Nos alegra que hayas tenido una gran experiencia. Ayuda a otros a descubrirnos compartiendo tu opinión en Google.",
+    thankYouTitle: "¡Gracias!",
+    thankYouSubtitle: "Tus comentarios son muy valiosos para nosotros.",
+  });
+
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
       <div className="lg:col-span-2">
@@ -40,6 +55,7 @@ export default function LandingPageBuilder() {
                     <TabsTrigger value="sections">Secciones</TabsTrigger>
                     <TabsTrigger value="testimonials">Testimonios</TabsTrigger>
                     <TabsTrigger value="seo">SEO</TabsTrigger>
+                    <TabsTrigger value="form">Formulario</TabsTrigger>
                 </TabsList>
                 <TabsContent value="hero">
                     <EditorLandingForm data={data} setData={setData} />
@@ -52,6 +68,9 @@ export default function LandingPageBuilder() {
                 </TabsContent>
                  <TabsContent value="seo">
                     <EditorSeo data={data} setData={setData} />
+                </TabsContent>
+                <TabsContent value="form">
+                    <FormEditor data={formConfig} setData={setFormConfig} />
                 </TabsContent>
             </Tabs>
         </div>

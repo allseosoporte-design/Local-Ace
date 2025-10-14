@@ -1,3 +1,4 @@
+
 "use client";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,12 +10,15 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Share2 } from "lucide-react";
-import { recentReviewsData, internalFeedbackData } from "@/lib/data";
+import { recentReviewsData } from "@/lib/data";
 import { DataTable } from "@/components/ui/data-table";
-import { columns, feedbackColumns } from "./columns";
+import { columns } from "./columns";
+import { InternalFeedbackTable } from "@/components/dashboard/reviews/InternalFeedbackTable";
+import { useUser } from "@/firebase";
 
 export default function ReviewsPage() {
-  const businessId = "your-business-123";
+  const { user } = useUser();
+  const businessId = user?.uid || "your-business-123";
 
   return (
     <div className="space-y-6">
@@ -50,17 +54,7 @@ export default function ReviewsPage() {
           </Card>
         </TabsContent>
         <TabsContent value="feedback">
-          <Card>
-            <CardHeader>
-              <CardTitle>Feedback Interno</CardTitle>
-              <CardDescription>
-                Comentarios de clientes que te calificaron con 1-4 estrellas. Esto no es público.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DataTable columns={feedbackColumns} data={internalFeedbackData} />
-            </CardContent>
-          </Card>
+          <InternalFeedbackTable />
         </TabsContent>
       </Tabs>
     </div>
