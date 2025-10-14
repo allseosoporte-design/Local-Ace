@@ -70,7 +70,7 @@ export default function LoginPage() {
           });
           
           // Crea también la configuración inicial del formulario
-          const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPageConfig`, 'form');
+          const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
           batch.set(formConfigRef, {
             redirectUrl: `https://www.google.com/maps/search/?api=1&query=${user.uid}`,
             notificationEmail: user.email,

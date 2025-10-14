@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -53,7 +52,7 @@ export function FormEditor({ data, setData }: FormEditorProps) {
     }
     setIsSaving(true);
     try {
-        const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPageConfig`, 'form');
+        const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
         await setDoc(formConfigRef, {
             ...data,
             updatedAt: serverTimestamp()

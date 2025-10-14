@@ -26,7 +26,7 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
 
   const formConfigRef = useMemoFirebase(() => {
     if (!firestore || !businessId) return null;
-    return doc(firestore, `businesses/${businessId}/landingPageConfig`, 'form');
+    return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
   }, [firestore, businessId]);
 
   const { data: formConfig, isLoading } = useDoc<FormConfigData>(formConfigRef);
