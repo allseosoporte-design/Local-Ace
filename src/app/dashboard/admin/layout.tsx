@@ -38,7 +38,11 @@ export default function AdminDashboardLayout({
     const checkAdminStatus = async () => {
       try {
         const tokenResult = await getIdTokenResult(user, true); // Force refresh
-        setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+        if (tokenResult.claims.isSuperAdmin) {
+            setIsSuperAdmin(true);
+        } else {
+            setIsSuperAdmin(false);
+        }
       } catch (error) {
         console.error("Error verifying super admin status:", error);
         setIsSuperAdmin(false);
