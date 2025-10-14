@@ -40,10 +40,9 @@ export default function DashboardLayout({
         try {
             const businessDoc = await getDoc(businessRef);
             if (!businessDoc.exists()) {
-              // If the business document doesn't exist, create it.
-              // This is crucial for security rules that check ownership.
+              // Use setDoc without merge to create the document
               await setDoc(businessRef, {
-                name: user.displayName || user.email,
+                name: user.displayName || user.email || 'Mi Negocio',
                 adminEmail: user.email,
                 status: "Active",
                 createdAt: serverTimestamp(),
@@ -52,6 +51,7 @@ export default function DashboardLayout({
             }
         } catch (error) {
             console.error("Error ensuring business document exists:", error);
+            // Don't block the UI if this fails, just log it.
         } finally {
             setIsReady(true);
         }
