@@ -29,23 +29,23 @@ export default function AdminDashboardLayout({
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    console.log('🔄 useEffect ejecutado - isUserLoading:', isUserLoading, 'user:', !!user);
+    // console.log('🔄 useEffect ejecutado - isUserLoading:', isUserLoading, 'user:', !!user);
 
     // Si aún está cargando, no hacer nada
     if (isUserLoading) {
-      console.log('⏳ Aún cargando usuario...');
+      // console.log('⏳ Aún cargando usuario...');
       return;
     }
 
     // Si terminó de cargar y no hay usuario, redirigir
     if (!user) {
-      console.log('❌ No hay usuario después de cargar, redirigiendo a login');
+      // console.log('❌ No hay usuario después de cargar, redirigiendo a login');
       router.replace('/login');
       return;
     }
 
     // Usuario disponible, verificar permisos
-    console.log('👤 Usuario disponible, verificando claims...');
+    // console.log('👤 Usuario disponible, verificando claims...');
     
     const checkAdminStatus = async () => {
       try {
@@ -54,15 +54,15 @@ export default function AdminDashboardLayout({
         
         const tokenResult = await getIdTokenResult(user, true);
         
-        console.log('📋 Token obtenido');
-        console.log('🔍 Todos los claims:', JSON.stringify(tokenResult.claims, null, 2));
-        console.log('🔍 isSuperAdmin específico:', tokenResult.claims.isSuperAdmin);
+        // console.log('📋 Token obtenido');
+        // console.log('🔍 Todos los claims:', JSON.stringify(tokenResult.claims, null, 2));
+        // console.log('🔍 isSuperAdmin específico:', tokenResult.claims.isSuperAdmin);
         
         if (tokenResult.claims.isSuperAdmin === true) {
-          console.log('✅ ES SUPERADMIN - Mostrando panel');
+          // console.log('✅ ES SUPERADMIN - Mostrando panel');
           setIsSuperAdmin(true);
         } else {
-          console.log('❌ NO ES SUPERADMIN - Bloqueando acceso');
+          // console.log('❌ NO ES SUPERADMIN - Bloqueando acceso');
           setIsSuperAdmin(false);
         }
       } catch (error) {

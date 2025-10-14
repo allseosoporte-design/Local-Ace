@@ -60,13 +60,16 @@ export default function RegisterPage() {
         // Step 2: Call the Cloud Function to assign the super admin role
         const functions = getFunctions(auth.app);
         const addSuperAdminRole = httpsCallable(functions, 'addSuperAdminRole');
-        const result = await addSuperAdminRole({ email: user.email });
+        const result: any = await addSuperAdminRole({ email: user.email });
         
+        if (result.data.error) {
+          throw new Error(result.data.error);
+        }
+
         console.log("Function result:", result.data);
 
         // Step 3: Ensure the superadmin doc exists
         const superAdminRef = doc(firestore, 'superAdmins', user.uid);
-        // Check if doc exists before setting
         const adminDoc = await getDoc(superAdminRef);
         if (!adminDoc.exists()) {
             await setDoc(superAdminRef, {
@@ -94,6 +97,8 @@ export default function RegisterPage() {
         let errorMessage = 'Ocurrió un error al asignar el rol. ¿Las credenciales son correctas?';
         if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           errorMessage = 'La contraseña es incorrecta.';
+        } else if (error.message) {
+          errorMessage = error.message;
         }
         console.error('Error assigning super admin role:', error);
         toast({
