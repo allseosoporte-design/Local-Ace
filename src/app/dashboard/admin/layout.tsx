@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -30,37 +29,49 @@ export default function AdminDashboardLayout({
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
+    console.log('🔄 useEffect ejecutado - isUserLoading:', isUserLoading, 'user:', !!user);
+
+    // Si aún está cargando, no hacer nada
     if (isUserLoading) {
-      // Still waiting for the user object to be resolved from Firebase Auth
+      console.log('⏳ Aún cargando usuario...');
       return;
     }
-    
+
+    // Si terminó de cargar y no hay usuario, redirigir
     if (!user) {
-      // If loading is finished and there's no user, redirect to login
+      console.log('❌ No hay usuario después de cargar, redirigiendo a login');
       router.replace('/login');
       return;
     }
 
-    // User object is available, now we can safely check the custom claims
+    // Usuario disponible, verificar permisos
+    console.log('👤 Usuario disponible, verificando claims...');
+    
     const checkAdminStatus = async () => {
       try {
-        // Force refresh the token to get latest claims
-        const tokenResult = await getIdTokenResult(user, true); 
+        // Pequeña pausa para asegurar que Firebase esté listo
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        // ✅ CORRECTION: The claim is named "isSuperAdmin"
+        const tokenResult = await getIdTokenResult(user, true);
+        
+        console.log('📋 Token obtenido');
+        console.log('🔍 Todos los claims:', JSON.stringify(tokenResult.claims, null, 2));
+        console.log('🔍 isSuperAdmin específico:', tokenResult.claims.isSuperAdmin);
+        
         if (tokenResult.claims.isSuperAdmin === true) {
-            setIsSuperAdmin(true);
+          console.log('✅ ES SUPERADMIN - Mostrando panel');
+          setIsSuperAdmin(true);
         } else {
-            setIsSuperAdmin(false);
+          console.log('❌ NO ES SUPERADMIN - Bloqueando acceso');
+          setIsSuperAdmin(false);
         }
       } catch (error) {
-        console.error("Error verifying super admin status:", error);
-        setIsSuperAdmin(false); // Default to non-admin on error
+        console.error('❌ Error verificando admin:', error);
+        setIsSuperAdmin(false);
       }
     };
-    
-    checkAdminStatus();
 
+    checkAdminStatus();
   }, [user, isUserLoading, router]);
 
   if (isSuperAdmin === null) {
