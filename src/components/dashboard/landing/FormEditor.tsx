@@ -50,7 +50,7 @@ export function FormEditor({ data, setData }: FormEditorProps) {
         return;
     }
     try {
-        const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPage/formConfig`);
+        const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPageConfig/form`);
         await setDoc(formConfigRef, {
             ...data,
             updatedAt: serverTimestamp()

@@ -26,7 +26,7 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
 
   const formConfigRef = useMemoFirebase(() => {
     if (!firestore || !businessId) return null;
-    return doc(firestore, `businesses/${businessId}/landingPage/formConfig`);
+    return doc(firestore, `businesses/${businessId}/landingPageConfig/form`);
   }, [firestore, businessId]);
 
   const { data: formConfig, isLoading } = useDoc<FormConfigData>(formConfigRef);
@@ -53,7 +53,7 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
       await setDoc(feedbackRef, {
         name,
         email,
-        message,
+        review: message, // Ensure the field name matches what the table expects ('review')
         rating,
         status: "Pending",
         createdAt: serverTimestamp()
