@@ -1,7 +1,5 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
 import { DataTable } from "@/components/ui/data-table";
 import { feedbackColumns } from "@/app/dashboard/reviews/columns";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -14,22 +12,19 @@ export function InternalFeedbackTable() {
     const firestore = useFirestore();
 
     const feedbackQuery = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
+        // Wait until user is fully loaded and available before creating the query
+        if (isUserLoading || !user || !firestore) {
+            return null;
+        }
         return query(collection(firestore, `businesses/${user.uid}/privateFeedback`), orderBy('createdAt', 'desc'));
-    }, [user, firestore]);
+    }, [user, firestore, isUserLoading]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection(feedbackQuery);
     
-    const isLoading = isUserLoading || isLoadingFeedback;
+    // The component is loading if auth is loading OR if the query is running.
+    const isLoading = isUserLoading || (feedbackQuery !== null && isLoadingFeedback);
+    const showLoadingSpinner = isLoading && feedbackQuery !== null;
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-48">
-                <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-        );
-    }
-    
     return (
         <Card>
             <CardHeader>
@@ -39,7 +34,13 @@ export function InternalFeedbackTable() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <DataTable columns={feedbackColumns} data={feedbackData || []} />
+                {showLoadingSpinner ? (
+                     <div className="flex items-center justify-center h-48">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                ) : (
+                    <DataTable columns={feedbackColumns} data={feedbackData || []} />
+                )}
             </CardContent>
         </Card>
     );
