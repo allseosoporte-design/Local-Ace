@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
@@ -64,8 +65,13 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const checkAdmin = async () => {
       if (user) {
-        const tokenResult = await getIdTokenResult(user, true);
-        setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+        try {
+          const tokenResult = await getIdTokenResult(user, true); // Force refresh
+          setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+        } catch (error) {
+          console.error("Error fetching token claims:", error);
+          setIsSuperAdmin(false);
+        }
       }
     };
     checkAdmin();
@@ -128,6 +134,8 @@ export default function AdminDashboardPage() {
        toast({ variant: "destructive", title: "Error", description: "No se pudo guardar el negocio." });
     }
   };
+  
+  const showLoading = isLoading && isSuperAdmin;
 
   return (
     <>
@@ -155,9 +163,9 @@ export default function AdminDashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></TableCell></TableRow>}
-              {!isLoading && businesses?.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No hay negocios registrados.</TableCell></TableRow>}
-              {!isLoading && businesses?.map((business) => (
+              {showLoading && <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></TableCell></TableRow>}
+              {!showLoading && businesses?.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No hay negocios registrados.</TableCell></TableRow>}
+              {!showLoading && businesses?.map((business) => (
                 <TableRow key={business.id}>
                   <TableCell className="font-medium">{business.name}</TableCell>
                   <TableCell>

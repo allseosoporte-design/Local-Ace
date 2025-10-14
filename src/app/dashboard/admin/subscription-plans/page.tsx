@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, BarChart, CheckCircle, Star } from 'lucide-react';
+import { PlusCircle, BarChart, CheckCircle, Star, Loader2 } from 'lucide-react';
 import { collection, query, doc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { PlanModal } from '@/components/plan-modal';
@@ -39,8 +40,13 @@ export default function SubscriptionPlansPage() {
   useEffect(() => {
     const checkAdmin = async () => {
       if (user) {
-        const tokenResult = await getIdTokenResult(user, true);
-        setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+        try {
+          const tokenResult = await getIdTokenResult(user, true);
+          setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+        } catch (error) {
+          console.error("Error fetching token claims:", error);
+          setIsSuperAdmin(false);
+        }
       }
     };
     checkAdmin();
@@ -137,6 +143,7 @@ export default function SubscriptionPlansPage() {
     }
   };
 
+  const showLoading = isLoading && isSuperAdmin;
 
   return (
     <div className="space-y-6">
@@ -160,7 +167,7 @@ export default function SubscriptionPlansPage() {
             <BarChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? '...' : metrics.total}</div>
+            <div className="text-2xl font-bold">{showLoading ? '...' : metrics.total}</div>
           </CardContent>
         </Card>
         <Card>
@@ -169,7 +176,7 @@ export default function SubscriptionPlansPage() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? '...' : metrics.active}</div>
+            <div className="text-2xl font-bold">{showLoading ? '...' : metrics.active}</div>
           </CardContent>
         </Card>
         <Card>
@@ -178,7 +185,7 @@ export default function SubscriptionPlansPage() {
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? '...' : metrics.popular}</div>
+            <div className="text-2xl font-bold">{showLoading ? '...' : metrics.popular}</div>
           </CardContent>
         </Card>
         <div className="flex items-center justify-center rounded-lg border bg-card text-card-foreground shadow-sm p-4">
@@ -190,7 +197,7 @@ export default function SubscriptionPlansPage() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {isLoading && Array.from({length: 4}).map((_, i) => <Card key={i} className="h-[250px] animate-pulse"/>)}
+        {showLoading && Array.from({length: 4}).map((_, i) => <Card key={i} className="h-[450px] flex flex-col"><CardHeader><Skeleton className="h-5 w-2/4" /><Skeleton className="h-4 w-full mt-2" /></CardHeader><CardContent className="flex-grow"><Skeleton className="h-8 w-1/3 mb-4" /><Skeleton className="h-px w-full" /><div className="space-y-2 mt-4"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/4" /></div></CardContent><CardFooter><Skeleton className="h-10 w-full" /></CardFooter></Card>)}
         {plans?.map((plan) => (
           <PlanCard 
             key={plan.id} 
@@ -201,7 +208,7 @@ export default function SubscriptionPlansPage() {
           />
         ))}
       </div>
-       {!isLoading && plans?.length === 0 && (
+       {!showLoading && plans?.length === 0 && (
           <div className="col-span-full text-center py-12 text-muted-foreground">
             <p>No se encontraron planes. ¡Crea el primero!</p>
           </div>
