@@ -331,8 +331,8 @@ export default function BackupPage() {
           <CardDescription>Descripción del almacenamiento</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-            <p className='text-sm'><span className='font-semibold'>Ubicación:</span> /var/backups/websapmax (Servidor local)</p>
-            <p className='text-sm'><span className='font-semibold'>Capacidad:</span> 500 GB</p>
+            <p className='text-sm'><span className='font-semibold'>Ubicación:</span> Cloud Firestore (Servicios de Google Cloud)</p>
+            <p className='text-sm'><span className='font-semibold'>Capacidad:</span> Escalable</p>
             <p className='text-sm'><span className='font-semibold'>Espacio utilizado:</span> 150 GB (30%)</p>
             <Progress value={30} className="mt-4" />
         </CardContent>
@@ -384,5 +384,3 @@ export default function BackupPage() {
     </div>
   );
 }
-
-    
