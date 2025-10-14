@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
@@ -50,35 +50,45 @@ export default function RegisterPage() {
     if (emailLower === 'allseosoporte@gmail.com') {
       try {
         // Step 1: Sign in the user to ensure they are authenticated
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        await signInWithEmailAndPassword(auth, email, password);
+        const user = auth.currentUser;
+
+        if (!user) {
+          throw new Error("No se pudo obtener el usuario después de iniciar sesión.");
+        }
 
         // Step 2: Call the Cloud Function to assign the super admin role
         const functions = getFunctions(auth.app);
         const addSuperAdminRole = httpsCallable(functions, 'addSuperAdminRole');
-        await addSuperAdminRole({ email: user.email });
+        const result = await addSuperAdminRole({ email: user.email });
+        
+        console.log("Function result:", result.data);
 
         // Step 3: Ensure the superadmin doc exists
         const superAdminRef = doc(firestore, 'superAdmins', user.uid);
-        await setDoc(superAdminRef, {
-            id: user.uid,
-            email: user.email,
-            firstName: 'Alexander',
-            lastName: 'Jerez Fernandez',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        }, { merge: true }); // Use merge to avoid overwriting existing data if any
+        // Check if doc exists before setting
+        const adminDoc = await getDoc(superAdminRef);
+        if (!adminDoc.exists()) {
+            await setDoc(superAdminRef, {
+                id: user.uid,
+                email: user.email,
+                firstName: 'Alexander',
+                lastName: 'Jerez Fernandez',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            });
+            await updateProfile(user, { displayName: 'Alexander Jerez Fernandez' });
+        }
         
-        await updateProfile(user, { displayName: 'Alexander Jerez Fernandez' });
-
-
         toast({
           title: '¡Rol de SuperAdmin asignado!',
           description: 'Cierra sesión y vuelve a iniciarla para que los cambios tomen efecto.',
           duration: 7000,
         });
 
-        router.push('/dashboard/admin');
+        // Sign out to force token refresh on next login
+        await auth.signOut();
+        router.push('/login');
 
       } catch (error: any) {
         let errorMessage = 'Ocurrió un error al asignar el rol. ¿Las credenciales son correctas?';

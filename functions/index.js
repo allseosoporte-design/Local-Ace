@@ -4,12 +4,11 @@ const admin = require('firebase-admin');
 admin.initializeApp();
 
 exports.addSuperAdminRole = functions.https.onCall(async (data, context) => {
-  // Check if request is made by an existing super admin (for security)
-  // This is a simplified check. In a real app, you'd want to verify
-  // the caller's identity more robustly, perhaps by checking their own custom claims.
-  // if (context.auth.token.isSuperAdmin !== true) {
-  //   return { error: 'Only super admins can add other super admins.' };
-  // }
+  // Check if request is made by an authenticated user.
+  // We remove the check for existing super admin to allow the first one to be created.
+  if (!context.auth) {
+     return { error: 'Authentication required.' };
+  }
   
   // Get user and add custom claim
   try {
