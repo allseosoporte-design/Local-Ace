@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -35,6 +35,7 @@ import {
   Download,
   Trash2,
   Eye,
+  Loader2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -47,21 +48,57 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useUser } from '@/firebase';
+import { getIdTokenResult } from 'firebase/auth';
+import backendConfig from '@/../docs/backend.json';
 
 
-const collectionsData = [
-  { name: 'users', count: 150 },
-  { name: 'companies', count: 5 },
-  { name: 'dishes', count: 25 },
-  { name: 'orders', count: 1250 },
-  { name: 'reservations', count: 20 },
-  { name: 'logs', count: 5000 },
-];
+type CollectionInfo = {
+    name: string;
+    path: string;
+    count: string | number;
+};
 
 export default function DatabasePage() {
   const { toast } = useToast();
+  const { user } = useUser();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [collectionToDelete, setCollectionToDelete] = useState('');
+  const [collections, setCollections] = useState<CollectionInfo[]>([]);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        try {
+          const tokenResult = await getIdTokenResult(user, true);
+          const isAdmin = tokenResult.claims.isSuperAdmin === true;
+          setIsSuperAdmin(isAdmin);
+          if (isAdmin) {
+            // Procesar el backend.json para obtener las colecciones
+            const firestoreConfig = backendConfig.firestore;
+            const collectionData: CollectionInfo[] = Object.keys(firestoreConfig)
+                .filter(path => !path.includes('{')) // Filtrar colecciones de nivel raíz
+                .map(path => ({
+                    name: path.replace('/', ''),
+                    path: path,
+                    count: '---' // El conteo de documentos no es trivial de obtener en el cliente
+                }));
+            setCollections(collectionData);
+          }
+        } catch (error) {
+          console.error("Error verifying super admin status:", error);
+          setIsSuperAdmin(false);
+        } finally {
+            setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   const handleTestConnection = () => {
     toast({
@@ -83,6 +120,23 @@ export default function DatabasePage() {
     });
     setDialogOpen(false);
   }
+
+  if (isLoading) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
+  }
+  
+  if (!isSuperAdmin) {
+     return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <p>No tienes permiso para ver esta página.</p>
+        </div>
+    );
+  }
+
 
   return (
     <div className="space-y-6">
@@ -118,8 +172,8 @@ export default function DatabasePage() {
             <ListTree className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">6</div>
-            <p className="text-xs text-muted-foreground">Total de colecciones</p>
+            <div className="text-xl font-bold">{collections.length}</div>
+            <p className="text-xs text-muted-foreground">Total de colecciones raíz</p>
           </CardContent>
         </Card>
         <Card className="bg-[#FFF9F6]">
@@ -128,7 +182,7 @@ export default function DatabasePage() {
             <FileText className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">184</div>
+            <div className="text-xl font-bold">---</div>
             <p className="text-xs text-muted-foreground">Total de documentos</p>
           </CardContent>
         </Card>
@@ -149,10 +203,10 @@ export default function DatabasePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {collectionsData.map((collection) => (
+              {collections.map((collection) => (
                 <TableRow key={collection.name}>
                   <TableCell className="font-medium">{collection.name}</TableCell>
-                  <TableCell>{collection.count.toLocaleString()}</TableCell>
+                  <TableCell>{collection.count}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
