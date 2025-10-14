@@ -325,16 +325,15 @@ export default function BackupPage() {
         </CardContent>
       </Card>
 
-      <Card className='bg-[#FFF9F6]'>
+      <Card className="bg-[#FFF9F6]">
         <CardHeader>
           <CardTitle>Almacenamiento</CardTitle>
-          <CardDescription>Descripción del almacenamiento</CardDescription>
+          <CardDescription>Información sobre el uso de la base de datos.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-4">
             <p className='text-sm'><span className='font-semibold'>Ubicación:</span> Cloud Firestore (Servicios de Google Cloud)</p>
             <p className='text-sm'><span className='font-semibold'>Capacidad:</span> Escalable</p>
-            <p className='text-sm'><span className='font-semibold'>Espacio utilizado:</span> 150 GB (30%)</p>
-            <Progress value={30} className="mt-4" />
+            <p className='text-sm text-muted-foreground'>El uso del espacio se gestiona y monitoriza a través de la consola de Google Cloud.</p>
         </CardContent>
       </Card>
 
