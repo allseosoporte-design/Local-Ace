@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -45,6 +46,8 @@ export default function AdminDashboardLayout({
       try {
         // Force refresh the token to get latest claims
         const tokenResult = await getIdTokenResult(user, true); 
+        
+        // ✅ CORRECTION: The claim is named "isSuperAdmin"
         if (tokenResult.claims.isSuperAdmin === true) {
             setIsSuperAdmin(true);
         } else {
