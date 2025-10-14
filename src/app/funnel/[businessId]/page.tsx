@@ -26,6 +26,7 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
 
   const formConfigRef = useMemoFirebase(() => {
     if (!firestore || !businessId) return null;
+    // ✅ CORREGIDO: Usar "landingPages" para coincidir con el editor
     return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
   }, [firestore, businessId]);
 
