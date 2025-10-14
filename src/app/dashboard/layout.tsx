@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useFirestore, useUser } from '@/firebase';
+import { useUser } from '@/firebase';
 import { DashboardNav } from "@/components/dashboard-nav";
 import { UserNav } from "@/components/user-nav";
 import { Loader2 } from "lucide-react";
-import { doc, getDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { LocalLeap } from '@/components/icons';
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu } from '@/components/ui/sidebar';
@@ -18,12 +17,11 @@ export default function DashboardLayout({
 }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const firestore = useFirestore();
   const pathname = usePathname();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (isUserLoading || !firestore) {
+    if (isUserLoading) {
       return; 
     }
 
@@ -31,34 +29,12 @@ export default function DashboardLayout({
       router.replace('/login');
       return;
     }
+    
+    // La lógica de admin se moverá al admin/layout.tsx
+    // Este layout ahora solo se preocupa de que haya un usuario logueado.
+    setIsReady(true);
 
-    const checkAdminAndRoute = async () => {
-      try {
-        const adminDocRef = doc(firestore, 'superAdmins', user.uid);
-        const adminDoc = await getDoc(adminDocRef);
-        const isSuperAdmin = adminDoc.exists();
-        
-        if (!isSuperAdmin && pathname.startsWith('/dashboard/admin')) {
-          // Si un no-administrador intenta acceder a una ruta de admin, redirigir al dashboard estándar.
-          router.replace('/dashboard');
-        } else {
-          // Si es un super admin (en cualquier ruta) o un usuario normal en una ruta no-admin, está en el lugar correcto.
-          setIsReady(true);
-        }
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        // En caso de error, por seguridad, si está en una ruta de admin, lo sacamos.
-        if (pathname.startsWith('/dashboard/admin')) {
-           router.replace('/dashboard');
-        } else {
-           setIsReady(true);
-        }
-      }
-    };
-
-    checkAdminAndRoute();
-
-  }, [isUserLoading, user, firestore, pathname, router]);
+  }, [isUserLoading, user, pathname, router]);
 
 
   if (!isReady) {
@@ -68,8 +44,8 @@ export default function DashboardLayout({
       </div>
     );
   }
-
-  // El layout específico de admin renderizará su propia estructura de sidebar.
+  
+  // El layout específico de admin renderizará su propia estructura.
   if (pathname.startsWith('/dashboard/admin')) {
     return <>{children}</>;
   }

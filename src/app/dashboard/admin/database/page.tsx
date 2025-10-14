@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,7 +34,6 @@ import {
   Download,
   Trash2,
   Eye,
-  Loader2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -48,8 +46,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useUser } from '@/firebase';
-import { getIdTokenResult } from 'firebase/auth';
 import backendConfig from '@/../docs/backend.json';
 
 
@@ -61,48 +57,22 @@ type CollectionInfo = {
 
 export default function DatabasePage() {
   const { toast } = useToast();
-  const { user } = useUser();
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [collectionToDelete, setCollectionToDelete] = useState('');
   const [collections, setCollections] = useState<CollectionInfo[]>([]);
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      if (user) {
-        try {
-          const tokenResult = await getIdTokenResult(user, true);
-          const isAdmin = tokenResult.claims.isSuperAdmin === true;
-          setIsSuperAdmin(isAdmin);
-          if (isAdmin) {
-            // Process backend.json to get collections
-            const firestoreConfig = backendConfig.firestore;
-            const collectionData: CollectionInfo[] = Object.keys(firestoreConfig)
-                .filter(path => !path.includes('{')) // Filter root level collections
-                .map(path => ({
-                    name: path.replace(/\//g, ''),
-                    path: path,
-                    count: '---' // Document count is not trivial to get on the client
-                }));
-            setCollections(collectionData);
-          }
-        } catch (error) {
-          console.error("Error verifying super admin status:", error);
-          setIsSuperAdmin(false);
-        } finally {
-            setIsLoading(false);
-        }
-      } else {
-        // If user object is null and still loading, wait. If not loading, then not logged in.
-        if (user === null) {
-            setIsLoading(false);
-            setIsSuperAdmin(false);
-        }
-      }
-    };
-    checkAdmin();
-  }, [user]);
+    // La lógica de permisos ahora está en el layout, por lo que el renderizado de esta página implica que el usuario ya es superadmin.
+    const firestoreConfig = backendConfig.firestore;
+    const collectionData: CollectionInfo[] = Object.keys(firestoreConfig)
+        .filter(path => !path.includes('{')) // Filter root level collections
+        .map(path => ({
+            name: path.replace(/\//g, ''),
+            path: path,
+            count: '---' // El conteo de documentos no es trivial de obtener en el cliente
+        }));
+    setCollections(collectionData);
+  }, []);
 
   const handleTestConnection = () => {
     toast({
@@ -124,33 +94,6 @@ export default function DatabasePage() {
     });
     setDialogOpen(false);
   }
-
-  if (isLoading) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-    );
-  }
-  
-  if (!isSuperAdmin) {
-     return (
-        <div className="flex h-screen w-full items-center justify-center p-8">
-            <Card className="text-center w-full max-w-md">
-              <CardHeader>
-                <CardTitle className="text-destructive">Acceso Denegado</CardTitle>
-                <CardDescription>No tienes permiso para ver esta página.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className='text-sm text-muted-foreground'>
-                    Esta sección es exclusiva para superadministradores. Si crees que esto es un error, por favor contacta al soporte técnico.
-                </p>
-              </CardContent>
-            </Card>
-        </div>
-    );
-  }
-
 
   return (
     <div className="space-y-6">

@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -36,7 +35,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Eye, MessageSquare, Loader2 } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
   collection,
   query,
@@ -44,10 +43,8 @@ import {
   orderBy,
   Timestamp,
 } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { getIdTokenResult } from 'firebase/auth';
 
 interface SupportTicket {
   id: string;
@@ -75,32 +72,13 @@ const statusMap = {
 
 export default function AdminSupportPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
-  const { toast } = useToast();
-
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState<'internal' | 'public'>('internal');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
 
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (user) {
-        try {
-          const tokenResult = await getIdTokenResult(user, true);
-          setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
-        } catch (error) {
-          console.error("Error fetching token claims:", error);
-          setIsSuperAdmin(false);
-        }
-      }
-    };
-    checkAdmin();
-  }, [user]);
-
   const ticketsQuery = useMemoFirebase(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (!firestore) return null;
     
     let q = collection(firestore, 'supportTickets');
     
@@ -118,7 +96,7 @@ export default function AdminSupportPage() {
 
     return query(q, ...constraints);
 
-  }, [firestore, isSuperAdmin, activeTab, statusFilter, priorityFilter]);
+  }, [firestore, activeTab, statusFilter, priorityFilter]);
 
   const { data: tickets, isLoading } = useCollection<SupportTicket>(ticketsQuery);
 
@@ -265,5 +243,3 @@ export default function AdminSupportPage() {
     </div>
   );
 }
-
-    

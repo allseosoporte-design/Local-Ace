@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AdminNav } from '@/components/admin-nav';
 import { UserNav } from '@/components/user-nav';
@@ -12,12 +14,67 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { LocalLeap } from '@/components/icons';
+import { useUser } from '@/firebase';
+import { getIdTokenResult } from 'firebase/auth';
+import { Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AdminDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (isUserLoading) return;
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+
+    const checkAdminStatus = async () => {
+      try {
+        const tokenResult = await getIdTokenResult(user, true); // Force refresh
+        setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+      } catch (error) {
+        console.error("Error verifying super admin status:", error);
+        setIsSuperAdmin(false);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [user, isUserLoading, router]);
+
+  if (isSuperAdmin === null) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="ml-2">Verificando permisos...</p>
+      </div>
+    );
+  }
+
+  if (isSuperAdmin === false) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center p-8 bg-muted/40">
+        <Card className="text-center w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-destructive">Acceso Denegado</CardTitle>
+            <CardDescription>No tienes permiso para acceder a esta sección.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className='text-sm text-muted-foreground'>
+              Esta área es exclusiva para superadministradores. Si crees que esto es un error, por favor contacta al soporte técnico.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">

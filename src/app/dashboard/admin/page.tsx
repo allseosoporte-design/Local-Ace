@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -37,11 +36,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { BusinessModal, BusinessFormData } from "@/components/business-modal";
 import { useToast } from "@/hooks/use-toast";
-import { getIdTokenResult } from "firebase/auth";
 
 type Business = {
   id: string;
@@ -53,36 +51,17 @@ type Business = {
 
 export default function AdminDashboardPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
   const { toast } = useToast();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [businessToDelete, setBusinessToDelete] = useState<Business | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (user) {
-        try {
-          const tokenResult = await getIdTokenResult(user, true); // Force refresh
-          const claims = tokenResult.claims;
-          if (claims.isSuperAdmin === true) {
-            setIsSuperAdmin(true);
-          }
-        } catch (error) {
-          console.error("Error fetching token claims:", error);
-        }
-      }
-    };
-    checkAdmin();
-  }, [user]);
 
   const businessesQuery = useMemoFirebase(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (!firestore) return null;
     return query(collection(firestore, "businesses"));
-  }, [firestore, isSuperAdmin]);
+  }, [firestore]);
 
   const { data: businesses, isLoading } = useCollection<Business>(businessesQuery);
 

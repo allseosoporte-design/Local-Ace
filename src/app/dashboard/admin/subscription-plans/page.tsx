@@ -1,14 +1,13 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { PlusCircle, BarChart, CheckCircle, Star } from 'lucide-react';
-import { collection, query, orderBy, where, doc, writeBatch, deleteDoc } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, doc, writeBatch, deleteDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { PlanModal } from '@/components/plan-modal';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { PlanCard } from '@/components/plan-card';
@@ -23,11 +22,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { getIdTokenResult } from 'firebase/auth';
 
 export default function SubscriptionPlansPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
   const { toast } = useToast();
   
   const [showInactive, setShowInactive] = useState(false);
@@ -35,30 +32,12 @@ export default function SubscriptionPlansPage() {
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [planToDelete, setPlanToDelete] = useState<SubscriptionPlan | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (user) {
-        try {
-          const tokenResult = await getIdTokenResult(user, true); // Force refresh
-          const claims = tokenResult.claims;
-          if (claims.isSuperAdmin === true) {
-            setIsSuperAdmin(true);
-          }
-        } catch (error) {
-          console.error("Error fetching token claims:", error);
-        }
-      }
-    };
-    checkAdmin();
-  }, [user]);
 
   // 1. Query simplificada para obtener todos los planes, como sugeriste.
   const plansQuery = useMemoFirebase(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (!firestore) return null;
     return collection(firestore, 'subscriptionPlans');
-  }, [firestore, isSuperAdmin]);
+  }, [firestore]);
 
   const { data: allPlans, isLoading } = useCollection<SubscriptionPlan>(plansQuery);
 

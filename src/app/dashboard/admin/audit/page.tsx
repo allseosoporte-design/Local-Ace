@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -30,7 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Loader2, Eye } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
   collection,
   query,
@@ -38,7 +37,6 @@ import {
   where,
   Timestamp,
 } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -48,7 +46,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { getIdTokenResult } from 'firebase/auth';
 
 interface AuditLog {
   id: string;
@@ -81,32 +78,13 @@ const entityMap: { [key: string]: string } = {
 
 export default function AuditPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [entityFilter, setEntityFilter] = useState('all');
   const [actionFilter, setActionFilter] = useState('all');
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (user) {
-        try {
-          const tokenResult = await getIdTokenResult(user, true);
-          if (tokenResult.claims.isSuperAdmin) {
-            setIsSuperAdmin(true);
-          }
-        } catch (error) {
-          console.error("Error verifying super admin status:", error);
-          setIsSuperAdmin(false);
-        }
-      }
-    };
-    checkAdminStatus();
-  }, [user]);
-
   const auditQuery = useMemoFirebase(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (!firestore) return null;
     let q = query(collection(firestore, 'globalAuditLogs'), orderBy('timestamp', 'desc'));
     
     const constraints = [];
@@ -122,7 +100,7 @@ export default function AuditPage() {
     }
     
     return q;
-  }, [firestore, isSuperAdmin, entityFilter, actionFilter]);
+  }, [firestore, entityFilter, actionFilter]);
 
   const { data: logs, isLoading } = useCollection<AuditLog>(auditQuery);
 
@@ -265,5 +243,3 @@ export default function AuditPage() {
     </div>
   );
 }
-
-    
