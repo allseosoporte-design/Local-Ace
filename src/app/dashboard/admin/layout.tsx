@@ -43,7 +43,8 @@ export default function AdminDashboardLayout({
     // User object is available, now we can safely check the custom claims
     const checkAdminStatus = async () => {
       try {
-        const tokenResult = await getIdTokenResult(user, true); // Force refresh the token to get latest claims
+        // Force refresh the token to get latest claims
+        const tokenResult = await getIdTokenResult(user, true); 
         if (tokenResult.claims.isSuperAdmin === true) {
             setIsSuperAdmin(true);
         } else {
