@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "./star-rating";
 import { CheckCircle, MessageSquare, Star, Loader2 } from "lucide-react";
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection } from "firebase/firestore";
 import type { FormConfigData } from "@/components/dashboard/landing/FormEditor";
 
 export default function ReviewFunnelPage({ params }: { params: { businessId: string } }) {
@@ -55,7 +55,7 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
         email,
         message,
         rating,
-        status: "pendiente",
+        status: "Pending",
         createdAt: serverTimestamp()
       });
       setStep(3);
