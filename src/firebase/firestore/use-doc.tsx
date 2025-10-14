@@ -8,7 +8,6 @@ import {
   FirestoreError,
   DocumentSnapshot,
 } from 'firebase/firestore';
-import { getAuth, User } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -72,17 +71,7 @@ export function useDoc<T = any>(
         setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
         setIsLoading(false);
       },
-      async (error: FirestoreError) => {
-        try {
-            const auth = getAuth();
-            const user = auth.currentUser as User;
-            if (user) {
-              await user.getIdToken(true); // `true` forces a refresh
-            }
-        } catch (authError) {
-            console.error("Failed to refresh auth token:", authError);
-        }
-
+      (error: FirestoreError) => {
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
