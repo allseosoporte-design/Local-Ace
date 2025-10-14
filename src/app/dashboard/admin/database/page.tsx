@@ -81,7 +81,7 @@ export default function DatabasePage() {
             const collectionData: CollectionInfo[] = Object.keys(firestoreConfig)
                 .filter(path => !path.includes('{')) // Filtrar colecciones de nivel raíz
                 .map(path => ({
-                    name: path.replace('/', ''),
+                    name: path.replace(/\//g, ''),
                     path: path,
                     count: '---' // El conteo de documentos no es trivial de obtener en el cliente
                 }));
@@ -94,6 +94,7 @@ export default function DatabasePage() {
             setIsLoading(false);
         }
       } else {
+        // if user object is null and not loading, means not logged in or no admin rights.
         setIsLoading(false);
       }
     };
@@ -131,8 +132,15 @@ export default function DatabasePage() {
   
   if (!isSuperAdmin) {
      return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <p>No tienes permiso para ver esta página.</p>
+        <div className="flex h-screen w-full items-center justify-center p-8">
+            <Card className="text-center">
+              <CardHeader>
+                <CardTitle className="text-destructive">Acceso Denegado</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>No tienes permiso para ver esta página.</p>
+              </CardContent>
+            </Card>
         </div>
     );
   }
