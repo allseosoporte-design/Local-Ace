@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { PlusCircle, BarChart, CheckCircle, Star } from 'lucide-react';
 import { collection, query, doc, writeBatch, deleteDoc } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { PlanModal } from '@/components/plan-modal';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { PlanCard } from '@/components/plan-card';
@@ -22,9 +22,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { getIdTokenResult } from 'firebase/auth';
 
 export default function SubscriptionPlansPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   
   const [showInactive, setShowInactive] = useState(false);
@@ -32,23 +34,31 @@ export default function SubscriptionPlansPage() {
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [planToDelete, setPlanToDelete] = useState<SubscriptionPlan | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-  // 1. Query simplificada para obtener todos los planes, como sugeriste.
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        const tokenResult = await getIdTokenResult(user, true);
+        setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+      }
+    };
+    checkAdmin();
+  }, [user]);
+
   const plansQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !isSuperAdmin) return null;
     return collection(firestore, 'subscriptionPlans');
-  }, [firestore]);
+  }, [firestore, isSuperAdmin]);
 
   const { data: allPlans, isLoading } = useCollection<SubscriptionPlan>(plansQuery);
 
-  // 2. Filtrado y ordenación en el lado del cliente con useMemo.
   const plans = useMemo(() => {
     if (!allPlans) return [];
     let filteredPlans = allPlans;
     if (!showInactive) {
       filteredPlans = filteredPlans.filter(p => p.isActive);
     }
-    // Ordenación segura, tratando `order` como opcional.
     return filteredPlans.sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [allPlans, showInactive]);
 

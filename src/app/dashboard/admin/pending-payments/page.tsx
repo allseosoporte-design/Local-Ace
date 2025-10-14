@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -34,6 +34,7 @@ import {
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { getIdTokenResult } from 'firebase/auth';
 
 interface PendingPayment {
   id: string;
@@ -50,15 +51,31 @@ export default function PendingPaymentsPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        try {
+          const tokenResult = await getIdTokenResult(user, true);
+          setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+        } catch (error) {
+          console.error("Error fetching token claims:", error);
+          setIsSuperAdmin(false);
+        }
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   const paymentsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !isSuperAdmin) return null;
     return query(
       collection(firestore, 'pendingPayments'),
       where('estadoPago', '==', 'pendiente'),
       orderBy('fechaSolicitud', 'desc')
     );
-  }, [firestore]);
+  }, [firestore, isSuperAdmin]);
 
   const { data: payments, isLoading, error } = useCollection<PendingPayment>(paymentsQuery);
 

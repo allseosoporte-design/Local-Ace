@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,10 +36,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { BusinessModal, BusinessFormData } from "@/components/business-modal";
 import { useToast } from "@/hooks/use-toast";
+import { getIdTokenResult } from "firebase/auth";
 
 type Business = {
   id: string;
@@ -51,17 +52,29 @@ type Business = {
 
 export default function AdminDashboardPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [businessToDelete, setBusinessToDelete] = useState<Business | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        const tokenResult = await getIdTokenResult(user, true);
+        setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   const businessesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !isSuperAdmin) return null;
     return query(collection(firestore, "businesses"));
-  }, [firestore]);
+  }, [firestore, isSuperAdmin]);
 
   const { data: businesses, isLoading } = useCollection<Business>(businessesQuery);
 
@@ -142,7 +155,8 @@ export default function AdminDashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={4} className="text-center">Cargando negocios...</TableCell></TableRow>}
+              {isLoading && <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></TableCell></TableRow>}
+              {!isLoading && businesses?.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No hay negocios registrados.</TableCell></TableRow>}
               {!isLoading && businesses?.map((business) => (
                 <TableRow key={business.id}>
                   <TableCell className="font-medium">{business.name}</TableCell>
