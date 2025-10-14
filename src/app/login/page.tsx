@@ -82,6 +82,7 @@ export default function LoginPage() {
             positiveFeedbackSubtitle: "Nos alegra que hayas tenido una gran experiencia. Ayuda a otros a descubrirnos compartiendo tu opinión en Google.",
             thankYouTitle: "¡Gracias!",
             thankYouSubtitle: "Tus comentarios son muy valiosos para nosotros.",
+            createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
 
