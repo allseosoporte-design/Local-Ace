@@ -25,17 +25,13 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
   const businessId = params.businessId;
 
   const formConfigRef = useMemoFirebase(() => {
-    // Only create the doc ref if firestore and businessId are available.
     if (!firestore || !businessId) return null;
-    // Corrected path to read from the top-level collection.
-    return doc(firestore, `landingPageConfig/${businessId}`);
+    return doc(firestore, `businesses/${businessId}/landingPageConfig`, 'form');
   }, [firestore, businessId]);
 
   const { data: formConfig, isLoading } = useDoc<FormConfigData>(formConfigRef);
 
   useEffect(() => {
-    // This effect handles the redirection for 5-star ratings.
-    // It now waits until data is loaded (`!isLoading`) and a valid `formConfig` is present.
     if (!isLoading && formConfig && step === 2 && rating === 5 && formConfig.redirectUrl) {
       window.location.href = formConfig.redirectUrl;
     }
@@ -57,7 +53,7 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
       await setDoc(feedbackRef, {
         name,
         email,
-        review: message, // Ensure the field name matches what the table expects ('review')
+        review: message,
         rating,
         status: "Pending",
         createdAt: serverTimestamp()
@@ -65,7 +61,6 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
       setStep(3);
     } catch (error) {
       console.error("Error submitting feedback:", error);
-      // Optionally, show an error toast to the user
     } finally {
       setIsSubmitting(false);
     }

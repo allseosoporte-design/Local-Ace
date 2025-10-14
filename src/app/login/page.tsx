@@ -14,8 +14,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
@@ -45,19 +45,37 @@ export default function LoginPage() {
     }
 
     try {
-      // 1. Iniciar sesión
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      // 2. Verificar si es superAdmin ANTES de redirigir
+      
       const adminDocRef = doc(firestore, 'superAdmins', user.uid);
       const adminDoc = await getDoc(adminDocRef);
-      
+
       if (adminDoc.exists()) {
-        // Es superAdmin → redirigir a panel admin
         router.push('/dashboard/admin');
       } else {
-        // Usuario normal → redirigir a dashboard estándar
+        // --- INICIO: LÓGICA CLAVE ---
+        // Al ser un usuario normal, asegurarse de que su documento de negocio exista.
+        const businessRef = doc(firestore, 'businesses', user.uid);
+        const businessDoc = await getDoc(businessRef);
+
+        if (!businessDoc.exists()) {
+          // Si el negocio no existe, lo crea con valores por defecto.
+          // Esto es crucial para que las reglas de seguridad funcionen.
+          await setDoc(businessRef, {
+            name: user.email, // Usa el email como nombre inicial
+            adminEmail: user.email,
+            status: "Active",
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          
+          if (!user.displayName) {
+             await updateProfile(user, { displayName: user.email });
+          }
+        }
+        // --- FIN: LÓGICA CLAVE ---
+        
         router.push('/dashboard');
       }
 
