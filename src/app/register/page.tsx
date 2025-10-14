@@ -50,8 +50,8 @@ export default function RegisterPage() {
     if (emailLower === 'allseosoporte@gmail.com') {
       try {
         // Step 1: Sign in the user to ensure they are authenticated
-        await signInWithEmailAndPassword(auth, email, password);
-        const user = auth.currentUser;
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
 
         if (!user) {
           throw new Error("No se pudo obtener el usuario después de iniciar sesión.");
@@ -65,8 +65,6 @@ export default function RegisterPage() {
         if (result.data.error) {
           throw new Error(result.data.error);
         }
-
-        console.log("Function result:", result.data);
 
         // Step 3: Ensure the superadmin doc exists
         const superAdminRef = doc(firestore, 'superAdmins', user.uid);
@@ -84,9 +82,9 @@ export default function RegisterPage() {
         }
         
         toast({
-          title: '¡Rol de SuperAdmin asignado!',
+          title: '¡Rol de SuperAdmin Asignado!',
           description: 'Cierra sesión y vuelve a iniciarla para que los cambios tomen efecto.',
-          duration: 7000,
+          duration: 9000,
         });
 
         // Sign out to force token refresh on next login
@@ -116,7 +114,8 @@ export default function RegisterPage() {
           description: 'Tu cuenta ha sido creada. Ahora puedes iniciar sesión.',
         });
         router.push('/login');
-      } catch (error: any) {
+      } catch (error: any)
+      {
         let errorMessage = 'Ocurrió un error durante el registro. Por favor, inténtalo de nuevo.';
         if (error.code === 'auth/email-already-in-use') {
           errorMessage = 'Este correo electrónico ya está en uso.';
@@ -141,8 +140,8 @@ export default function RegisterPage() {
           <Link href="/" className="flex justify-center items-center">
             <LocalLeap className="w-12 h-12 mx-auto text-primary" />
           </Link>
-          <CardTitle className="text-2xl font-bold mt-4">Crear o Asignar Rol</CardTitle>
-          <CardDescription>Regístrate o inicia sesión para asignar el rol de SuperAdmin.</CardDescription>
+          <CardTitle className="text-2xl font-bold mt-4">Crear Cuenta o Asignar Rol</CardTitle>
+          <CardDescription>Usa tu email de admin para auto-asignarte el rol de SuperAdmin.</CardDescription>
         </CardHeader>
         <form onSubmit={handleRegisterOrAssignRole}>
           <CardContent className="space-y-4">
