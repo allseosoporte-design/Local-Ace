@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -59,9 +59,10 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
+import { getIdTokenResult } from 'firebase/auth';
 
 // --- Types ---
 interface ReminderRule {
@@ -104,27 +105,44 @@ const templates: ReminderTemplate[] = [
 const history: ReminderLog[] = [
     { id: '1', businessName: 'Café El Sol', ruleName: 'Aviso 7 días antes', sentAt: Timestamp.fromDate(new Date('2024-07-20T10:00:00')), status: 'sent' },
     { id: '2', businessName: 'Burger Hub', ruleName: 'Aviso de pago vencido', sentAt: Timestamp.fromDate(new Date('2024-07-19T14:30:00')), status: 'opened' },
-    { id: '3', businessName: 'Pizzería La Nostra', ruleName: 'Aviso 7 días antes', sentAt: Timestamp.fromDate(new Date('2024-07-18T09:00:00')), status: 'failed' },
+    { id: '3', name: 'Pizzería La Nostra', ruleName: 'Último aviso', sentAt: Timestamp.fromDate(new Date('2024-07-18T09:00:00')), status: 'failed' },
 ];
 
 
 export default function RemindersPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        try {
+          const tokenResult = await getIdTokenResult(user, true);
+          setIsSuperAdmin(tokenResult.claims.isSuperAdmin === true);
+        } catch (error) {
+          console.error("Error fetching token claims:", error);
+          setIsSuperAdmin(false);
+        }
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   const rulesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !isSuperAdmin) return null;
     return query(collection(firestore, 'reminderRules'), orderBy('name'));
-  }, [firestore]);
+  }, [firestore, isSuperAdmin]);
 
   const templatesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !isSuperAdmin) return null;
     return query(collection(firestore, 'reminderTemplates'), orderBy('name'));
-  }, [firestore]);
+  }, [firestore, isSuperAdmin]);
 
   const logsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !isSuperAdmin) return null;
     return query(collection(firestore, 'reminderLogs'), orderBy('sentAt', 'desc'));
-  }, [firestore]);
+  }, [firestore, isSuperAdmin]);
 
 
   const { data: rulesData, isLoading: isLoadingRules } = useCollection<ReminderRule>(rulesQuery);
@@ -410,3 +428,5 @@ export default function RemindersPage() {
     </div>
   );
 }
+
+    
