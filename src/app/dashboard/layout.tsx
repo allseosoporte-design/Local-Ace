@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { DashboardNav } from "@/components/dashboard-nav";
 import { UserNav } from "@/components/user-nav";
 import { Loader2 } from "lucide-react";
 import Link from 'next/link';
 import { LocalLeap } from '@/components/icons';
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu } from '@/components/ui/sidebar';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function DashboardLayout({
   children,
@@ -16,6 +17,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
   const [isReady, setIsReady] = useState(false);
@@ -29,12 +31,30 @@ export default function DashboardLayout({
       router.replace('/login');
       return;
     }
-    
-    // La lógica de admin se moverá al admin/layout.tsx
-    // Este layout ahora solo se preocupa de que haya un usuario logueado.
-    setIsReady(true);
 
-  }, [isUserLoading, user, pathname, router]);
+    // CRITICAL: Ensure the business document exists for the logged-in user.
+    const ensureBusinessDocExists = async () => {
+      if (user && firestore) {
+        const businessRef = doc(firestore, "businesses", user.uid);
+        const businessDoc = await getDoc(businessRef);
+        if (!businessDoc.exists()) {
+          // If the business document doesn't exist, create it.
+          // This is crucial for security rules that check ownership.
+          await setDoc(businessRef, {
+            name: user.displayName || user.email,
+            adminEmail: user.email,
+            status: "Active",
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+      setIsReady(true);
+    };
+
+    ensureBusinessDocExists();
+
+  }, [isUserLoading, user, firestore, router]);
 
 
   if (!isReady) {
