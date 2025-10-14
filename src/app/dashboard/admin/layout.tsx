@@ -16,8 +16,10 @@ import {
 import { LocalLeap } from '@/components/icons';
 import { useUser } from '@/firebase';
 import { getIdTokenResult } from 'firebase/auth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Terminal } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDashboardLayout({
   children,
@@ -27,56 +29,50 @@ export default function AdminDashboardLayout({
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // console.log('🔄 useEffect ejecutado - isUserLoading:', isUserLoading, 'user:', !!user);
-
-    // Si aún está cargando, no hacer nada
     if (isUserLoading) {
-      // console.log('⏳ Aún cargando usuario...');
       return;
     }
-
-    // Si terminó de cargar y no hay usuario, redirigir
+    
     if (!user) {
-      // console.log('❌ No hay usuario después de cargar, redirigiendo a login');
       router.replace('/login');
       return;
     }
 
-    // Usuario disponible, verificar permisos
-    // console.log('👤 Usuario disponible, verificando claims...');
-    
     const checkAdminStatus = async () => {
       try {
-        // Pequeña pausa para asegurar que Firebase esté listo
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        const tokenResult = await getIdTokenResult(user, true);
-        
-        // console.log('📋 Token obtenido');
-        // console.log('🔍 Todos los claims:', JSON.stringify(tokenResult.claims, null, 2));
-        // console.log('🔍 isSuperAdmin específico:', tokenResult.claims.isSuperAdmin);
+        const tokenResult = await getIdTokenResult(user, true); // Force refresh
         
         if (tokenResult.claims.isSuperAdmin === true) {
-          // console.log('✅ ES SUPERADMIN - Mostrando panel');
           setIsSuperAdmin(true);
         } else {
-          // console.log('❌ NO ES SUPERADMIN - Bloqueando acceso');
           setIsSuperAdmin(false);
         }
       } catch (error) {
-        console.error('❌ Error verificando admin:', error);
+        console.error("Error verificando super admin:", error);
         setIsSuperAdmin(false);
       }
     };
-
+    
     checkAdminStatus();
   }, [user, isUserLoading, router]);
 
+  const handleCopyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copiado al portapapeles",
+      description: "El comando está listo para ser pegado en la terminal.",
+    });
+  };
+
+  const claimCommand = `firebase functions:shell --project ${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tu-project-id'} --region us-central1
+// Una vez dentro del shell, ejecuta:
+addSuperAdminRole({email: "${user?.email}"})`;
+
+
   if (isSuperAdmin === null) {
-    // While we are verifying the token, show a loading state.
-    // This is the key to preventing the "Access Denied" flash.
     return (
       <div className="flex h-screen w-full items-center justify-center bg-muted/40">
         <div className='flex items-center gap-2'>
@@ -88,17 +84,31 @@ export default function AdminDashboardLayout({
   }
 
   if (isSuperAdmin === false) {
-    // Once verification is complete and the user is not a super admin, show access denied.
     return (
-      <div className="flex h-screen w-full items-center justify-center p-8 bg-muted/40">
-        <Card className="text-center w-full max-w-md">
+      <div className="flex h-screen w-full items-center justify-center p-8 bg-blue-50">
+        <Card className="text-center w-full max-w-2xl shadow-lg border-yellow-500 border-2">
           <CardHeader>
-            <CardTitle className="text-destructive">Acceso Denegado</CardTitle>
-            <CardDescription>No tienes permiso para acceder a esta sección.</CardDescription>
+            <CardTitle className="text-2xl text-yellow-600 flex items-center justify-center gap-2">
+              <Terminal className="h-7 w-7" />
+              Diagnóstico de Permisos
+            </CardTitle>
+            <CardDescription className="pt-2">
+              El usuario <span className="font-bold text-primary">{user?.email}</span> ha sido autenticado, pero no tiene el rol de Super Administrador.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className='text-sm text-muted-foreground'>
-              Esta área es exclusiva para superadministradores. Si crees que esto es un error, por favor contacta al soporte técnico.
+              Para resolver esto, el `custom claim` <code className="bg-muted px-1 py-0.5 rounded-sm font-mono text-xs">isSuperAdmin: true</code> debe ser asignado a tu usuario en Firebase.
+            </p>
+            <div className="bg-gray-900 text-left text-white p-4 rounded-md font-mono text-sm overflow-x-auto">
+              <p className="text-gray-400">// Paso 1: Ejecuta este comando en tu terminal local (con Firebase CLI instalado)</p>
+              <pre className="mt-2 whitespace-pre-wrap">{`firebase functions:shell`}</pre>
+              <p className="text-gray-400 mt-4">// Paso 2: Una vez dentro del shell de functions, pega y ejecuta esto:</p>
+              <pre className="mt-2 whitespace-pre-wrap">{`addSuperAdminRole({email: "${user?.email}"})`}</pre>
+            </div>
+             <Button onClick={() => handleCopyToClipboard(`addSuperAdminRole({email: "${user?.email}"})`)}>Copiar Comando Interno</Button>
+            <p className="text-xs text-muted-foreground pt-4">
+              Después de ejecutar el comando, **cierra sesión y vuelve a iniciar sesión** para que los cambios tomen efecto.
             </p>
           </CardContent>
         </Card>
@@ -106,7 +116,6 @@ export default function AdminDashboardLayout({
     );
   }
 
-  // If we reach here, the user is a confirmed super admin. Render the layout.
   return (
     <SidebarProvider>
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">

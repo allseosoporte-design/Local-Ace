@@ -5,10 +5,12 @@ admin.initializeApp();
 
 exports.addSuperAdminRole = functions.https.onCall(async (data, context) => {
   // Check if request is made by an authenticated user.
-  // We are temporarily commenting this out to allow an existing user to gain the claim.
-  // if (!context.auth) {
-  //    return { error: 'Authentication required to assign super admin role.' };
-  // }
+  // This is a security check to ensure only authenticated users can trigger this.
+  // In a real production app, you'd want to lock this down further,
+  // e.g., only callable by other admins.
+  if (!context.auth) {
+     return { error: 'Authentication required to assign super admin role.' };
+  }
   
   // Get user and add custom claim
   try {
