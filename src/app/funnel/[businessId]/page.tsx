@@ -33,12 +33,11 @@ export default function ReviewFunnelPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const firestore = useFirestore();
-  const businessId = params.businessId;
-
+  
   const formConfigRef = useMemoFirebase(() => {
-    if (!firestore || !businessId) return null;
-    return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
-  }, [firestore, businessId]);
+    if (!firestore || !params.businessId) return null;
+    return doc(firestore, `businesses/${params.businessId}/landingPages`, 'form');
+  }, [firestore, params.businessId]);
 
   const { data: formConfig, isLoading } = useDoc<FormConfigData>(formConfigRef);
 
@@ -61,12 +60,11 @@ export default function ReviewFunnelPage({
 
   const handleSubmitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore || !businessId) return;
+    if (!firestore || !params.businessId) return;
 
     setIsSubmitting(true);
     try {
-      // Corrected path: This now writes to a subcollection within the specific business.
-      const feedbackColRef = collection(firestore, `businesses/${businessId}/privateFeedback`);
+      const feedbackColRef = collection(firestore, `businesses/${params.businessId}/privateFeedback`);
       await addDoc(feedbackColRef, {
         name,
         email,
