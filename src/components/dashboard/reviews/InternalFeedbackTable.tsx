@@ -19,10 +19,12 @@ export function InternalFeedbackTable() {
             return null;
         }
 
-        const feedbackCol = collection(firestore, 'privateFeedback');
-        
-        // Standard user: only fetch feedback for their own business.
-        return query(feedbackCol, where('businessId', '==', user.uid), orderBy('createdAt', 'desc'));
+        // The query now points to the subcollection within the business document.
+        // This is more secure and aligns with better data modeling practices.
+        return query(
+          collection(firestore, `businesses/${user.uid}/privateFeedback`),
+          orderBy('createdAt', 'desc')
+        );
 
     }, [firestore, user, isAuthLoading]);
 

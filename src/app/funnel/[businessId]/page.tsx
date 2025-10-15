@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { StarRating } from './star-rating';
 import { CheckCircle, MessageSquare, Star, Loader2 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 
 export default function ReviewFunnelPage({
@@ -65,9 +65,9 @@ export default function ReviewFunnelPage({
 
     setIsSubmitting(true);
     try {
-      const feedbackRef = doc(collection(firestore, `privateFeedback`));
-      await setDoc(feedbackRef, {
-        businessId: businessId,
+      // Corrected path: This now writes to a subcollection within the specific business.
+      const feedbackColRef = collection(firestore, `businesses/${businessId}/privateFeedback`);
+      await addDoc(feedbackColRef, {
         name,
         email,
         review: message,
