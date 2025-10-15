@@ -18,6 +18,7 @@ import { CheckCircle, MessageSquare, Star, Loader2 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
+import { use } from 'react';
 
 export default function ReviewFunnelPage({
   params,
