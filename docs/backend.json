@@ -14,6 +14,10 @@
           "type": "string",
           "description": "The name of the business."
         },
+        "adminEmail": {
+          "type": "string",
+          "description": "The email of the business administrator."
+        },
         "address": {
           "type": "string",
           "description": "The physical address of the business."
