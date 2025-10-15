@@ -19,8 +19,7 @@ export function InternalFeedbackTable() {
             return null;
         }
 
-        // The query now points to the subcollection within the business document.
-        // This is more secure and aligns with better data modeling practices.
+        // This query now looks at a subcollection under the specific business.
         return query(
           collection(firestore, `businesses/${user.uid}/privateFeedback`),
           orderBy('createdAt', 'desc')
