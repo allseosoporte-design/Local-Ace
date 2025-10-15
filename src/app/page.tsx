@@ -8,13 +8,16 @@ import { EditorLandingPreview, type LandingPageData } from '@/components/editor-
 import { Loader2 } from 'lucide-react';
 import { HomeNav } from '@/components/home-nav';
 
+// Se asume un ID de negocio estático para la página pública principal.
+const PUBLIC_BUSINESS_ID = 'allseosoporte';
+
 const defaultData: LandingPageData = {
   title: "Optimiza tu Presencia en Google My Business",
   subtitle: "Local Leap te ayuda a gestionar tu reputación online, interactuar con clientes y mejorar tu ranking local.",
   content: `Descubre la revolución para tu NEGOCIO. Con nuestro menú digital interactivo, tus clientes explorarán tus platos con fotos de alta calidad y descripciones detalladas.`,
   heroImageUrl: "https://picsum.photos/seed/websapmax/1200/800",
   ctaText: "Deja tu Reseña",
-  ctaUrl: "", // Será actualizado dinámicamente
+  ctaUrl: `/funnel/${PUBLIC_BUSINESS_ID}`, // URL correcta desde el inicio
   backgroundColor: "#FFFFFF",
   textColor: "#000000",
   buttonColor: "#FF4500",
@@ -30,10 +33,6 @@ const defaultData: LandingPageData = {
 };
 
 
-// Se asume un ID de negocio estático para la página pública principal.
-// En un escenario real multi-tenant, esto vendría de un subdominio o similar.
-const PUBLIC_BUSINESS_ID = 'allseosoporte';
-
 export default function Home() {
   const [pageData, setPageData] = useState<LandingPageData>(defaultData);
   const firestore = useFirestore();
@@ -43,23 +42,15 @@ export default function Home() {
     return doc(firestore, `businesses/${PUBLIC_BUSINESS_ID}/landingPages`, 'hero');
   }, [firestore]);
 
-  
   const { data: heroData, isLoading: isHeroLoading } = useDoc<LandingPageData>(heroConfigRef);
   
   useEffect(() => {
     if (heroData) {
-      // Combina los datos de Firestore con los datos por defecto
-      // y establece la URL del CTA dinámicamente.
+      // Combina los datos de Firestore, pero mantiene la ctaUrl correcta
       setPageData(prev => ({ 
         ...prev, 
         ...heroData,
-        ctaUrl: `/funnel/${PUBLIC_BUSINESS_ID}` // Redirige siempre al embudo
-      }));
-    } else {
-      // Si no hay datos, usa los por defecto y establece la URL del CTA
-      setPageData(prev => ({
-        ...prev,
-        ctaUrl: `/funnel/${PUBLIC_BUSINESS_ID}`
+        ctaUrl: `/funnel/${PUBLIC_BUSINESS_ID}` 
       }));
     }
   }, [heroData]);
