@@ -67,7 +67,8 @@ export default function AdminDashboardPage() {
     const checkAdmin = async () => {
       if (user) {
         try {
-          const tokenResult = await getIdTokenResult(user, true); // Force refresh
+          // Forzar la actualización del token para obtener los claims más recientes
+          const tokenResult = await getIdTokenResult(user, true);
           const claims = tokenResult.claims;
           if (claims.isSuperAdmin === true) {
             setIsSuperAdmin(true);
@@ -86,6 +87,7 @@ export default function AdminDashboardPage() {
   }, [user, isUserLoading]);
 
   const businessesQuery = useMemoFirebase(() => {
+    // Retrasar la consulta hasta que se confirme que el usuario es superadmin
     if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return query(collection(firestore, "businesses"));
   }, [firestore, isSuperAdmin, isCheckingAdmin]);
