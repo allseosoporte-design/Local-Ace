@@ -1,37 +1,29 @@
 /**
- * @fileoverview Firestore Security Rules for the Local Leap SaaS platform.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict ownership model for businesses and their associated data.
+ * Data related to a business is secured to only be accessible by the authenticated user who owns the business.
+ * Public read access is granted to specific collections like `Subscriptions` and `LandingPages`, while write access remains restricted to authorized users.
  *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for business-related data,
- * while also allowing public read access to certain collections like Subscriptions and Landing Pages.
+ * @dataStructure
+ * - /subscriptions/{subscriptionId}: Publicly readable subscription data.
+ * - /businesses/{businessId}: Business data, accessible only by the business owner.
+ * - /businesses/{businessId}/landingPages/{landingPageId}: Landing pages associated with a business, publicly readable but only writable by the business owner.
+ * - /businesses/{businessId}/privateFeedback/{feedbackId}: Private feedback associated with a business, accessible and updatable only by the business owner, but creatable by anyone.
+ * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}: Google My Business profile data, accessible only by the business owner.
+ * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}: Reviews for a Google My Business profile, accessible only by the business owner.
+ * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}: Automated posts for a Google My Business profile, accessible only by the business owner.
+ * - /internalFeedback/{internalFeedbackId}: Internal feedback data, publicly readable and writable by any signed-in user.
  *
- * Data Structure:
- * - /businesses/{businessId}: Root collection for business data, owned by the user with matching UID.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}: Stores profiles, linked to businesses via the businessId field.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}: Subcollection for reviews, accessible to the business owner.
- * - /internalFeedback/{internalFeedbackId}: Stores internal feedback, publicly writable.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}: Subcollection for automated posts, accessible to the business owner.
- * - /businesses/{businessId}/landingPages/{landingPageId}: Subcollection for landing pages, publicly readable but owner-writable.
- * - /subscriptions/{subscriptionId}: Stores subscription plan information, publicly readable.
- *
- * Key Security Decisions:
- * - User listing is disallowed.
- * - Public read access is granted to the /subscriptions and /businesses/{businessId}/landingPages collections.
- * - The rules enforce ownership for all write operations on business-related data.
- * - Reviews of a GMB profile are accessible only to the business that owns the GMB profile.
- *
- * Denormalization for Authorization:
- * - The `businessId` is denormalized into the `GoogleMyBusinessProfile` document to allow
- *   authorization checks without additional `get()` calls.
- *
- * Structural Segregation:
- * - Internal feedback is stored in a separate root collection (/internalFeedback) to allow public write access
- *   without compromising the security of business-owned data.
+ * @keySecurityDecisions
+ * - Strict ownership enforced for business data and associated subcollections.
+ * - Public read access granted to Subscriptions and Landing Pages for wider accessibility.
+ * - Public write access (create) for Internal Feedback, only for authenticated users.
+ * - Listing of documents is generally restricted to the owner, except for public collections.
+ * - No user listing is allowed.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -45,11 +37,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rules for the /subscriptions collection.  Allows public read access.
+     * @description Allows public read access to subscription data. Write access is denied.
      * @path /subscriptions/{subscriptionId}
-     * @allow (get, list) Any user can read subscription information.
-     * @deny (create, update, delete) No user can create, update, or delete subscriptions.
-     * @principle Grants public read access to subscription data.
+     * @allow (get, list) - Any user can read subscription data.
+     * @deny (create, update, delete) - No user can create, update, or delete subscription data.
+     * @principle Allows public read access for subscription information.
      */
     match /subscriptions/{subscriptionId} {
       allow get, list: if true;
@@ -59,11 +51,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rules for the /businesses collection. Enforces owner-only access.
+     * @description Enforces owner-only access for businesses. Only the authenticated user with a matching businessId can read, create, update, or delete business data.
      * @path /businesses/{businessId}
-     * @allow (get, list) The user with the matching UID can read the business document.
-     * @allow (create) The user with the matching UID can create the business document.
-     * @deny (update, delete) Only the owner can update or delete the business document.
+     * @allow (get, list, create) - Authenticated user with matching businessId can read and create.
+     * @allow (update, delete) - Authenticated user with matching businessId can update and delete if the document exists.
+     * @deny (get, list, create, update, delete) - Any other user cannot perform these operations.
      * @principle Enforces document ownership for writes.
      */
     match /businesses/{businessId} {
@@ -73,12 +65,12 @@ service cloud.firestore {
       allow delete: if isExistingOwner(businessId);
 
       /**
-       * @description Rules for the /businesses/{businessId}/landingPages collection. Allows public read, owner write.
+       * @description Allows public read access to landing pages associated with a business. Only the business owner can create, update, or delete landing pages.
        * @path /businesses/{businessId}/landingPages/{landingPageId}
-       * @allow (get, list) Any user can read landing page information.
-       * @allow (create, update, delete) Only the owner can create, update, or delete landing pages.
-       * @deny (create) Request must have valid data.
-       * @principle Grants public read access to landing pages, enforces ownership for writes.
+       * @allow (get, list) - Any user can read landing page data.
+       * @allow (create, update, delete) - Authenticated user with matching businessId can create, update, and delete landing pages.
+       * @deny (create, update, delete) - Any other user cannot perform these operations.
+       * @principle Allows public read access while enforcing document ownership for writes.
        */
       match /landingPages/{landingPageId} {
         allow get, list: if true;
@@ -86,15 +78,30 @@ service cloud.firestore {
         allow update: if isOwner(businessId);
         allow delete: if isOwner(businessId);
       }
+
+      /**
+       * @description Allows public creation of private feedback associated with a business. Only the business owner can read, update, or delete the feedback.
+       * @path /businesses/{businessId}/privateFeedback/{feedbackId}
+       * @allow (get, list, update, delete) - Authenticated user with matching businessId can read, update, and delete private feedback.
+       * @allow (create) - Any user can create private feedback.
+       * @deny (get, list, update, delete) - Any other user cannot perform these operations.
+       * @principle Allows public submission of feedback, but restricts management to the business owner.
+       */
+      match /privateFeedback/{feedbackId} {
+        allow get, list: if isOwner(businessId);
+        allow create: if true;
+        allow update: if isOwner(businessId);
+        allow delete: if isOwner(businessId);
+      }
     }
 
     /**
-     * @description Rules for the /googleMyBusinessProfiles collection. Enforces owner-only access based on the businessId field.
+     * @description Enforces owner-only access for Google My Business profiles. The authenticated user's UID must match the businessId stored in the document.
      * @path /googleMyBusinessProfiles/{googleMyBusinessProfileId}
-     * @allow (get, list) The user with the matching UID can read the profile if they own the business.
-     * @allow (create) The user with the matching UID can create the profile if they own the business. The businessId in the request data must match the user's UID.
-     * @deny (update, delete) Only the owner can update or delete the profile, and the businessId cannot be changed.
-     * @principle Enforces document ownership and validates relational integrity.
+     * @allow (get, list, update, delete) - Authenticated user with matching businessId in the document can perform these operations if the document exists.
+     * @allow (create) - Authenticated user's UID must match the businessId in the request data.
+     * @deny (get, list, create, update, delete) - Any other user cannot perform these operations.
+     * @principle Enforces document ownership based on businessId.
      */
     match /googleMyBusinessProfiles/{googleMyBusinessProfileId} {
       allow get, list: if request.auth.uid == resource.data.businessId;
@@ -103,12 +110,12 @@ service cloud.firestore {
       allow delete: if request.auth.uid == resource.data.businessId && resource != null;
 
       /**
-       * @description Rules for the /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews collection. Enforces owner-only access based on the businessId field in the parent document.
+       * @description Enforces owner-only access for reviews associated with a Google My Business profile. The authenticated user's UID must match the businessId of the parent profile.
        * @path /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}
-       * @allow (get, list) The user with the matching UID can read the review if they own the business associated with the profile.
-       * @allow (create) The user with the matching UID can create the review if they own the business associated with the profile.
-       * @deny (update, delete) Only the owner can update or delete the review.
-       * @principle Enforces document ownership for writes.
+       * @allow (get, list, update, delete) - Authenticated user with matching businessId in the parent document can perform these operations if the document exists.
+       * @allow (create) - Authenticated user's UID must match the businessId of the parent GoogleMyBusinessProfile.
+       * @deny (get, list, create, update, delete) - Any other user cannot perform these operations.
+       * @principle Enforces ownership based on businessId in the parent document.
        */
       match /reviews/{reviewId} {
         allow get, list: if get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId == request.auth.uid;
@@ -118,12 +125,12 @@ service cloud.firestore {
       }
 
       /**
-       * @description Rules for the /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts collection. Enforces owner-only access based on the businessId field in the parent document.
+       * @description Enforces owner-only access for automated posts associated with a Google My Business profile. The authenticated user's UID must match the businessId of the parent profile.
        * @path /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}
-       * @allow (get, list) The user with the matching UID can read the post if they own the business associated with the profile.
-       * @allow (create) The user with the matching UID can create the post if they own the business associated with the profile.
-       * @deny (update, delete) Only the owner can update or delete the post.
-       * @principle Enforces document ownership for writes.
+       * @allow (get, list, update, delete) - Authenticated user with matching businessId in the parent document can perform these operations if the document exists.
+       * @allow (create) - Authenticated user's UID must match the businessId of the parent GoogleMyBusinessProfile.
+       * @deny (get, list, create, update, delete) - Any other user cannot perform these operations.
+       * @principle Enforces ownership based on businessId in the parent document.
        */
       match /automatedPosts/{automatedPostId} {
         allow get, list: if get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId == request.auth.uid;
@@ -134,12 +141,12 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rules for the /internalFeedback collection.  Allows public write access for collecting feedback.
+     * @description Allows public read access and signed-in user write access (create) to internal feedback data. Update and delete operations are denied.
      * @path /internalFeedback/{internalFeedbackId}
-     * @allow (get, list) Any user can read internal feedback.
-     * @allow (create) Any signed-in user can create internal feedback.
-     * @deny (update, delete) No user can update or delete internal feedback.
-     * @principle Grants public write access for collecting feedback.
+     * @allow (get, list) - Any user can read internal feedback data.
+     * @allow (create) - Any signed-in user can create internal feedback.
+     * @deny (update, delete) - No user can update or delete internal feedback data.
+     * @principle Allows public read access and signed-in user submission of internal feedback.
      */
     match /internalFeedback/{internalFeedbackId} {
       allow get, list: if true;
