@@ -15,6 +15,8 @@ import { useState } from "react";
 import { generateReviewResponse } from "@/ai/flows/generate-review-response";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Timestamp } from "firebase/firestore";
+import { format } from "date-fns";
 
 // This type is manually created for demonstration.
 // In a real app, you would generate this from your database schema.
@@ -24,7 +26,8 @@ export type Review = {
   email: string;
   rating: number;
   review: string;
-  date: string;
+  date?: string; // Kept for public reviews
+  createdAt?: Timestamp; // For internal feedback
   status?: "Pending" | "Responded";
 };
 
@@ -175,8 +178,15 @@ export const feedbackColumns = [
     ),
   },
   {
-    accessorKey: "date",
+    accessorKey: "createdAt",
     header: "Fecha",
+    cell: ({ row }: { row: { original: Review } }) => {
+      const { createdAt } = row.original;
+      if (createdAt && createdAt.toDate) {
+        return format(createdAt.toDate(), 'dd/MM/yyyy HH:mm');
+      }
+      return 'N/A';
+    },
   },
   {
     accessorKey: "status",
@@ -189,7 +199,7 @@ export const feedbackColumns = [
       }
       return (
         <Badge variant={status === "Pending" ? "destructive" : "secondary"}>
-          {status ? statusMap[status] : ""}
+          {status ? statusMap[status] : "Desconocido"}
         </Badge>
       );
     },
