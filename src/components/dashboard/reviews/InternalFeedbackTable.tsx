@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -18,7 +19,7 @@ export function InternalFeedbackTable() {
             return null;
         }
 
-        // Temporarily remove orderBy to diagnose potential indexing issue
+        // Temporarily without orderBy to test
         return query(
           collection(firestore, `businesses/${user.uid}/privateFeedback`)
         );
@@ -27,15 +28,14 @@ export function InternalFeedbackTable() {
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
     
-    // The overall loading state depends on auth being ready AND the query running.
     const isLoading = isAuthLoading || (feedbackQuery !== null && isLoadingFeedback);
-    
-    // Sort data on the client-side as a temporary solution
+
+    // Sort data on the client-side while the index is being created
     const sortedData = useMemo(() => {
         if (!feedbackData) return [];
         return [...feedbackData].sort((a, b) => {
-            const dateA = a.createdAt?.toDate?.()?.getTime() || 0;
-            const dateB = b.createdAt?.toDate?.()?.getTime() || 0;
+            const dateA = a.createdAt?.toDate?.().getTime() || 0;
+            const dateB = b.createdAt?.toDate?.().getTime() || 0;
             return dateB - dateA;
         });
     }, [feedbackData]);
