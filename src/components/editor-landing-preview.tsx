@@ -173,20 +173,22 @@ export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewP
 
 
         {/* Call to Action Section */}
-        <section className="p-8 md:p-12 text-center">
-          <Link href={data.ctaUrl}>
-            <Button
-              size="lg"
-              style={{
-                backgroundColor: data.buttonColor,
-                color: '#FFFFFF'
-              }}
-              className="shadow-md hover:opacity-90 transition-opacity"
-            >
-              {data.ctaText}
-            </Button>
-          </Link>
-        </section>
+        {data.ctaText && data.ctaUrl && (
+          <section className="p-8 md:p-12 text-center">
+            <Link href={data.ctaUrl}>
+              <Button
+                size="lg"
+                style={{
+                  backgroundColor: data.buttonColor,
+                  color: '#FFFFFF'
+                }}
+                className="shadow-md hover:opacity-90 transition-opacity"
+              >
+                {data.ctaText}
+              </Button>
+            </Link>
+          </section>
+        )}
 
         {formConfig && (
             <section className="p-8 md:p-12 bg-muted/30">
