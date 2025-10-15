@@ -48,7 +48,7 @@ export default function Home() {
     if (heroData) {
       // Combina los datos de Firestore, pero mantiene la ctaUrl correcta
       setPageData(prev => ({ 
-        ...prev, 
+        ...defaultData, 
         ...heroData,
         ctaUrl: `/funnel/${PUBLIC_BUSINESS_ID}` 
       }));
