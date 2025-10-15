@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
