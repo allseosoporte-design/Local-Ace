@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
@@ -66,11 +67,13 @@ export default function RegisterPage() {
           throw new Error(result.data.error);
         }
 
+        const batch = writeBatch(firestore);
+
         // Step 3: Ensure the superadmin doc exists
         const superAdminRef = doc(firestore, 'superAdmins', user.uid);
         const adminDoc = await getDoc(superAdminRef);
         if (!adminDoc.exists()) {
-            await setDoc(superAdminRef, {
+            batch.set(superAdminRef, {
                 id: user.uid,
                 email: user.email,
                 firstName: 'Alexander',
@@ -80,6 +83,18 @@ export default function RegisterPage() {
             });
             await updateProfile(user, { displayName: 'Alexander Jerez Fernandez' });
         }
+        
+        // Step 4: Ensure the user mapping doc exists (Opción B)
+        const userProfileRef = doc(firestore, 'users', user.uid);
+        const userProfileDoc = await getDoc(userProfileRef);
+        if (!userProfileDoc.exists()) {
+          batch.set(userProfileRef, {
+            businessId: 'allseosoporte',
+            email: user.email,
+          });
+        }
+        
+        await batch.commit();
         
         toast({
           title: '¡Rol de SuperAdmin Asignado!',
@@ -108,7 +123,51 @@ export default function RegisterPage() {
     } else {
       // Standard user registration
       try {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        const batch = writeBatch(firestore);
+
+        // Create the business document
+        const businessRef = doc(firestore, 'businesses', user.uid);
+        batch.set(businessRef, {
+            name: user.email,
+            adminEmail: user.email,
+            status: "Active",
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
+
+        // Create the user profile mapping document
+        const userProfileRef = doc(firestore, 'users', user.uid);
+        batch.set(userProfileRef, {
+          businessId: user.uid, // For new users, their businessId is their own uid
+          email: user.email,
+        });
+
+        // Create default form config for the new business
+        const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
+        batch.set(formConfigRef, {
+          redirectUrl: `https://www.google.com/maps/search/?api=1&query=${user.uid}`,
+          notificationEmail: user.email,
+          formTitle: "¿Cómo fue tu experiencia?",
+          formSubtitle: "Tus comentarios nos ayudan a mejorar.",
+          negativeFeedbackTitle: "Déjanos tus comentarios",
+          negativeFeedbackSubtitle: "Lamentamos que tu experiencia no haya sido perfecta. Por favor, dinos cómo podemos mejorar.",
+          positiveFeedbackTitle: "¡Gracias por tu reseña!",
+          positiveFeedbackSubtitle: "Nos alegra que hayas tenido una gran experiencia. Ayuda a otros a descubrirnos compartiendo tu opinión en Google.",
+          thankYouTitle: "¡Gracias!",
+          thankYouSubtitle: "Tus comentarios son muy valiosos para nosotros.",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        if (!user.displayName) {
+           await updateProfile(user, { displayName: user.email });
+        }
+        
+        await batch.commit();
+
         toast({
           title: '¡Registro exitoso!',
           description: 'Tu cuenta ha sido creada. Ahora puedes iniciar sesión.',
