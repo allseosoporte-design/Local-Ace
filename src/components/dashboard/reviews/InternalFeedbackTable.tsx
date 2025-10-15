@@ -15,14 +15,15 @@ export function InternalFeedbackTable() {
     const firestore = useFirestore();
 
     const feedbackQuery = useMemoFirebase(() => {
-        // No ejecutar la consulta hasta que el usuario esté completamente cargado.
+        // No ejecutar la consulta hasta que el usuario esté completamente cargado y tengamos su UID.
         if (isAuthLoading || !user || !firestore) {
             return null;
         }
 
         console.log('🔍 DASHBOARD - Buscando feedback para businessId (uid):', user.uid);
 
-        // Consultar directamente la colección raíz y filtrar por el UID del usuario.
+        // Consultar directamente la colección raíz 'internalFeedback' y filtrar por el UID del usuario.
+        // Se asume que para un administrador de negocio, su `user.uid` es su `businessId`.
         return query(
           collection(firestore, 'internalFeedback'),
           where('businessId', '==', user.uid),
@@ -32,7 +33,9 @@ export function InternalFeedbackTable() {
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
     
-    const isLoading = isAuthLoading || (feedbackQuery === null && !user) || isLoadingFeedback;
+    // isLoading es verdadero si la autenticación está en curso o si la consulta de feedback está en curso.
+    // También se considera cargando si la consulta es nula porque todavía estamos esperando al usuario.
+    const isLoading = isAuthLoading || (feedbackQuery === null && !!user) || isLoadingFeedback;
     
     const sortedData = useMemo(() => {
         if (!feedbackData) return [];
