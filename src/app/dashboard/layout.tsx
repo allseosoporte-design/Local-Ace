@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,7 +10,7 @@ import { Loader2 } from "lucide-react";
 import Link from 'next/link';
 import { LocalLeap } from '@/components/icons';
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu } from '@/components/ui/sidebar';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 
 export default function DashboardLayout({
   children,
@@ -32,36 +33,53 @@ export default function DashboardLayout({
       return;
     }
 
-    // CRITICAL: Ensure the business document exists for the logged-in user.
-    const ensureBusinessDocExists = async () => {
-      // Only run if firestore and user are available.
-      if (user && firestore) {
-        const businessRef = doc(firestore, "businesses", user.uid);
-        try {
-            const businessDoc = await getDoc(businessRef);
-            if (!businessDoc.exists()) {
-              // Use setDoc without merge to create the document
-              await setDoc(businessRef, {
-                name: user.displayName || user.email || 'Mi Negocio',
-                adminEmail: user.email,
-                status: "Active",
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-              });
-            }
-        } catch (error) {
-            console.error("Error ensuring business document exists:", error);
-            // Don't block the UI if this fails, just log it.
-        } finally {
-            setIsReady(true);
-        }
-      } else if (!firestore) {
-        // If firestore is not ready yet, just wait for the next effect run.
+    // CRITICAL: Ensure all necessary user and business documents exist.
+    const ensureDocsExist = async () => {
+      if (!user || !firestore) {
+        setIsReady(true);
         return;
+      }
+      
+      try {
+        const batch = writeBatch(firestore);
+        
+        const userProfileRef = doc(firestore, 'users', user.uid);
+        const userProfileDoc = await getDoc(userProfileRef);
+        
+        // This is a super admin
+        if (user.email === 'allseosoporte@gmail.com') {
+          if (!userProfileDoc.exists()) {
+            batch.set(userProfileRef, { businessId: 'allseosoporte', email: user.email });
+          }
+        } else {
+          // This is a standard business user
+          if (!userProfileDoc.exists()) {
+            batch.set(userProfileRef, { businessId: user.uid, email: user.email });
+          }
+          
+          const businessRef = doc(firestore, "businesses", user.uid);
+          const businessDoc = await getDoc(businessRef);
+          if (!businessDoc.exists()) {
+            batch.set(businessRef, {
+              name: user.displayName || user.email,
+              adminEmail: user.email,
+              status: "Active",
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+          }
+        }
+        
+        await batch.commit();
+
+      } catch (error) {
+        console.error("Error ensuring documents exist:", error);
+      } finally {
+        setIsReady(true);
       }
     };
 
-    ensureBusinessDocExists();
+    ensureDocsExist();
 
   }, [isUserLoading, user, firestore, router]);
 

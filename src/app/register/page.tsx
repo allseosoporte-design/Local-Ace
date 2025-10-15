@@ -84,12 +84,12 @@ export default function RegisterPage() {
             await updateProfile(user, { displayName: 'Alexander Jerez Fernandez' });
         }
         
-        // Step 4: Ensure the user mapping doc exists (Opción B)
+        // Step 4: Ensure the user mapping doc exists, mapping superadmin to 'allseosoporte' businessId
         const userProfileRef = doc(firestore, 'users', user.uid);
         const userProfileDoc = await getDoc(userProfileRef);
         if (!userProfileDoc.exists()) {
           batch.set(userProfileRef, {
-            businessId: 'allseosoporte',
+            businessId: 'allseosoporte', // Explicitly map superadmin to this business
             email: user.email,
           });
         }

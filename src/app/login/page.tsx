@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -49,51 +50,51 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
+      const batch = writeBatch(firestore);
+
+      // Check for super admin document first
       const adminDocRef = doc(firestore, 'superAdmins', user.uid);
       const adminDoc = await getDoc(adminDocRef);
 
+      // Ensure user profile exists for mapping
+      const userProfileRef = doc(firestore, 'users', user.uid);
+      const userProfileDoc = await getDoc(userProfileRef);
+
       if (adminDoc.exists()) {
+        // This is a super admin
+        if (!userProfileDoc.exists()) {
+            batch.set(userProfileRef, {
+                businessId: 'allseosoporte', // Super admin manages the main business
+                email: user.email,
+            });
+        }
         router.push('/dashboard/admin');
       } else {
-        const batch = writeBatch(firestore);
+        // This is a standard business user
+        if (!userProfileDoc.exists()) {
+           batch.set(userProfileRef, {
+                businessId: user.uid, // Their businessId is their own UID
+                email: user.email,
+            });
+        }
+        
+        // Also ensure their business document exists
         const businessRef = doc(firestore, 'businesses', user.uid);
         const businessDoc = await getDoc(businessRef);
 
         if (!businessDoc.exists()) {
-          // Si el negocio no existe, lo crea con valores por defecto.
           batch.set(businessRef, {
-            name: user.email, // Usa el email como nombre inicial
+            name: user.displayName || user.email,
             adminEmail: user.email,
             status: "Active",
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
-          
-          // Crea también la configuración inicial del formulario
-          const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
-          batch.set(formConfigRef, {
-            redirectUrl: `https://www.google.com/maps/search/?api=1&query=${user.uid}`,
-            notificationEmail: user.email,
-            formTitle: "¿Cómo fue tu experiencia?",
-            formSubtitle: "Tus comentarios nos ayudan a mejorar.",
-            negativeFeedbackTitle: "Déjanos tus comentarios",
-            negativeFeedbackSubtitle: "Lamentamos que tu experiencia no haya sido perfecta. Por favor, dinos cómo podemos mejorar.",
-            positiveFeedbackTitle: "¡Gracias por tu reseña!",
-            positiveFeedbackSubtitle: "Nos alegra que hayas tenido una gran experiencia. Ayuda a otros a descubrirnos compartiendo tu opinión en Google.",
-            thankYouTitle: "¡Gracias!",
-            thankYouSubtitle: "Tus comentarios son muy valiosos para nosotros.",
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
-
-          if (!user.displayName) {
-             await updateProfile(user, { displayName: user.email });
-          }
         }
-        
-        await batch.commit();
         router.push('/dashboard');
       }
+      
+      await batch.commit();
 
     } catch (error: any) {
       let errorMessage = 'Credenciales incorrectas. Por favor, inténtalo de nuevo.';
