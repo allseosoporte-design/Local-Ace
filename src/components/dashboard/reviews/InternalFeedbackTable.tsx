@@ -19,16 +19,14 @@ export function InternalFeedbackTable() {
     const firestore = useFirestore();
 
     const userDocRef = useMemoFirebase(() => {
-        if (isAuthLoading || !user?.uid) {
-            return null;
-        }
+        if (!firestore || !user?.uid) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [firestore, user, isAuthLoading]);
 
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userDocRef);
 
     const feedbackQuery = useMemoFirebase(() => {
-        if (!userProfile?.businessId) {
+        if (isAuthLoading || !userProfile?.businessId) {
             return null;
         }
         
@@ -39,7 +37,7 @@ export function InternalFeedbackTable() {
           where('businessId', '==', userProfile.businessId),
           orderBy('createdAt', 'desc')
         );
-    }, [firestore, userProfile]);
+    }, [firestore, userProfile, isAuthLoading]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
     
@@ -51,7 +49,7 @@ export function InternalFeedbackTable() {
         return feedbackData.map(item => ({...item, review: (item as any).message || ''}));
     }, [feedbackData]);
 
-    if (!isAuthLoading && !isLoadingProfile && !userProfile) {
+    if (!isAuthLoading && !isLoadingProfile && !userProfile && user) {
       return (
         <Card>
             <CardHeader>
