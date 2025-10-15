@@ -14,19 +14,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { StarRating } from './star-rating';
-import { CheckCircle, MessageSquare, Star, Loader2 } from 'lucide-react';
+import { CheckCircle, MessageSquare, Loader2 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { doc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 
+interface PageProps {
+  params: { businessId: string } | Promise<{ businessId: string }>;
+}
 
-export default function ReviewFunnelPage({
-  params,
-}: {
-  params: { businessId: string };
-}) {
-  const { businessId } = params;
-
+export default function ReviewFunnelPage({ params }: PageProps) {
+  const [businessId, setBusinessId] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -35,7 +33,16 @@ export default function ReviewFunnelPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const firestore = useFirestore();
-  
+
+  // Resolve params whether it's a Promise or direct object
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolved = await Promise.resolve(params);
+      setBusinessId(resolved.businessId);
+    };
+    resolveParams();
+  }, [params]);
+
   const formConfigRef = useMemoFirebase(() => {
     if (!firestore || !businessId) return null;
     return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
@@ -83,7 +90,7 @@ export default function ReviewFunnelPage({
     }
   };
 
-  if (isLoading) {
+  if (!businessId || isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Loader2 className="h-10 w-10 animate-spin" />
