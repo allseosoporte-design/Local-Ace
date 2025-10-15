@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where } from 'firebase/firestore';
+import { collection, query, orderBy, where, doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Review } from '@/app/dashboard/reviews/columns';
@@ -19,14 +19,14 @@ export function InternalFeedbackTable() {
     const firestore = useFirestore();
 
     const userDocRef = useMemoFirebase(() => {
-        if (!firestore || !user?.uid) return null;
+        if (isAuthLoading || !firestore || !user?.uid) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [firestore, user, isAuthLoading]);
 
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userDocRef);
 
     const feedbackQuery = useMemoFirebase(() => {
-        if (isAuthLoading || !userProfile?.businessId) {
+        if (isLoadingProfile || !userProfile?.businessId) {
             return null;
         }
         
@@ -37,7 +37,7 @@ export function InternalFeedbackTable() {
           where('businessId', '==', userProfile.businessId),
           orderBy('createdAt', 'desc')
         );
-    }, [firestore, userProfile, isAuthLoading]);
+    }, [firestore, userProfile, isLoadingProfile]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
     
