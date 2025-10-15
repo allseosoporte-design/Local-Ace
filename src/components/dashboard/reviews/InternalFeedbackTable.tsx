@@ -7,7 +7,6 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useState, useEffect } from 'react';
 import type { Review } from '@/app/dashboard/reviews/columns';
 
 export function InternalFeedbackTable() {
