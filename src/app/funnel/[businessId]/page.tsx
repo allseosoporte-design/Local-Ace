@@ -75,11 +75,13 @@ export default function ReviewFunnelPage({ params }: PageProps) {
 
     setIsSubmitting(true);
     try {
-      const feedbackColRef = collection(firestore, `businesses/${businessId}/privateFeedback`);
+      // Escribir en la colección raíz 'internalFeedback'
+      const feedbackColRef = collection(firestore, 'internalFeedback');
       await addDoc(feedbackColRef, {
+        businessId: businessId, // Asociar el feedback con el negocio
         name,
         email,
-        review: message,
+        message, // 'message' en lugar de 'review' para coincidir con la entidad
         rating,
         status: 'Pending',
         createdAt: serverTimestamp(),

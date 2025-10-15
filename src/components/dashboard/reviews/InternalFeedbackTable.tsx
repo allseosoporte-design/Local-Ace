@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useMemo } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Review } from '@/app/dashboard/reviews/columns';
@@ -17,8 +18,6 @@ export function InternalFeedbackTable() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
 
-    // Paso 1: Crear una referencia al documento del perfil del usuario.
-    // Esta consulta solo se ejecutará cuando la autenticación haya terminado y tengamos un user.uid.
     const userDocRef = useMemoFirebase(() => {
         if (isAuthLoading || !user?.uid) {
             return null;
@@ -26,29 +25,30 @@ export function InternalFeedbackTable() {
         return doc(firestore, `users/${user.uid}`);
     }, [firestore, user, isAuthLoading]);
 
-    // Paso 2: Usar el hook useDoc para obtener los datos del perfil del usuario.
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userDocRef);
 
-    // Paso 3: Usar el businessId obtenido del perfil para construir la consulta final.
-    // Esta consulta solo se ejecutará cuando tengamos un userProfile con un businessId.
     const feedbackQuery = useMemoFirebase(() => {
         if (!userProfile?.businessId) {
             return null;
         }
+        
+        console.log('🔍 DASHBOARD - Buscando feedback para businessId:', userProfile.businessId);
+
         return query(
-          collection(firestore, `businesses/${userProfile.businessId}/privateFeedback`),
+          collection(firestore, 'internalFeedback'),
+          where('businessId', '==', userProfile.businessId),
           orderBy('createdAt', 'desc')
         );
     }, [firestore, userProfile]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
     
-    // El estado de carga general considera la autenticación, la carga del perfil y la carga del feedback.
     const isLoading = isAuthLoading || isLoadingProfile || (feedbackQuery !== null && isLoadingFeedback);
     
     const sortedData = useMemo(() => {
         if (!feedbackData) return [];
-        return feedbackData; // La ordenación ya se hace en la consulta de Firestore
+        // Renombrar 'message' a 'review' para que coincida con la definición de columna
+        return feedbackData.map(item => ({...item, review: (item as any).message || ''}));
     }, [feedbackData]);
 
     if (!isAuthLoading && !isLoadingProfile && !userProfile) {
