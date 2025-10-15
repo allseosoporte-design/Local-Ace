@@ -4,64 +4,43 @@
 import { useMemo } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where, doc } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Review } from '@/app/dashboard/reviews/columns';
-
-interface UserProfile {
-  businessId: string;
-}
 
 export function InternalFeedbackTable() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
 
-    const userDocRef = useMemoFirebase(() => {
-        if (isAuthLoading || !firestore || !user?.uid) return null;
-        return doc(firestore, `users/${user.uid}`);
-    }, [firestore, user, isAuthLoading]);
-
-    const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userDocRef);
-    
-    // Fallback logic: If profile doesn't load or exist, use user.uid as businessId.
-    const businessId = useMemo(() => {
-        if (!isLoadingProfile && userProfile) {
-            return userProfile.businessId;
-        }
-        if (!isAuthLoading && !isLoadingProfile && user) {
-            return user.uid;
-        }
-        return null;
-    }, [userProfile, isLoadingProfile, user, isAuthLoading]);
-
-
     const feedbackQuery = useMemoFirebase(() => {
-        if (!businessId) {
+        // No ejecutar la consulta hasta que el usuario esté completamente cargado.
+        if (isAuthLoading || !user || !firestore) {
             return null;
         }
-        
-        console.log('🔍 DASHBOARD - Buscando feedback para businessId:', businessId);
 
+        console.log('🔍 DASHBOARD - Buscando feedback para businessId (uid):', user.uid);
+
+        // Consultar directamente la colección raíz y filtrar por el UID del usuario.
         return query(
           collection(firestore, 'internalFeedback'),
-          where('businessId', '==', businessId),
+          where('businessId', '==', user.uid),
           orderBy('createdAt', 'desc')
         );
-    }, [firestore, businessId]);
+    }, [firestore, user, isAuthLoading]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
     
-    const isLoading = isAuthLoading || (feedbackQuery === null && !businessId) || isLoadingFeedback;
+    const isLoading = isAuthLoading || (feedbackQuery === null && !user) || isLoadingFeedback;
     
     const sortedData = useMemo(() => {
         if (!feedbackData) return [];
-        // Rename 'message' to 'review' to match the column definition
+        // Renombrar 'message' a 'review' para que coincida con la definición de la columna.
         return feedbackData.map(item => ({...item, review: (item as any).message || ''}));
     }, [feedbackData]);
 
-    if (!isAuthLoading && !isLoadingProfile && !user) {
+    if (!isAuthLoading && !user) {
       return (
         <Card>
             <CardHeader>
