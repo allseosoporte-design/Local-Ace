@@ -1,7 +1,6 @@
 {
   "entities": {
     "Business": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Business",
       "type": "object",
       "description": "Represents a business using the platform to manage their online presence.",
@@ -42,7 +41,6 @@
       ]
     },
     "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
       "description": "Represents a user's profile, linking their auth UID to their business.",
@@ -57,7 +55,6 @@
       ]
     },
     "GoogleMyBusinessProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "GoogleMyBusinessProfile",
       "type": "object",
       "description": "Represents a Google My Business profile associated with a business.",
@@ -93,7 +90,6 @@
       ]
     },
     "Review": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Review",
       "type": "object",
       "description": "Represents a customer review for a business.",
@@ -141,7 +137,6 @@
       ]
     },
     "InternalFeedback": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InternalFeedback",
       "type": "object",
       "description": "Represents internal feedback collected from customers who left a negative review.",
@@ -172,7 +167,6 @@
       ]
     },
     "AutomatedPost": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AutomatedPost",
       "type": "object",
       "description": "Represents an automated post scheduled for a Google My Business profile.",
@@ -213,7 +207,6 @@
       ]
     },
     "LandingPage": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LandingPage",
       "type": "object",
       "description": "Represents a landing page created for a business.",
@@ -252,7 +245,6 @@
       ]
     },
     "Subscription": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Subscription",
       "type": "object",
       "description": "Represents a subscription plan for a business.",
@@ -291,150 +283,37 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile information, linking auth ID to business ID. Users can read their own profile.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user, matching their Firebase Auth UID."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/businesses/{businessId}",
-        "definition": {
-          "entityName": "Business",
-          "schema": {
-            "$ref": "#/backend/entities/Business"
-          },
-          "description": "Stores business information.  Root collection for all business-related data. Businesses can manage their Google My Business profiles, landing pages, etc.",
-          "params": [
-            {
-              "name": "businessId",
-              "description": "The unique identifier for the business."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/googleMyBusinessProfiles/{googleMyBusinessProfileId}",
-        "definition": {
-          "entityName": "GoogleMyBusinessProfile",
-          "schema": {
-            "$ref": "#/backend/entities/GoogleMyBusinessProfile"
-          },
-          "description": "Stores Google My Business profile information. Includes the businessId to ensure authorization independence for access control.",
-          "params": [
-            {
-              "name": "googleMyBusinessProfileId",
-              "description": "The unique identifier for the Google My Business profile."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}",
-        "definition": {
-          "entityName": "Review",
-          "schema": {
-            "$ref": "#/backend/entities/Review"
-          },
-          "description": "Stores customer reviews for a Google My Business profile.  Located as a subcollection to ensure efficient querying of reviews associated with a profile.  Includes fields for filtering (isFiltered) and internal feedback.",
-          "params": [
-            {
-              "name": "googleMyBusinessProfileId",
-              "description": "The unique identifier for the Google My Business profile."
-            },
-            {
-              "name": "reviewId",
-              "description": "The unique identifier for the review."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/internalFeedback/{internalFeedbackId}",
-        "definition": {
-          "entityName": "InternalFeedback",
-          "schema": {
-            "$ref": "#/backend/entities/InternalFeedback"
-          },
-          "description": "Stores internal feedback collected from customers who left negative reviews.  This is stored at the root to avoid authorization dependency on GoogleMyBusinessProfile.",
-          "params": [
-            {
-              "name": "internalFeedbackId",
-              "description": "The unique identifier for the internal feedback."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}",
-        "definition": {
-          "entityName": "AutomatedPost",
-          "schema": {
-            "$ref": "#/backend/entities/AutomatedPost"
-          },
-          "description": "Stores automated posts scheduled for a Google My Business profile. Located as a subcollection to ensure efficient querying of posts associated with a profile.",
-          "params": [
-            {
-              "name": "googleMyBusinessProfileId",
-              "description": "The unique identifier for the Google My Business profile."
-            },
-            {
-              "name": "automatedPostId",
-              "description": "The unique identifier for the automated post."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/businesses/{businessId}/landingPages/{landingPageId}",
-        "definition": {
-          "entityName": "LandingPage",
-          "schema": {
-            "$ref": "#/backend/entities/LandingPage"
-          },
-          "description": "Stores landing pages created for a business. Located as a subcollection to ensure efficient querying of landing pages associated with a business.",
-          "params": [
-            {
-              "name": "businessId",
-              "description": "The unique identifier for the business."
-            },
-            {
-              "name": "landingPageId",
-              "description": "The unique identifier for the landing page."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/subscriptions/{subscriptionId}",
-        "definition": {
-          "entityName": "Subscription",
-          "schema": {
-            "$ref": "#/backend/entities/Subscription"
-          },
-          "description": "Stores subscription plan information.",
-          "params": [
-            {
-              "name": "subscriptionId",
-              "description": "The unique identifier for the subscription."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed to support the 'Local Leap' SaaS platform for Google Maps and Google My Business optimization. The structure prioritizes authorization independence, clarity, and scalability, aligning with the specified core design principles and strategy mandates.  Specifically, the structure ensures Authorization Independence by avoiding `get()` calls in rules. This is achieved via denormalization: for example, access to `GoogleMyBusinessProfile` and related subcollections (reviews, automated posts) is controlled by denormalizing the `businessId` from the `Business` entity. This ensures that security rules can validate access based on the `request.auth.uid` without needing to fetch data from parent documents. The structure is designed to easily facilitates the filtering of reviews into positive and negative flows. This is done by a simple query on a boolean filed within the `Review` entity. In addition, this structure supports the required QAPs. Private user data is stored under the `/users/{userId}` path, enabling path-based ownership. Data segregation is achieved by dedicating collections to distinct entities (e.g., `/businesses`, `/googleMyBusinessProfiles`, `/landingPages`)."
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores user profile information, linking auth ID to business ID. Users can read their own profile."
+    },
+    "/businesses/{businessId}": {
+      "schema": "Business",
+      "description": "Stores business information.  Root collection for all business-related data. Businesses can manage their Google My Business profiles, landing pages, etc."
+    },
+    "/googleMyBusinessProfiles/{googleMyBusinessProfileId}": {
+      "schema": "GoogleMyBusinessProfile",
+      "description": "Stores Google My Business profile information. Includes the businessId to ensure authorization independence for access control."
+    },
+    "/googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Stores customer reviews for a Google My Business profile.  Located as a subcollection to ensure efficient querying of reviews associated with a profile.  Includes fields for filtering (isFiltered) and internal feedback."
+    },
+    "/internalFeedback/{internalFeedbackId}": {
+      "schema": "InternalFeedback",
+      "description": "Stores internal feedback collected from customers who left negative reviews.  This is stored at the root to avoid authorization dependency on GoogleMyBusinessProfile."
+    },
+    "/googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}": {
+      "schema": "AutomatedPost",
+      "description": "Stores automated posts scheduled for a Google My Business profile. Located as a subcollection to ensure efficient querying of posts associated with a profile."
+    },
+    "/businesses/{businessId}/landingPages/{landingPageId}": {
+      "schema": "LandingPage",
+      "description": "Stores landing pages created for a business. Located as a subcollection to ensure efficient querying of landing pages associated with a business."
+    },
+    "/subscriptions/{subscriptionId}": {
+      "schema": "Subscription",
+      "description": "Stores subscription plan information."
+    }
   }
 }
-
-    
