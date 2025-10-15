@@ -3,7 +3,7 @@
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Review } from '@/app/dashboard/reviews/columns';
@@ -18,10 +18,9 @@ export function InternalFeedbackTable() {
             return null;
         }
 
-        // This query now looks at a subcollection under the specific business.
+        // Temporarily remove orderBy to diagnose potential indexing issue
         return query(
-          collection(firestore, `businesses/${user.uid}/privateFeedback`),
-          orderBy('createdAt', 'desc')
+          collection(firestore, `businesses/${user.uid}/privateFeedback`)
         );
 
     }, [firestore, user, isAuthLoading]);
@@ -30,6 +29,16 @@ export function InternalFeedbackTable() {
     
     // The overall loading state depends on auth being ready AND the query running.
     const isLoading = isAuthLoading || (feedbackQuery !== null && isLoadingFeedback);
+    
+    // Sort data on the client-side as a temporary solution
+    const sortedData = useMemo(() => {
+        if (!feedbackData) return [];
+        return [...feedbackData].sort((a, b) => {
+            const dateA = a.createdAt?.toDate?.()?.getTime() || 0;
+            const dateB = b.createdAt?.toDate?.()?.getTime() || 0;
+            return dateB - dateA;
+        });
+    }, [feedbackData]);
 
     return (
         <Card>
@@ -45,7 +54,7 @@ export function InternalFeedbackTable() {
                         <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
                 ) : (
-                    <DataTable columns={feedbackColumns} data={feedbackData || []} />
+                    <DataTable columns={feedbackColumns} data={sortedData} />
                 )}
             </CardContent>
         </Card>
