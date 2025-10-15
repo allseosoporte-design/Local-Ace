@@ -8,64 +8,29 @@ import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
-import { getIdTokenResult } from 'firebase/auth';
 import type { Review } from '@/app/dashboard/reviews/columns';
 
 export function InternalFeedbackTable() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
-    const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
-    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-    const [businessIdFilter, setBusinessIdFilter] = useState<string | null>(null);
-
-    useEffect(() => {
-        const checkAdmin = async () => {
-            if (user) {
-                try {
-                    const tokenResult = await getIdTokenResult(user, true); // Force refresh
-                    const isSuper = tokenResult.claims.isSuperAdmin === true;
-                    setIsSuperAdmin(isSuper);
-                    if (!isSuper) {
-                        setBusinessIdFilter(user.uid);
-                    }
-                } catch (error) {
-                    console.error("Error fetching token claims:", error);
-                    setIsSuperAdmin(false);
-                    setBusinessIdFilter(user.uid); // Default to user's own business
-                } finally {
-                    setIsCheckingAdmin(false);
-                }
-            } else if (!isAuthLoading) {
-                setIsCheckingAdmin(false);
-            }
-        };
-        checkAdmin();
-    }, [user, isAuthLoading]);
 
     const feedbackQuery = useMemoFirebase(() => {
-        if (!firestore || isCheckingAdmin) {
+        // DO NOT RUN the query until the user object is loaded and we have a UID.
+        if (isAuthLoading || !user?.uid) {
             return null;
         }
 
-        const feedbackCol = collection(firestore, `privateFeedback`);
+        const feedbackCol = collection(firestore, 'privateFeedback');
         
-        if (isSuperAdmin) {
-            // Super admin sees all feedback
-            return query(feedbackCol, orderBy('createdAt', 'desc'));
-        }
-        
-        if (businessIdFilter) {
-            // Regular user sees only their business's feedback
-            return query(feedbackCol, where('businessId', '==', businessIdFilter), orderBy('createdAt', 'desc'));
-        }
+        // Standard user: only fetch feedback for their own business.
+        return query(feedbackCol, where('businessId', '==', user.uid), orderBy('createdAt', 'desc'));
 
-        return null;
-
-    }, [firestore, isCheckingAdmin, isSuperAdmin, businessIdFilter]);
+    }, [firestore, user, isAuthLoading]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
     
-    const isLoading = isAuthLoading || isCheckingAdmin || (feedbackQuery !== null && isLoadingFeedback);
+    // The overall loading state depends on auth being ready AND the query running.
+    const isLoading = isAuthLoading || (feedbackQuery !== null && isLoadingFeedback);
 
     return (
         <Card>
