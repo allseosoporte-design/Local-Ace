@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -20,25 +19,18 @@ export function InternalFeedbackTable() {
 
     // 1. Obtener el perfil del usuario para conseguir su businessId
     const userDocRef = useMemoFirebase(() => {
-        // En lugar de usar `users`, el documento del negocio contiene la información necesaria.
-        // Asumimos que el UID del usuario logueado corresponde al ID del documento del negocio que administra.
-        if (!firestore || !user?.uid) return null;
-        // La lógica original del layout crea un documento en `businesses` con el `uid` del usuario.
-        // Si el superadmin `allseosoporte` es el que gestiona, debemos apuntar a ese documento.
-        // Por ahora, asumiremos que la lógica correcta es que el UID del usuario logueado es el ID del negocio.
-        // Si un superadmin necesita ver los datos de OTRO negocio, se requeriría una lógica de selección de negocio.
-        // Para el caso actual, donde el superadmin ve SU PROPIO negocio (`allseosoporte`), el UID debe coincidir con el ID del documento.
-        // Dado que el UID del superadmin es `DzH...`, pero el businessId es `allseosoporte`, necesitamos un mapeo.
-        // Aquí implementamos la lectura desde la colección `users` como se solicitó.
+        // CORRECCIÓN: No ejecutar la consulta hasta que la autenticación haya terminado.
+        if (isAuthLoading || !user?.uid) return null;
         return doc(firestore, `users/${user.uid}`);
-    }, [firestore, user]);
+    }, [firestore, user, isAuthLoading]);
 
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userDocRef);
 
     // 2. Consultar el feedback usando el businessId del perfil
     const feedbackQuery = useMemoFirebase(() => {
-        // No ejecutar la consulta hasta que tengamos el businessId del perfil del usuario.
-        if (isAuthLoading || isLoadingProfile || !userProfile?.businessId) {
+        // La consulta ahora depende de que tengamos el perfil del usuario,
+        // y el perfil del usuario depende de que la autenticación haya terminado.
+        if (!userProfile?.businessId) {
             return null;
         }
 
@@ -51,10 +43,11 @@ export function InternalFeedbackTable() {
           collection(firestore, `businesses/${userProfile.businessId}/privateFeedback`)
         );
 
-    }, [firestore, userProfile, isAuthLoading, isLoadingProfile, user]);
+    }, [firestore, userProfile, user]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
     
+    // isLoading es verdadero si la autenticación, la carga del perfil o la carga del feedback están en progreso.
     const isLoading = isAuthLoading || isLoadingProfile || (feedbackQuery !== null && isLoadingFeedback);
 
     // Ordenar en el cliente mientras se crea el índice
