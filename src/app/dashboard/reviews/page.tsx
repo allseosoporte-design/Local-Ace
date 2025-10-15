@@ -1,42 +1,52 @@
 
-"use client";
-import { Button } from "@/components/ui/button";
+'use client';
+
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Share2 } from "lucide-react";
-import { recentReviewsData } from "@/lib/data";
-import { DataTable } from "@/components/ui/data-table";
-import { columns } from "./columns";
-import { InternalFeedbackTable } from "@/components/dashboard/reviews/InternalFeedbackTable";
-import { useUser } from "@/firebase";
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Share2 } from 'lucide-react';
+import { recentReviewsData } from '@/lib/data';
+import { DataTable } from '@/components/ui/data-table';
+import { columns } from './columns';
+import { InternalFeedbackTable } from '@/components/dashboard/reviews/InternalFeedbackTable';
+import { useUser } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ReviewsPage() {
   const { user } = useUser();
-  // CORRECTED: Use the actual user's UID for the businessId
-  const businessId = user?.uid; 
+  const { toast } = useToast();
+  const businessId = user?.uid;
 
   const handleCopyLink = () => {
     if (!businessId) {
-      // Handle case where user is not loaded yet
-      alert("No se pudo obtener el ID del negocio. Inténtalo de nuevo.");
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo obtener el ID del negocio. Inténtalo de nuevo.',
+      });
       return;
     }
     const funnelUrl = `${window.location.origin}/funnel/${businessId}`;
     navigator.clipboard.writeText(funnelUrl);
-    alert(`Enlace copiado al portapapeles:\n${funnelUrl}`);
+    toast({
+      title: '¡Enlace copiado!',
+      description: 'El enlace del embudo de reseñas ha sido copiado al portapapeles.',
+    });
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Gestión de Reseñas</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+            Gestión de Reseñas
+          </h1>
           <p className="text-muted-foreground">
             Gestiona tu reputación online e interactúa con los clientes.
           </p>
