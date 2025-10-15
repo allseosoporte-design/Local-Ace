@@ -23,10 +23,14 @@ import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 export default function ReviewFunnelPage({
   params,
 }: {
-  params: { businessId: string };
+  params: Promise<{ businessId: string }>;
 }) {
+  // Unwrap the params Promise
+  const unwrappedParams = use(params);
+  const businessId = unwrappedParams.businessId;
+
   const [rating, setRating] = useState(0);
-  const [step, setStep] = useState(1); // 1: rating, 2: form/redirect, 3: thank you
+  const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -35,9 +39,9 @@ export default function ReviewFunnelPage({
   const firestore = useFirestore();
   
   const formConfigRef = useMemoFirebase(() => {
-    if (!firestore || !params.businessId) return null;
-    return doc(firestore, `businesses/${params.businessId}/landingPages`, 'form');
-  }, [firestore, params.businessId]);
+    if (!firestore || !businessId) return null;
+    return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
+  }, [firestore, businessId]);
 
   const { data: formConfig, isLoading } = useDoc<FormConfigData>(formConfigRef);
 
@@ -60,11 +64,11 @@ export default function ReviewFunnelPage({
 
   const handleSubmitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore || !params.businessId) return;
+    if (!firestore || !businessId) return;
 
     setIsSubmitting(true);
     try {
-      const feedbackColRef = collection(firestore, `businesses/${params.businessId}/privateFeedback`);
+      const feedbackColRef = collection(firestore, `businesses/${businessId}/privateFeedback`);
       await addDoc(feedbackColRef, {
         name,
         email,
