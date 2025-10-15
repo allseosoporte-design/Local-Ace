@@ -18,7 +18,19 @@ import { useUser } from "@/firebase";
 
 export default function ReviewsPage() {
   const { user } = useUser();
-  const businessId = user?.uid || "your-business-123";
+  // CORRECTED: Use the actual user's UID for the businessId
+  const businessId = user?.uid; 
+
+  const handleCopyLink = () => {
+    if (!businessId) {
+      // Handle case where user is not loaded yet
+      alert("No se pudo obtener el ID del negocio. Inténtalo de nuevo.");
+      return;
+    }
+    const funnelUrl = `${window.location.origin}/funnel/${businessId}`;
+    navigator.clipboard.writeText(funnelUrl);
+    alert(`Enlace copiado al portapapeles:\n${funnelUrl}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -29,7 +41,7 @@ export default function ReviewsPage() {
             Gestiona tu reputación online e interactúa con los clientes.
           </p>
         </div>
-        <Button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/funnel/${businessId}`)}>
+        <Button onClick={handleCopyLink} disabled={!user}>
           <Share2 className="mr-2 h-4 w-4" />
           Copiar Enlace del Embudo
         </Button>
