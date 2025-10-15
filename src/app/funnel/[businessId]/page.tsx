@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -23,11 +23,9 @@ import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 export default function ReviewFunnelPage({
   params,
 }: {
-  params: Promise<{ businessId: string }>;
+  params: { businessId: string };
 }) {
-  // Unwrap the params Promise
-  const unwrappedParams = use(params);
-  const businessId = unwrappedParams.businessId;
+  const { businessId } = params;
 
   const [rating, setRating] = useState(0);
   const [step, setStep] = useState(1);
