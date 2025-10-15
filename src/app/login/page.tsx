@@ -52,33 +52,27 @@ export default function LoginPage() {
       
       const batch = writeBatch(firestore);
 
-      // Check for super admin document first
-      const adminDocRef = doc(firestore, 'superAdmins', user.uid);
-      const adminDoc = await getDoc(adminDocRef);
-
-      // Ensure user profile exists for mapping
       const userProfileRef = doc(firestore, 'users', user.uid);
       const userProfileDoc = await getDoc(userProfileRef);
 
-      if (adminDoc.exists()) {
-        // This is a super admin
+      const isSuperAdmin = user.email === 'allseosoporte@gmail.com';
+
+      if (isSuperAdmin) {
         if (!userProfileDoc.exists()) {
             batch.set(userProfileRef, {
-                businessId: 'allseosoporte', // Super admin manages the main business
+                businessId: 'allseosoporte',
                 email: user.email,
             });
         }
         router.push('/dashboard/admin');
       } else {
-        // This is a standard business user
         if (!userProfileDoc.exists()) {
            batch.set(userProfileRef, {
-                businessId: user.uid, // Their businessId is their own UID
+                businessId: user.uid,
                 email: user.email,
             });
         }
         
-        // Also ensure their business document exists
         const businessRef = doc(firestore, 'businesses', user.uid);
         const businessDoc = await getDoc(businessRef);
 

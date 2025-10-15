@@ -15,8 +15,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore } from '@/firebase';
-import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc, writeBatch } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
@@ -32,7 +32,7 @@ export default function RegisterPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const handleRegisterOrAssignRole = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -49,102 +49,38 @@ export default function RegisterPage() {
     const emailLower = email.toLowerCase().trim();
 
     if (emailLower === 'allseosoporte@gmail.com') {
-      try {
-        // Step 1: Sign in the user to ensure they are authenticated
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        if (!user) {
-          throw new Error("No se pudo obtener el usuario después de iniciar sesión.");
-        }
-
-        // Step 2: Call the Cloud Function to assign the super admin role
-        const functions = getFunctions(auth.app);
-        const addSuperAdminRole = httpsCallable(functions, 'addSuperAdminRole');
-        const result: any = await addSuperAdminRole({ email: user.email });
-        
-        if (result.data.error) {
-          throw new Error(result.data.error);
-        }
-
-        const batch = writeBatch(firestore);
-
-        // Step 3: Ensure the superadmin doc exists
-        const superAdminRef = doc(firestore, 'superAdmins', user.uid);
-        const adminDoc = await getDoc(superAdminRef);
-        if (!adminDoc.exists()) {
-            batch.set(superAdminRef, {
-                id: user.uid,
-                email: user.email,
-                firstName: 'Alexander',
-                lastName: 'Jerez Fernandez',
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            });
-            await updateProfile(user, { displayName: 'Alexander Jerez Fernandez' });
-        }
-        
-        // Step 4: Ensure the user mapping doc exists, mapping superadmin to 'allseosoporte' businessId
-        const userProfileRef = doc(firestore, 'users', user.uid);
-        const userProfileDoc = await getDoc(userProfileRef);
-        if (!userProfileDoc.exists()) {
-          batch.set(userProfileRef, {
-            businessId: 'allseosoporte', // Explicitly map superadmin to this business
-            email: user.email,
-          });
-        }
-        
-        await batch.commit();
-        
         toast({
-          title: '¡Rol de SuperAdmin Asignado!',
-          description: 'Cierra sesión y vuelve a iniciarla para que los cambios tomen efecto.',
-          duration: 9000,
+            variant: 'destructive',
+            title: 'Acción no permitida',
+            description: 'Este correo es para un rol especial. Inicia sesión si ya tienes credenciales.',
         });
+        setIsLoading(false);
+        return;
+    }
 
-        // Sign out to force token refresh on next login
-        await auth.signOut();
-        router.push('/login');
-
-      } catch (error: any) {
-        let errorMessage = 'Ocurrió un error al asignar el rol. ¿Las credenciales son correctas?';
-        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-          errorMessage = 'La contraseña es incorrecta.';
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        console.error('Error assigning super admin role:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error al Asignar Rol',
-          description: errorMessage,
-        });
-      }
-    } else {
-      // Standard user registration
-      try {
+    try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
         const batch = writeBatch(firestore);
 
+        // Create the user profile mapping document
+        const userProfileRef = doc(firestore, 'users', user.uid);
+        batch.set(userProfileRef, {
+            businessId: user.uid,
+            email: user.email,
+        });
+
         // Create the business document
         const businessRef = doc(firestore, 'businesses', user.uid);
         batch.set(businessRef, {
-            name: user.email,
+            name: user.email, // Default name
             adminEmail: user.email,
             status: "Active",
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         });
-
-        // Create the user profile mapping document
-        const userProfileRef = doc(firestore, 'users', user.uid);
-        batch.set(userProfileRef, {
-          businessId: user.uid, // For new users, their businessId is their own uid
-          email: user.email,
-        });
-
+        
         // Create default form config for the new business
         const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
         batch.set(formConfigRef, {
@@ -187,7 +123,6 @@ export default function RegisterPage() {
           description: errorMessage,
         });
       }
-    }
 
     setIsLoading(false);
   };
@@ -199,10 +134,10 @@ export default function RegisterPage() {
           <Link href="/" className="flex justify-center items-center">
             <LocalLeap className="w-12 h-12 mx-auto text-primary" />
           </Link>
-          <CardTitle className="text-2xl font-bold mt-4">Crear Cuenta o Asignar Rol</CardTitle>
-          <CardDescription>Usa tu email de admin para auto-asignarte el rol de SuperAdmin.</CardDescription>
+          <CardTitle className="text-2xl font-bold mt-4">Crear una Cuenta</CardTitle>
+          <CardDescription>Empieza a gestionar tu negocio online.</CardDescription>
         </CardHeader>
-        <form onSubmit={handleRegisterOrAssignRole}>
+        <form onSubmit={handleRegister}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Correo Electrónico</Label>
@@ -230,7 +165,7 @@ export default function RegisterPage() {
           <CardFooter className="flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Continuar
+              Registrarse
             </Button>
             <p className="text-xs text-center text-muted-foreground">
               ¿Ya tienes una cuenta?{' '}
