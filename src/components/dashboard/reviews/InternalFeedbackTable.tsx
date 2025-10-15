@@ -17,40 +17,29 @@ export function InternalFeedbackTable() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
 
-    // 1. Obtener el perfil del usuario para conseguir su businessId
+    // 1. Wait for auth to finish, then create ref to user profile
     const userDocRef = useMemoFirebase(() => {
-        // CORRECCIÓN: No ejecutar la consulta hasta que la autenticación haya terminado.
         if (isAuthLoading || !user?.uid) return null;
         return doc(firestore, `users/${user.uid}`);
     }, [firestore, user, isAuthLoading]);
 
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userDocRef);
 
-    // 2. Consultar el feedback usando el businessId del perfil
+    // 2. Wait for user profile to load, then create query for feedback
     const feedbackQuery = useMemoFirebase(() => {
-        // La consulta ahora depende de que tengamos el perfil del usuario,
-        // y el perfil del usuario depende de que la autenticación haya terminado.
-        if (!userProfile?.businessId) {
+        if (isLoadingProfile || !userProfile?.businessId) {
             return null;
         }
-
-        console.log('🔍 DASHBOARD - User UID:', user?.uid);
-        console.log('🔍 DASHBOARD - BusinessId from Profile:', userProfile.businessId);
-        console.log('🔍 DASHBOARD - Buscando en:', `businesses/${userProfile.businessId}/privateFeedback`);
-
-        // Usamos el businessId obtenido del perfil del usuario.
         return query(
           collection(firestore, `businesses/${userProfile.businessId}/privateFeedback`)
         );
-
-    }, [firestore, userProfile, user]);
+    }, [firestore, userProfile, isLoadingProfile]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
     
-    // isLoading es verdadero si la autenticación, la carga del perfil o la carga del feedback están en progreso.
+    // Overall loading is true if any of the sequential steps are loading
     const isLoading = isAuthLoading || isLoadingProfile || (feedbackQuery !== null && isLoadingFeedback);
 
-    // Ordenar en el cliente mientras se crea el índice
     const sortedData = useMemo(() => {
         if (!feedbackData) return [];
         return [...feedbackData].sort((a, b) => {
@@ -60,7 +49,6 @@ export function InternalFeedbackTable() {
         });
     }, [feedbackData]);
 
-    // Lógica para manejar el caso en que el perfil no existe
     if (!isAuthLoading && !isLoadingProfile && !userProfile) {
       return (
         <Card>
@@ -74,7 +62,7 @@ export function InternalFeedbackTable() {
               <div className="flex flex-col items-center justify-center h-48 text-center">
                 <p className="text-lg font-semibold">Perfil de usuario no encontrado.</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Asegúrate de que exista un documento en la colección `users` con tu UID y que contenga el campo `businessId`.
+                  No se pudo cargar tu perfil. Contacta a soporte si el problema persiste.
                 </p>
               </div>
             </CardContent>
@@ -102,3 +90,5 @@ export function InternalFeedbackTable() {
         </Card>
     );
 }
+
+    

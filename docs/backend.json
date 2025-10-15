@@ -41,6 +41,21 @@
         "name"
       ]
     },
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile, linking their auth UID to their business.",
+      "properties": {
+        "businessId": {
+          "type": "string",
+          "description": "The ID of the business this user belongs to."
+        }
+      },
+      "required": [
+        "businessId"
+      ]
+    },
     "GoogleMyBusinessProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "GoogleMyBusinessProfile",
@@ -278,6 +293,22 @@
   "firestore": {
     "structure": [
       {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information, linking auth ID to business ID. Users can read their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, matching their Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
         "path": "/businesses/{businessId}",
         "definition": {
           "entityName": "Business",
@@ -405,3 +436,5 @@
     "reasoning": "The Firestore structure is designed to support the 'Local Leap' SaaS platform for Google Maps and Google My Business optimization. The structure prioritizes authorization independence, clarity, and scalability, aligning with the specified core design principles and strategy mandates.  Specifically, the structure ensures Authorization Independence by avoiding `get()` calls in rules. This is achieved via denormalization: for example, access to `GoogleMyBusinessProfile` and related subcollections (reviews, automated posts) is controlled by denormalizing the `businessId` from the `Business` entity. This ensures that security rules can validate access based on the `request.auth.uid` without needing to fetch data from parent documents. The structure is designed to easily facilitates the filtering of reviews into positive and negative flows. This is done by a simple query on a boolean filed within the `Review` entity. In addition, this structure supports the required QAPs. Private user data is stored under the `/users/{userId}` path, enabling path-based ownership. Data segregation is achieved by dedicating collections to distinct entities (e.g., `/businesses`, `/googleMyBusinessProfiles`, `/landingPages`)."
   }
 }
+
+    
