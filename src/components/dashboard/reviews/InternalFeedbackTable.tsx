@@ -24,32 +24,44 @@ export function InternalFeedbackTable() {
     }, [firestore, user, isAuthLoading]);
 
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userDocRef);
+    
+    // Fallback logic: If profile doesn't load or exist, use user.uid as businessId.
+    const businessId = useMemo(() => {
+        if (!isLoadingProfile && userProfile) {
+            return userProfile.businessId;
+        }
+        if (!isAuthLoading && !isLoadingProfile && user) {
+            return user.uid;
+        }
+        return null;
+    }, [userProfile, isLoadingProfile, user, isAuthLoading]);
+
 
     const feedbackQuery = useMemoFirebase(() => {
-        if (isLoadingProfile || !userProfile?.businessId) {
+        if (!businessId) {
             return null;
         }
         
-        console.log('🔍 DASHBOARD - Buscando feedback para businessId:', userProfile.businessId);
+        console.log('🔍 DASHBOARD - Buscando feedback para businessId:', businessId);
 
         return query(
           collection(firestore, 'internalFeedback'),
-          where('businessId', '==', userProfile.businessId),
+          where('businessId', '==', businessId),
           orderBy('createdAt', 'desc')
         );
-    }, [firestore, userProfile, isLoadingProfile]);
+    }, [firestore, businessId]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
     
-    const isLoading = isAuthLoading || isLoadingProfile || (feedbackQuery !== null && isLoadingFeedback);
+    const isLoading = isAuthLoading || (feedbackQuery === null && !businessId) || isLoadingFeedback;
     
     const sortedData = useMemo(() => {
         if (!feedbackData) return [];
-        // Renombrar 'message' a 'review' para que coincida con la definición de columna
+        // Rename 'message' to 'review' to match the column definition
         return feedbackData.map(item => ({...item, review: (item as any).message || ''}));
     }, [feedbackData]);
 
-    if (!isAuthLoading && !isLoadingProfile && !userProfile && user) {
+    if (!isAuthLoading && !isLoadingProfile && !user) {
       return (
         <Card>
             <CardHeader>
@@ -60,9 +72,9 @@ export function InternalFeedbackTable() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center justify-center h-48 text-center">
-                <p className="text-lg font-semibold">Perfil de usuario no encontrado.</p>
+                <p className="text-lg font-semibold">No has iniciado sesión.</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  No pudimos encontrar el perfil de negocio asociado a tu cuenta.
+                  Por favor, inicia sesión para ver tu feedback.
                 </p>
               </div>
             </CardContent>
