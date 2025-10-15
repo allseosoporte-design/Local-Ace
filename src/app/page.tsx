@@ -1,14 +1,10 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
-import { Loader2 } from 'lucide-react';
 import { HomeNav } from '@/components/home-nav';
 
-// Se asume un ID de negocio estático para la página pública principal.
+// This is the static content for the main public-facing homepage.
 const PUBLIC_BUSINESS_ID = 'allseosoporte';
 
 const defaultData: LandingPageData = {
@@ -17,7 +13,7 @@ const defaultData: LandingPageData = {
   content: `Descubre la revolución para tu NEGOCIO. Con nuestro menú digital interactivo, tus clientes explorarán tus platos con fotos de alta calidad y descripciones detalladas.`,
   heroImageUrl: "https://picsum.photos/seed/websapmax/1200/800",
   ctaText: "Deja tu Reseña",
-  ctaUrl: `/funnel/${PUBLIC_BUSINESS_ID}`, // URL correcta desde el inicio
+  ctaUrl: `/funnel/${PUBLIC_BUSINESS_ID}`,
   backgroundColor: "#FFFFFF",
   textColor: "#000000",
   buttonColor: "#FF4500",
@@ -34,40 +30,13 @@ const defaultData: LandingPageData = {
 
 
 export default function Home() {
-  const [pageData, setPageData] = useState<LandingPageData>(defaultData);
-  const firestore = useFirestore();
-
-  const heroConfigRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, `businesses/${PUBLIC_BUSINESS_ID}/landingPages`, 'hero');
-  }, [firestore]);
-
-  const { data: heroData, isLoading: isHeroLoading } = useDoc<LandingPageData>(heroConfigRef);
-  
-  useEffect(() => {
-    if (heroData) {
-      // Combina los datos de Firestore, pero mantiene la ctaUrl correcta
-      setPageData(prev => ({ 
-        ...defaultData, 
-        ...heroData,
-        ctaUrl: `/funnel/${PUBLIC_BUSINESS_ID}` 
-      }));
-    }
-  }, [heroData]);
-  
-  const isLoading = isHeroLoading;
-
+  // The page now uses static defaultData and does not fetch from Firestore.
+  // This prevents any permission errors for public visitors.
   return (
     <div className="flex flex-col min-h-screen">
       <HomeNav />
       <main className="flex-1">
-        {isLoading ? (
-          <div className="flex h-[80vh] w-full items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-        ) : (
-          <EditorLandingPreview data={pageData} />
-        )}
+        <EditorLandingPreview data={defaultData} />
       </main>
       <footer className="flex items-center justify-center py-6 border-t">
           <p className="text-xs text-muted-foreground">&copy; 2024 Local Leap. Todos los derechos reservados.</p>
