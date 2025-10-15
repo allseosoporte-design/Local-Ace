@@ -40,7 +40,6 @@ export default function ReviewFunnelPage({ params }: PageProps) {
     const resolveParams = async () => {
       const resolved = await Promise.resolve(params);
       setBusinessId(resolved.businessId);
-      console.log('🔍 FORMULARIO - BusinessID:', resolved.businessId); // AGREGAR ESTO
     };
     resolveParams();
   }, [params]);
@@ -75,13 +74,12 @@ export default function ReviewFunnelPage({ params }: PageProps) {
 
     setIsSubmitting(true);
     try {
-      // Escribir en la colección raíz 'internalFeedback'
-      const feedbackColRef = collection(firestore, 'internalFeedback');
+      // Escribir en la subcolección 'internalFeedback' del negocio
+      const feedbackColRef = collection(firestore, 'businesses', businessId, 'internalFeedback');
       await addDoc(feedbackColRef, {
-        businessId: businessId, // Asociar el feedback con el negocio
         name,
         email,
-        message, // 'message' en lugar de 'review' para coincidir con la entidad
+        message,
         rating,
         status: 'Pending',
         createdAt: serverTimestamp(),

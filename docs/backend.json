@@ -299,9 +299,9 @@
       "schema": "Review",
       "description": "Stores customer reviews for a Google My Business profile.  Located as a subcollection to ensure efficient querying of reviews associated with a profile.  Includes fields for filtering (isFiltered) and internal feedback."
     },
-    "/internalFeedback/{internalFeedbackId}": {
+    "/businesses/{businessId}/internalFeedback/{internalFeedbackId}": {
       "schema": "InternalFeedback",
-      "description": "Stores internal feedback collected from customers who left negative reviews.  This is stored at the root to avoid authorization dependency on GoogleMyBusinessProfile."
+      "description": "Stores internal feedback collected from customers who left negative reviews. Located as a subcollection for security and data locality."
     },
     "/googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}": {
       "schema": "AutomatedPost",
