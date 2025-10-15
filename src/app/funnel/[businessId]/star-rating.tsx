@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -7,14 +8,19 @@ import { cn } from "@/lib/utils";
 interface StarRatingProps {
   onRating: (rating: number) => void;
   totalStars?: number;
+  rating?: number;
 }
 
-export function StarRating({ onRating, totalStars = 5 }: StarRatingProps) {
+export function StarRating({ onRating, totalStars = 5, rating: controlledRating }: StarRatingProps) {
   const [hover, setHover] = useState(0);
-  const [rating, setRating] = useState(0);
+  const [localRating, setLocalRating] = useState(0);
+
+  const rating = controlledRating ?? localRating;
 
   const handleClick = (ratingValue: number) => {
-    setRating(ratingValue);
+    if (controlledRating === undefined) { // Only set local state if not controlled
+        setLocalRating(ratingValue);
+    }
     onRating(ratingValue);
   };
 

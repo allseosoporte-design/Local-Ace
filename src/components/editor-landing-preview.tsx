@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { Star } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { StarRating } from '@/app/funnel/[businessId]/star-rating';
+import { useState } from 'react';
 
 export interface Subsection {
   id: string;
@@ -65,7 +67,8 @@ interface EditorLandingPreviewProps {
 }
 
 export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewProps) {
-  
+  const [previewRating, setPreviewRating] = useState(0);
+
   const formatContent = (text: string) => {
     return text.split('\n').map((str, index, array) => (
       <span key={index}>
@@ -194,11 +197,7 @@ export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewP
                         <CardDescription>{formConfig.formSubtitle}</CardDescription>
                     </CardHeader>
                     <CardContent className='flex justify-center'>
-                        <div className="flex justify-center space-x-1 py-2">
-                            {[1, 2, 3, 4, 5].map(rate => (
-                                <Star key={rate} className="h-10 w-10 text-gray-300 hover:text-yellow-400 transition-colors" />
-                            ))}
-                        </div>
+                       <StarRating rating={previewRating} onRating={setPreviewRating} />
                     </CardContent>
                 </Card>
             </section>
