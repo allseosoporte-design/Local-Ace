@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -18,6 +19,9 @@ export function InternalFeedbackTable() {
         if (isAuthLoading || !user?.uid) {
             return null;
         }
+
+        console.log('🔍 DASHBOARD - User UID:', user?.uid);
+        console.log('🔍 DASHBOARD - Buscando en:', `businesses/${user?.uid}/privateFeedback`);
 
         // Temporarily without orderBy to test
         return query(

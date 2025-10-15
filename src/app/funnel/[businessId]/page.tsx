@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -39,6 +40,7 @@ export default function ReviewFunnelPage({ params }: PageProps) {
     const resolveParams = async () => {
       const resolved = await Promise.resolve(params);
       setBusinessId(resolved.businessId);
+      console.log('🔍 FORMULARIO - BusinessID:', resolved.businessId); // AGREGAR ESTO
     };
     resolveParams();
   }, [params]);
