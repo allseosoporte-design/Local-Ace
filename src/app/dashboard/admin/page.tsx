@@ -65,30 +65,32 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const checkAdmin = async () => {
+      if (!user && !isUserLoading) {
+        setIsCheckingAdmin(false);
+        setIsSuperAdmin(false);
+        return;
+      }
       if (user) {
         try {
-          // Forzar la actualización del token para obtener los claims más recientes
-          const tokenResult = await getIdTokenResult(user, true);
-          const claims = tokenResult.claims;
-          if (claims.isSuperAdmin === true) {
-            setIsSuperAdmin(true);
-          }
+          const idTokenResult = await getIdTokenResult(user);
+          const isUserSuperAdmin = idTokenResult.claims.isSuperAdmin === true || user.email === 'allseosoporte@gmail.com';
+          setIsSuperAdmin(isUserSuperAdmin);
         } catch (error) {
-          console.error("Error fetching token claims:", error);
+          console.error("Error fetching user claims:", error);
           setIsSuperAdmin(false);
         } finally {
           setIsCheckingAdmin(false);
         }
-      } else if (!isUserLoading) {
-        setIsCheckingAdmin(false);
       }
     };
     checkAdmin();
   }, [user, isUserLoading]);
 
   const businessesQuery = useMemoFirebase(() => {
-    // Retrasar la consulta hasta que se confirme que el usuario es superadmin
-    if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
+    // CRITICAL: Do not run the query until we've confirmed the user is a super admin.
+    if (isCheckingAdmin || !isSuperAdmin || !firestore) {
+      return null;
+    }
     return query(collection(firestore, "businesses"));
   }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
@@ -174,7 +176,7 @@ export default function AdminDashboardPage() {
             </TableHeader>
             <TableBody>
               {showLoading && <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></TableCell></TableRow>}
-              {!showLoading && (!isSuperAdmin || businesses?.length === 0) && <TableRow><TableCell colSpan={4} className="text-center">No hay negocios registrados o no tienes permisos.</TableCell></TableRow>}
+              {!showLoading && (!isSuperAdmin || !businesses || businesses.length === 0) && <TableRow><TableCell colSpan={4} className="text-center">No hay negocios registrados o no tienes permisos.</TableCell></TableRow>}
               {!showLoading && isSuperAdmin && businesses?.map((business) => (
                 <TableRow key={business.id}>
                   <TableCell className="font-medium">{business.name}</TableCell>
