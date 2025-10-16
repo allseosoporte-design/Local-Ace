@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collectionGroup, query, where, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Review } from '@/app/dashboard/reviews/columns';
@@ -18,8 +18,13 @@ export function InternalFeedbackTable() {
         if (isAuthLoading || !user || !firestore) {
             return null;
         }
+        // CORRECTED QUERY:
+        // Use collectionGroup to query all 'internalFeedback' collections.
+        // Use where to filter by the current user's businessId.
+        // Use orderBy to sort the results. This now matches the composite index.
         return query(
-          collection(firestore, `businesses/${user.uid}/internalFeedback`),
+          collectionGroup(firestore, `internalFeedback`),
+          where('businessId', '==', user.uid),
           orderBy('createdAt', 'desc')
         );
     }, [firestore, user, isAuthLoading]);
@@ -33,6 +38,10 @@ export function InternalFeedbackTable() {
         return feedbackData;
     }, [feedbackData]);
 
+    if (error) {
+        console.error("Firestore Error in InternalFeedbackTable:", error);
+    }
+    
     if (!isAuthLoading && !user) {
       return (
         <Card>
@@ -66,6 +75,13 @@ export function InternalFeedbackTable() {
                 {isLoading ? (
                      <div className="flex items-center justify-center h-48">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                ) : error ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-center text-destructive">
+                       <p className="text-lg font-semibold">Error al cargar el feedback</p>
+                       <p className="text-sm text-muted-foreground mt-2">
+                         Hubo un problema al consultar la base de datos. Revisa la consola para más detalles.
+                       </p>
                     </div>
                 ) : (
                     <DataTable columns={feedbackColumns} data={sortedData} />
