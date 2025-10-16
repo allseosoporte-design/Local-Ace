@@ -3,6 +3,7 @@
 
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { HomeNav } from '@/components/home-nav';
+import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 
 const defaultData: LandingPageData = {
   title: "Optimiza tu Presencia en Google My Business",
@@ -10,7 +11,7 @@ const defaultData: LandingPageData = {
   content: `Descubre la revolución para tu NEGOCIO. Con nuestro menú digital interactivo, tus clientes explorarán tus platos con fotos de alta calidad y descripciones detalladas.`,
   heroImageUrl: "https://picsum.photos/seed/websapmax/1200/800",
   ctaText: "Deja tu Reseña",
-  ctaUrl: `/funnel/allseosoporte`, // This now points to a consistent funnel page
+  ctaUrl: `/funnel/${SUPER_ADMIN_BUSINESS_ID}`, // Use the correct, centralized business ID
   backgroundColor: "#FFFFFF",
   textColor: "#000000",
   buttonColor: "#FF4500",
