@@ -82,14 +82,17 @@ export default function ReviewFunnelPage({ params }: PageProps) {
 
     setIsSubmitting(true);
     try {
-      const feedbackColRef = collection(firestore, 'businesses', businessId, 'internalFeedback');
+      const feedbackPath = `businesses/${businessId}/internalFeedback`;
+      console.log(`DEBUG: Guardando feedback en la ruta: ${feedbackPath}`); // <-- AÑADIDO PARA DEBUGGING
+      
+      const feedbackColRef = collection(firestore, feedbackPath);
       
       const feedbackData = {
           businessId: businessId,
           rating: rating,
           name: name,
           email: email,
-          review: message, // Unified field name to 'review'
+          review: message,
           status: 'Pending',
           createdAt: serverTimestamp(),
       };
