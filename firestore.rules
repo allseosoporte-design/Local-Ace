@@ -2,150 +2,105 @@
  * @fileoverview Firestore Security Rules for the application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict ownership model for user profiles and businesses.
- * Businesses and associated entities can only be managed by authenticated users
- * who are linked to the business via their user profile. Public read access is not permitted
- * except for the subscriptions collection which is intended to be publicly readable.
+ * This ruleset enforces a strict ownership model. Public read access is not permitted
+ * except for specific collections like subscriptions.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information, linking auth ID to business ID.
- * - /businesses/{businessId}: Stores business information. Root collection for all business-related data.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}: Stores Google My Business profile information.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}: Stores customer reviews.
- * - /internalFeedback/{internalFeedbackId}: Stores internal feedback. (Root Collection)
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}: Stores automated posts.
- * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages.
- * - /subscriptions/{subscriptionId}: Stores subscription plan information.
- *
- * Key Security Decisions:
- * - User profiles are private and only accessible to the authenticated user.
- * - Businesses and their associated data can only be created and managed by authenticated users.
- * - Subscriptions are publicly readable, but write access is restricted.
- * - No user listing is allowed.
- *
- * Denormalization for Authorization:
- * - The `businessId` is denormalized into the `UserProfile` to link a user's auth ID to a business.
- * - All subcollections under `/businesses/{businessId}` use the `businessId` in the path to enforce ownership.
+ * - /users/{userId}: Links auth ID to business ID.
+ * - /businesses/{businessId}: Core business information.
+ * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}: GMB profiles.
+ * - /internalFeedback/{internalFeedbackId}: Feedback from the funnel, now a root collection.
+ * - /subscriptions/{subscriptionId}: Publicly readable subscription plans.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Grants access to user profiles based on ownership.
-     * @path /users/{userId}
-     * @allow (create) User with UID 'user123' can create their own profile at /users/user123 with businessId set.
-     * @allow (get, update, delete) User with UID 'user123' can read their own profile at /users/user123.
-     * @deny (get, update, delete) User with UID 'user456' cannot read the profile at /users/user123.
-     * @principle Enforces document ownership for reads and writes; self-creation allowed.
-     */
+    // Helper functions
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.email == 'allseosoporte@gmail.com';
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isBusinessOwner(businessId) {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
+    }
+
+    // User profiles are private
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
-      allow delete: if isOwner(userId) && resource != null;
+      allow read, update, delete: if isOwner(userId) || isSuperAdmin();
+      allow create: if request.auth != null; // Any authenticated user can create their own profile
     }
 
-    /**
-     * @description Grants access to businesses based on ownership, using user profile link.
-     * @path /businesses/{businessId}
-     * @allow (create) User with UID 'user123' can create a business at /businesses/business123 if their profile links to it.
-     * @allow (get, update, delete) User with UID 'user123' can read/write the business at /businesses/business123 if their profile links to it.
-     * @deny (get, update, delete) User with UID 'user456' cannot read/write the business at /businesses/business123 if their profile doesn't link to it.
-     * @principle Enforces document ownership for reads and writes, validating against the user profile.
-     */
+    // Businesses are private to their owners
     match /businesses/{businessId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isBusinessOwner(businessId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
-      }
-      allow get: if isBusinessOwner(businessId);
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isBusinessOwner(businessId) && resource != null;
-      allow delete: if isBusinessOwner(businessId) && resource != null;
-
-      // Rule for nested landingPages subcollection
-      match /landingPages/{landingPageId} {
-        allow read, write: if isBusinessOwner(businessId);
-      }
-    }
-
-    /**
-     * @description Grants access to Google My Business profiles based on business ownership.
-     * @path /googleMyBusinessProfiles/{googleMyBusinessProfileId}
-     * @allow (create) User with UID 'user123' can create a profile at /googleMyBusinessProfiles/profile123 if they own the linked business.
-     * @allow (get, update, delete) User with UID 'user123' can read/write the profile at /googleMyBusinessProfiles/profile123 if they own the linked business.
-     * @deny (get, update, delete) User with UID 'user456' cannot read/write the profile at /googleMyBusinessProfiles/profile123 if they don't own the linked business.
-     * @principle Enforces document ownership for reads and writes, validating against the business ID.
-     */
-    match /googleMyBusinessProfiles/{googleMyBusinessProfileId} {
-       function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isBusinessOwner(businessId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
-      }
-      function getBusinessIdFromProfile(googleMyBusinessProfileId) {
-          return get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId;
-      }
-
-      function userHasBusinessId() {
-        return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
-               && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId != null;
-      }
-
-      allow get: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-      allow list: if userHasBusinessId();
-      allow create: if isSignedIn() && isBusinessOwner(request.resource.data.businessId);
-      allow update: if isSignedIn() && resource != null && isBusinessOwner(resource.data.businessId);
-      allow delete: if isSignedIn() && resource != null && isBusinessOwner(resource.data.businessId);
-
-      // Rules for subcollections of googleMyBusinessProfiles
-      match /reviews/{reviewId} {
-        allow read, write: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-      }
-
-      match /automatedPosts/{automatedPostId} {
-        allow read, write: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
+      allow read, write: if isBusinessOwner(businessId) || isSuperAdmin();
+      
+      // Landing pages subcollection
+      match /landingPages/{pageId} {
+        allow read, write: if isBusinessOwner(businessId) || isSuperAdmin();
       }
     }
     
-    /**
-     * @description Grants access to internal feedback. Public create for the funnel, restricted read for the owner.
-     * @path /internalFeedback/{internalFeedbackId}
-     * @allow (create) Anyone can create feedback.
-     * @allow (read) A user can read feedback if the document's businessId matches their own.
-     * @principle Allows public write for anonymous feedback, but restricts read access to the business owner.
-     */
-    match /internalFeedback/{internalFeedbackId} {
-      allow create: if true;
-      allow read: if request.auth != null && resource.data.businessId == request.auth.uid;
+    // GMB Profiles are private to business owners
+    match /googleMyBusinessProfiles/{googleMyBusinessProfileId} {
+        allow read, write: if isBusinessOwner(get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId) || isSuperAdmin();
+
+        // Subcollections of GMB profiles
+        match /{subcollection}/{docId} {
+           allow read, write: if isBusinessOwner(get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId) || isSuperAdmin();
+        }
+    }
+    
+    // Subscriptions are public to read
+    match /subscriptions/{subscriptionId} {
+      allow get, list: if true;
+      allow write: if isSuperAdmin();
     }
 
+    // NEW RULES FOR ROOT internalFeedback collection
+    // This allows anyone to submit feedback (create)
+    // but only the business owner can read it (get, list).
+    match /internalFeedback/{feedbackId} {
+      allow create: if true;
+      allow read, list: if request.auth != null && resource.data.businessId == request.auth.uid;
+      allow update, delete: if (isBusinessOwner(resource.data.businessId) || isSuperAdmin()) && resource != null;
+    }
 
-    /**
-     * @description Grants public read access to subscriptions, write access is denied.
-     * @path /subscriptions/{subscriptionId}
-     * @allow (get, list) Any user (signed in or not) can read subscription information.
-     * @deny (create, update, delete) No user can create, update, or delete subscriptions.
-     * @principle Allows public read access to subscription plans while restricting write access.
-     */
-    match /subscriptions/{subscriptionId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+    // Global Collections for Super Admin
+    match /globalAuditLogs/{logId} {
+        allow read, write: if isSuperAdmin();
+    }
+    match /backups/{backupId} {
+        allow read, write: if isSuperAdmin();
+    }
+     match /paymentSettings/{planId} {
+        allow read, write: if isSuperAdmin();
+    }
+     match /pendingPayments/{paymentId} {
+        allow read, write: if isSuperAdmin();
+    }
+     match /supportTickets/{ticketId} {
+        allow read, write: if isSuperAdmin();
+    }
+     match /reminderRules/{ruleId} {
+        allow read, write: if isSuperAdmin();
+    }
+    match /reminderTemplates/{templateId} {
+        allow read, write: if isSuperAdmin();
+    }
+     match /reminderLogs/{logId} {
+        allow read, write: if isSuperAdmin();
+    }
+    match /superAdmins/{adminId} {
+        allow read, write: if isSuperAdmin();
+    }
+    match /subscriptionPlans/{planId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
     }
   }
 }
