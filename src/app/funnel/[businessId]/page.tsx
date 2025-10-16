@@ -16,13 +16,25 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { StarRating } from './star-rating';
 import { CheckCircle, MessageSquare, Loader2 } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
+import { useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 interface PageProps {
   params: { businessId: string } | Promise<{ businessId: string }>;
 }
+
+// Define default form configuration statically
+const defaultFormConfig = {
+  redirectUrl: "https://www.google.com/maps/search/?api=1&query=YOUR_BUSINESS_ID",
+  formTitle: "¿Cómo fue tu experiencia?",
+  formSubtitle: "Tus comentarios nos ayudan a mejorar.",
+  negativeFeedbackTitle: "Déjanos tus comentarios",
+  negativeFeedbackSubtitle: "Lamentamos que tu experiencia no haya sido perfecta. Por favor, dinos cómo podemos mejorar.",
+  positiveFeedbackTitle: "¡Gracias por tu reseña!",
+  positiveFeedbackSubtitle: "Nos alegra que hayas tenido una gran experiencia. Ayuda a otros a descubrirnos compartiendo tu opinión en Google.",
+  thankYouTitle: "¡Gracias!",
+  thankYouSubtitle: "Tus comentarios son muy valiosos para nosotros.",
+};
 
 export default function ReviewFunnelPage({ params }: PageProps) {
   const [businessId, setBusinessId] = useState<string | null>(null);
@@ -44,24 +56,17 @@ export default function ReviewFunnelPage({ params }: PageProps) {
     resolveParams();
   }, [params]);
 
-  const formConfigRef = useMemoFirebase(() => {
-    if (!firestore || !businessId) return null;
-    return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
-  }, [firestore, businessId]);
-
-  const { data: formConfig, isLoading } = useDoc<FormConfigData>(formConfigRef);
-
   useEffect(() => {
     if (
-      !isLoading &&
-      formConfig &&
       step === 2 &&
       rating === 5 &&
-      formConfig.redirectUrl
+      defaultFormConfig.redirectUrl
     ) {
-      window.location.href = formConfig.redirectUrl;
+      // Replace placeholder with actual businessId for a more dynamic redirect
+      const redirectUrl = defaultFormConfig.redirectUrl.replace('YOUR_BUSINESS_ID', businessId || '');
+      window.location.href = redirectUrl;
     }
-  }, [step, rating, formConfig, isLoading]);
+  }, [step, rating, businessId]);
 
   const handleRating = (rate: number) => {
     setRating(rate);
@@ -74,7 +79,6 @@ export default function ReviewFunnelPage({ params }: PageProps) {
 
     setIsSubmitting(true);
     try {
-      // Escribir en la subcolección 'internalFeedback' del negocio
       const feedbackColRef = collection(firestore, 'businesses', businessId, 'internalFeedback');
       await addDoc(feedbackColRef, {
         name,
@@ -92,7 +96,7 @@ export default function ReviewFunnelPage({ params }: PageProps) {
     }
   };
 
-  if (!businessId || isLoading) {
+  if (!businessId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Loader2 className="h-10 w-10 animate-spin" />
@@ -107,11 +111,10 @@ export default function ReviewFunnelPage({ params }: PageProps) {
           <>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold">
-                {formConfig?.formTitle || '¿Cómo fue tu experiencia?'}
+                {defaultFormConfig.formTitle}
               </CardTitle>
               <CardDescription>
-                {formConfig?.formSubtitle ||
-                  'Tus comentarios nos ayudan a mejorar.'}
+                {defaultFormConfig.formSubtitle}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -125,11 +128,10 @@ export default function ReviewFunnelPage({ params }: PageProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="text-primary" />{' '}
-                {formConfig?.negativeFeedbackTitle || 'Déjanos tus comentarios'}
+                {defaultFormConfig.negativeFeedbackTitle}
               </CardTitle>
               <CardDescription>
-                {formConfig?.negativeFeedbackSubtitle ||
-                  'Lamentamos que tu experiencia no haya sido perfecta. Por favor, dinos cómo podemos mejorar.'}
+                {defaultFormConfig.negativeFeedbackSubtitle}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -180,11 +182,10 @@ export default function ReviewFunnelPage({ params }: PageProps) {
           <CardHeader className="text-center">
             <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
             <CardTitle className="text-2xl font-bold pt-4">
-              {formConfig?.positiveFeedbackTitle || '¡Gracias por tu reseña!'}
+              {defaultFormConfig.positiveFeedbackTitle}
             </CardTitle>
             <CardDescription>
-              {formConfig?.positiveFeedbackSubtitle ||
-                'Redirigiendo para que puedas compartir tu experiencia...'}
+              {defaultFormConfig.positiveFeedbackSubtitle}
             </CardDescription>
           </CardHeader>
         )}
@@ -193,11 +194,10 @@ export default function ReviewFunnelPage({ params }: PageProps) {
           <CardHeader className="text-center">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
             <CardTitle className="text-2xl font-bold">
-              {formConfig?.thankYouTitle || '¡Gracias!'}
+              {defaultFormConfig.thankYouTitle}
             </CardTitle>
             <CardDescription>
-              {formConfig?.thankYouSubtitle ||
-                'Tus comentarios son muy valiosos para nosotros.'}
+              {defaultFormConfig.thankYouSubtitle}
             </CardDescription>
           </CardHeader>
         )}
