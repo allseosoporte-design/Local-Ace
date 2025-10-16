@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -18,7 +18,6 @@ export function InternalFeedbackTable() {
         if (isAuthLoading || !user || !firestore) {
             return null;
         }
-        console.log(`[DEBUG] Creando query para: businesses/${user.uid}/internalFeedback`);
         return query(
           collection(firestore, `businesses/${user.uid}/internalFeedback`),
           orderBy('createdAt', 'desc')
@@ -26,18 +25,6 @@ export function InternalFeedbackTable() {
     }, [firestore, user, isAuthLoading]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback, error } = useCollection<Review>(feedbackQuery);
-    
-    useEffect(() => {
-        if (!isLoadingFeedback) {
-            if (error) {
-                console.error("[DEBUG] Error al cargar el feedback:", error);
-            } else if (feedbackData) {
-                console.log(`[DEBUG] Datos de feedback recibidos: ${feedbackData.length} documentos.`);
-            } else {
-                console.log("[DEBUG] La consulta finalizó pero no se recibieron datos ni errores. Esto puede indicar un problema de permisos o la falta de un índice en Firestore.");
-            }
-        }
-    }, [isLoadingFeedback, feedbackData, error]);
 
     const isLoading = isAuthLoading || (feedbackQuery === null && !!user) || isLoadingFeedback;
     
