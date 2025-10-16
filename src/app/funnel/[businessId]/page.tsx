@@ -70,9 +70,8 @@ export default function ReviewFunnelPage() {
 
     setIsSubmitting(true);
     try {
-      const feedbackPath = `businesses/${businessId}/internalFeedback`;
-      
-      const feedbackColRef = collection(firestore, feedbackPath);
+      // CORRECTED PATH: Use the root collection 'internalFeedback'
+      const feedbackColRef = collection(firestore, 'internalFeedback');
       
       const feedbackData = {
           businessId: businessId,

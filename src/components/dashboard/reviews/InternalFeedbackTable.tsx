@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Review } from '@/app/dashboard/reviews/columns';
@@ -19,11 +19,11 @@ export function InternalFeedbackTable() {
             return null;
         }
         // CORRECTED QUERY:
-        // Use collectionGroup to query all 'internalFeedback' collections.
-        // Use where to filter by the current user's businessId.
-        // Use orderBy to sort the results. This now matches the composite index.
+        // Query the root collection 'internalFeedback'.
+        // Filter by the current user's businessId.
+        // Order the results by creation date.
         return query(
-          collectionGroup(firestore, `internalFeedback`),
+          collection(firestore, `internalFeedback`),
           where('businessId', '==', user.uid),
           orderBy('createdAt', 'desc')
         );

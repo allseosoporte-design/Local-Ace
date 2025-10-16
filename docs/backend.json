@@ -145,6 +145,10 @@
           "type": "string",
           "description": "Unique identifier for the InternalFeedback entity."
         },
+        "businessId": {
+          "type": "string",
+          "description": "The ID of the business this feedback belongs to."
+        },
         "name": {
           "type": "string",
           "description": "The name of the customer providing feedback."
@@ -161,6 +165,7 @@
       },
       "required": [
         "id",
+        "businessId",
         "name",
         "email",
         "message"
@@ -299,9 +304,9 @@
       "schema": "Review",
       "description": "Stores customer reviews for a Google My Business profile.  Located as a subcollection to ensure efficient querying of reviews associated with a profile.  Includes fields for filtering (isFiltered) and internal feedback."
     },
-    "/businesses/{businessId}/internalFeedback/{internalFeedbackId}": {
+    "/internalFeedback/{internalFeedbackId}": {
       "schema": "InternalFeedback",
-      "description": "Stores internal feedback collected from customers who left negative reviews. Located as a subcollection for security and data locality."
+      "description": "Stores internal feedback collected from customers who left negative reviews. Now a root collection for simplified querying."
     },
     "/googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}": {
       "schema": "AutomatedPost",
