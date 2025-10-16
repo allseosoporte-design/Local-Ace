@@ -1,47 +1,37 @@
 
 'use client';
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, orderBy, doc } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Review } from '@/app/dashboard/reviews/columns';
-
-interface UserProfile {
-  businessId: string;
-}
 
 export function InternalFeedbackTable() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
 
-    const userProfileRef = useMemoFirebase(() => {
+    const feedbackQuery = useMemoFirebase(() => {
         if (isAuthLoading || !user || !firestore) {
             return null;
         }
-        return doc(firestore, 'users', user.uid);
-    }, [firestore, user, isAuthLoading]);
-
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
-
-    const feedbackQuery = useMemoFirebase(() => {
-        const businessId = userProfile?.businessId;
-        if (!businessId || !firestore) {
-            return null;
-        }
+        // CORRECTED QUERY:
+        // Query the root collection 'internalFeedback'.
+        // Filter by the current logged-in user's UID, which is used as the businessId.
+        // Order the results by creation date.
         return query(
           collection(firestore, `internalFeedback`),
-          where('businessId', '==', businessId),
+          where('businessId', '==', user.uid),
           orderBy('createdAt', 'desc')
         );
-    }, [firestore, userProfile]);
+    }, [firestore, user, isAuthLoading]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback, error } = useCollection<Review>(feedbackQuery);
 
-    const isLoading = isAuthLoading || isProfileLoading || (userProfileRef !== null && isLoadingFeedback);
+    const isLoading = isAuthLoading || isLoadingFeedback;
     
     const sortedData = useMemo(() => {
         if (!feedbackData) return [];
