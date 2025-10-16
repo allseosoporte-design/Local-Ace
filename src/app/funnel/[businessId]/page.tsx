@@ -89,7 +89,7 @@ export default function ReviewFunnelPage({ params }: PageProps) {
           rating: rating,
           name: name,
           email: email,
-          review: message, // CORREGIDO: 'message' ahora es 'review'
+          review: message, // CORREGIDO: 'message' ahora es 'review' para que coincida con la tabla del dashboard
           status: 'Pending',
           createdAt: serverTimestamp(),
       };
