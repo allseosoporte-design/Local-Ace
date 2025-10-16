@@ -71,7 +71,6 @@ export default function ReviewFunnelPage() {
     setIsSubmitting(true);
     try {
       const feedbackPath = `businesses/${businessId}/internalFeedback`;
-      console.log(`DEBUG: Guardando feedback en la ruta: ${feedbackPath}`);
       
       const feedbackColRef = collection(firestore, feedbackPath);
       
