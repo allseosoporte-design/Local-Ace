@@ -89,7 +89,7 @@ export default function ReviewFunnelPage({ params }: PageProps) {
           rating: rating,
           name: name,
           email: email,
-          review: message,
+          review: message, // Unified field name to 'review'
           status: 'Pending',
           createdAt: serverTimestamp(),
       };
