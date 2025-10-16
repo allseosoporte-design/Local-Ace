@@ -63,29 +63,45 @@ export default function ReviewFunnelPage() {
 
   const handleSubmitFeedback = async (e: FormEvent) => {
     e.preventDefault();
-    if (!firestore || !businessId) {
-        console.error("Firestore not available or businessId missing");
-        return;
-    };
-
+    
+    if (!firestore) {
+      console.error("Firestore not initialized");
+      alert("Error: Base de datos no disponible");
+      return;
+    }
+  
+    if (!businessId) {
+      console.error("BusinessId missing");
+      alert("Error: ID de negocio no encontrado");
+      return;
+    }
+  
     setIsSubmitting(true);
+    
     try {
       const feedbackColRef = collection(firestore, 'internalFeedback');
       
       const feedbackData = {
-          businessId: businessId,
-          rating: rating,
-          name: name,
-          email: email,
-          review: message,
-          status: 'Pending',
-          createdAt: serverTimestamp(),
+        businessId: businessId,
+        rating: rating,
+        name: name,
+        email: email,
+        review: message,
+        status: 'Pending',
+        createdAt: serverTimestamp(),
       };
       
-      await addDoc(feedbackColRef, feedbackData);
+      console.log("Enviando feedback:", feedbackData);
+      
+      const docRef = await addDoc(feedbackColRef, feedbackData);
+      
+      console.log("Feedback guardado con ID:", docRef.id);
+      
+      // Solo cambiar a step 3 después de confirmar guardado
       setStep(3);
     } catch (error) {
-      console.error('Error submitting feedback:', error);
+      console.error('Error completo al enviar feedback:', error);
+      alert(`Error al enviar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setIsSubmitting(false);
     }
