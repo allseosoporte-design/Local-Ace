@@ -21,9 +21,9 @@ import { useToast } from '@/hooks/use-toast';
 export default function ReviewsPage() {
   const { user } = useUser();
   const { toast } = useToast();
-  const businessId = user?.uid;
 
   const handleCopyLink = () => {
+    const businessId = user?.uid;
     if (!businessId) {
       toast({
         variant: 'destructive',
