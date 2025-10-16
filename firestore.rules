@@ -3,55 +3,82 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check for super admin role
+    // Helper function to check for super admin role via email claim
     function isSuperAdmin() {
-      return request.auth.token.email == 'allseosoporte@gmail.com' || get(/databases/$(database)/documents/superAdmins/$(request.auth.uid)).data.isSuperAdmin == true;
+      // In a real app, you'd use custom claims. For this demo, email is a fallback.
+      return request.auth.token.email == 'allseosoporte@gmail.com';
     }
-    
-    // Global read access for super admins for safety
-    match /{document=**} {
-      allow read, write: if isSuperAdmin();
-    }
-    
-    // User profile is only readable/writable by the user themselves or a super admin
+
+    // Users can manage their own profile document
     match /users/{userId} {
       allow read, write: if request.auth.uid == userId || isSuperAdmin();
     }
-    
-    // Subscription plans are public to read for pricing pages, but only admin can write
-    match /subscriptions/{subscriptionId} {
-        allow read: if true;
-        allow write: if isSuperAdmin();
-    }
-    
-    // Businesses can be read/written by their owner or super admin
+
+    // Business owners can manage their own business document
     match /businesses/{businessId} {
-        allow read, write: if request.auth.uid == businessId || isSuperAdmin();
+      allow read, write: if request.auth.uid == businessId || isSuperAdmin();
     }
     
-    // Landing pages for the main business are public
+    // Landing pages for the main company should be public
     match /businesses/allseosoporte/landingPages/{pageId} {
-      allow read: if true;
+        allow read: if true;
     }
     
-    // Landing pages for other businesses are managed by their owner
+    // Landing pages can be managed by their business owner
     match /businesses/{businessId}/landingPages/{pageId} {
-        allow read, write: if request.auth.uid == businessId || isSuperAdmin();
+      allow read, write: if request.auth.uid == businessId || isSuperAdmin();
     }
 
-    // This is the CRITICAL rule for the feedback system.
-    // It targets the collection group 'internalFeedback'.
+    // --- Rules for Internal Feedback ---
+    
+    // This is the CRITICAL rule for the Collection Group Query.
+    // It allows a user to LIST feedback documents from ANY business,
+    // as long as the query is explicitly filtering for their own businessId.
+    // It also allows a Super Admin to list any feedback.
     match /{path=**}/internalFeedback/{feedbackId} {
-      // ANYONE can create a feedback entry. This is required for the public funnel page.
+      allow list: if (request.auth.uid != null && request.query.where.businessId == request.auth.uid) || isSuperAdmin();
+      
+      // Allow ANYONE (even unauthenticated users) to CREATE feedback.
+      // This is necessary for the public funnel page to work.
       allow create: if true;
-      
-      // ONLY the authenticated owner of the business can read the feedback.
-      // This rule is checked during the 'list' operation from the dashboard.
-      // 'resource.data.businessId' refers to the field within the document being read.
-      allow read: if request.auth != null && request.auth.uid == resource.data.businessId;
-      
-      // Allow super admins to read any feedback
-      allow read: if isSuperAdmin();
+
+      // Allow the business owner or a super admin to GET, UPDATE, or DELETE a specific feedback document.
+      allow get, update, delete: if request.auth != null && (request.auth.uid == resource.data.businessId || isSuperAdmin());
+    }
+
+    // Subscription plans are public to read for pricing pages
+    match /subscriptionPlans/{planId} {
+      allow read: if true;
+      allow write: if isSuperAdmin(); // Only super admins can modify plans
+    }
+
+    // Other admin-only collections
+    match /backups/{backupId} {
+      allow read, write: if isSuperAmdin();
+    }
+    match /globalAuditLogs/{logId} {
+        allow read, write: if isSuperAdmin();
+    }
+    match /paymentSettings/{settingId} {
+        allow read, write: if isSuperAdmin();
+    }
+    match /pendingPayments/{paymentId} {
+        allow read, write: if isSuperAdmin();
+    }
+     match /superAdmins/{adminId} {
+      allow read, write: if request.auth.uid == adminId;
+    }
+    match /supportTickets/{ticketId} {
+        allow read, write: if isSuperAdmin();
+    }
+     match /reminderRules/{ruleId} {
+      allow read, write: if isSuperAdmin();
+    }
+    match /reminderTemplates/{templateId} {
+      allow read, write: if isSuperAdmin();
+    }
+    match /reminderLogs/{logId} {
+      allow read, write: if isSuperAdmin();
     }
   }
 }
