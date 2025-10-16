@@ -85,11 +85,11 @@ export default function ReviewFunnelPage({ params }: PageProps) {
       const feedbackColRef = collection(firestore, 'businesses', businessId, 'internalFeedback');
       
       const feedbackData = {
-          businessId: businessId, // CRITICAL: This is required by the security rule.
+          businessId: businessId,
           rating: rating,
           name: name,
           email: email,
-          message: message,
+          review: message, // CORREGIDO: 'message' ahora es 'review'
           status: 'Pending',
           createdAt: serverTimestamp(),
       };
