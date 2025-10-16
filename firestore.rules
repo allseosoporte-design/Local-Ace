@@ -1,84 +1,73 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    //------------------------------------------------------------------
+    // Funciones de Ayuda Globales
+    //------------------------------------------------------------------
 
-    // Helper function to check for super admin role via email claim
     function isSuperAdmin() {
-      // In a real app, you'd use custom claims. For this demo, email is a fallback.
-      return request.auth.token.email == 'allseosoporte@gmail.com';
+      return request.auth.uid != null && request.auth.token.isSuperAdmin == true;
     }
 
-    // Users can manage their own profile document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Permite al Super Admin acceso total
+    match /{document=**} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    //------------------------------------------------------------------
+    // Colección de Usuarios
+    //------------------------------------------------------------------
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId || isSuperAdmin();
+      // Un usuario puede leer y escribir en su propio perfil
+      allow read, write: if isOwner(userId);
     }
-
-    // Business owners can manage their own business document
+    
+    //------------------------------------------------------------------
+    // Colección de Negocios y Subcolecciones
+    //------------------------------------------------------------------
     match /businesses/{businessId} {
-      allow read, write: if request.auth.uid == businessId || isSuperAdmin();
-    }
-    
-    // Landing pages for the main company should be public
-    match /businesses/allseosoporte/landingPages/{pageId} {
-        allow read: if true;
-    }
-    
-    // Landing pages can be managed by their business owner
-    match /businesses/{businessId}/landingPages/{pageId} {
-      allow read, write: if request.auth.uid == businessId || isSuperAdmin();
-    }
-
-    // --- Rules for Internal Feedback ---
-    
-    // This is the CRITICAL rule for the Collection Group Query.
-    // It allows a user to LIST feedback documents from ANY business,
-    // as long as the query is explicitly filtering for their own businessId.
-    // It also allows a Super Admin to list any feedback.
-    match /{path=**}/internalFeedback/{feedbackId} {
-      allow list: if (request.auth.uid != null && request.query.where.businessId == request.auth.uid) || isSuperAdmin();
+      // El dueño del negocio puede leer/escribir su documento de negocio
+      allow read, write: if isOwner(businessId);
       
-      // Allow ANYONE (even unauthenticated users) to CREATE feedback.
-      // This is necessary for the public funnel page to work.
+      // Regla para la subcolección de landing pages
+      match /landingPages/{pageId} {
+        // Permitir lectura pública para la landing page del super admin 'allseosoporte'
+        allow get: if businessId == 'allseosoporte';
+        // El dueño del negocio puede gestionar sus propias landing pages
+        allow read, write: if isOwner(businessId);
+      }
+    }
+
+    //------------------------------------------------------------------
+    // Reglas para Grupos de Colección (Collection Groups)
+    //------------------------------------------------------------------
+
+    // Regla para el grupo de colecciones 'internalFeedback'
+    match /{path=**}/internalFeedback/{feedbackId} {
+      // CUALQUIERA puede crear un feedback. Es una acción pública desde el embudo.
       allow create: if true;
-
-      // Allow the business owner or a super admin to GET, UPDATE, or DELETE a specific feedback document.
-      allow get, update, delete: if request.auth != null && (request.auth.uid == resource.data.businessId || isSuperAdmin());
+      
+      // SOLO el dueño del negocio puede LEER su propio feedback.
+      // request.auth.uid es el ID del usuario que hace la petición.
+      // resource.data.businessId es el campo guardado en el documento de feedback.
+      allow get, list: if request.auth.uid == resource.data.businessId;
     }
 
-    // Subscription plans are public to read for pricing pages
-    match /subscriptionPlans/{planId} {
-      allow read: if true;
-      allow write: if isSuperAdmin(); // Only super admins can modify plans
-    }
-
-    // Other admin-only collections
-    match /backups/{backupId} {
-      allow read, write: if isSuperAmdin();
-    }
-    match /globalAuditLogs/{logId} {
-        allow read, write: if isSuperAdmin();
-    }
-    match /paymentSettings/{settingId} {
-        allow read, write: if isSuperAdmin();
-    }
-    match /pendingPayments/{paymentId} {
-        allow read, write: if isSuperAdmin();
-    }
-     match /superAdmins/{adminId} {
-      allow read, write: if request.auth.uid == adminId;
-    }
-    match /supportTickets/{ticketId} {
-        allow read, write: if isSuperAdmin();
-    }
-     match /reminderRules/{ruleId} {
-      allow read, write: if isSuperAdmin();
-    }
-    match /reminderTemplates/{templateId} {
-      allow read, write: if isSuperAdmin();
-    }
-    match /reminderLogs/{logId} {
-      allow read, write: if isSuperAdmin();
+    //------------------------------------------------------------------
+    // Colecciones Públicas
+    //------------------------------------------------------------------
+    match /subscriptions/{subscriptionId} {
+      // Cualquiera puede leer los planes de suscripción
+      allow get, list: if true;
+      // Nadie puede escribirlos directamente
+      allow write: if false;
     }
   }
 }
