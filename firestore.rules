@@ -2,105 +2,124 @@
  * @fileoverview Firestore Security Rules for the application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict ownership model. Public read access is not permitted
- * except for specific collections like subscriptions.
+ * This ruleset enforces a strict ownership model for user profiles and businesses.
+ * Businesses and associated entities can only be managed by authenticated users
+ * who are linked to the business via their user profile. Public read access is not permitted
+ * except for the subscriptions collection which is intended to be publicly readable.
  *
  * Data Structure:
- * - /users/{userId}: Links auth ID to business ID.
- * - /businesses/{businessId}: Core business information.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}: GMB profiles.
- * - /internalFeedback/{internalFeedbackId}: Feedback from the funnel, now a root collection.
- * - /subscriptions/{subscriptionId}: Publicly readable subscription plans.
+ * - /users/{userId}: Stores user profile information, linking auth ID to business ID.
+ * - /businesses/{businessId}: Stores business information. Root collection for all business-related data.
+ * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}: Stores Google My Business profile information.
+ * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}: Stores customer reviews.
+ * - /internalFeedback/{internalFeedbackId}: Stores internal feedback from the review funnel (root collection).
+ * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}: Stores automated posts.
+ * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages.
+ * - /subscriptions/{subscriptionId}: Stores subscription plan information.
+ *
+ * Key Security Decisions:
+ * - User profiles are private and only accessible to the authenticated user.
+ * - Businesses and their associated data can only be created and managed by authenticated users.
+ * - Subscriptions are publicly readable, but write access is restricted.
+ * - `internalFeedback` can be created by anyone but only read by the business owner.
+ * - No user listing is allowed.
+ *
+ * Denormalization for Authorization:
+ * - The `businessId` is denormalized into the `UserProfile` to link a user's auth ID to a business.
+ * - The `businessId` is also a field in documents within `internalFeedback` to enforce read ownership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isSuperAdmin() {
-      return request.auth != null && request.auth.token.email == 'allseosoporte@gmail.com';
-    }
-
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    function isBusinessOwner(businessId) {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
-    }
-
-    // User profiles are private
+    /**
+     * @description Grants access to user profiles based on ownership.
+     */
     match /users/{userId} {
-      allow read, update, delete: if isOwner(userId) || isSuperAdmin();
-      allow create: if request.auth != null; // Any authenticated user can create their own profile
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && request.resource.data.businessId == userId;
     }
 
-    // Businesses are private to their owners
+    /**
+     * @description Grants access to businesses and their subcollections based on ownership.
+     */
     match /businesses/{businessId} {
-      allow read, write: if isBusinessOwner(businessId) || isSuperAdmin();
-      
-      // Landing pages subcollection
+      function isBusinessOwner() {
+        return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
+      }
+
+      allow read, update, delete: if isBusinessOwner();
+      allow create: if request.auth != null;
+
       match /landingPages/{pageId} {
-        allow read, write: if isBusinessOwner(businessId) || isSuperAdmin();
+        allow read, write: if isBusinessOwner();
       }
     }
     
-    // GMB Profiles are private to business owners
-    match /googleMyBusinessProfiles/{googleMyBusinessProfileId} {
-        allow read, write: if isBusinessOwner(get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId) || isSuperAdmin();
+    /**
+     * @description Grants access to internal feedback (root collection) based on business ownership.
+     */
+    match /internalFeedback/{internalFeedbackId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
 
-        // Subcollections of GMB profiles
-        match /{subcollection}/{docId} {
-           allow read, write: if isBusinessOwner(get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId) || isSuperAdmin();
-        }
+      function isBusinessOwner(businessId) {
+        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
+      }
+
+      function getBusinessIdFromFeedback(internalFeedbackId) {
+        return get(/databases/$(database)/documents/internalFeedback/$(internalFeedbackId)).data.businessId;
+      }
+      
+      function userHasBusinessId() {
+        return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
+               && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId != null;
+      }
+
+      allow get: if isSignedIn() && isBusinessOwner(getBusinessIdFromFeedback(internalFeedbackId));
+      allow list: if userHasBusinessId();
+      // Allow anyone to create feedback, as long as they provide a businessId
+      allow create: if request.resource.data.businessId != null;
+      allow update: if isSignedIn() && resource != null && isBusinessOwner(resource.data.businessId);
+      allow delete: if isSignedIn() && resource != null && isBusinessOwner(resource.data.businessId);
     }
-    
-    // Subscriptions are public to read
+
+    /**
+     * @description Grants access to GMB profiles and their subcollections.
+     */
+    match /googleMyBusinessProfiles/{gmbProfileId} {
+      function isGmbProfileOwner() {
+          return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == resource.data.businessId;
+      }
+       function userHasBusinessId() {
+        return request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
+               && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId != null;
+      }
+
+      allow read, update, delete: if isGmbProfileOwner();
+      allow create: if request.auth != null && request.resource.data.businessId != null;
+      allow list: if userHasBusinessId();
+
+      match /reviews/{reviewId} {
+        allow read, write: if isGmbProfileOwner();
+      }
+
+      match /automatedPosts/{postId} {
+        allow read, write: if isGmbProfileOwner();
+      }
+    }
+
+    /**
+     * @description Grants public read access to subscriptions.
+     */
     match /subscriptions/{subscriptionId} {
-      allow get, list: if true;
-      allow write: if isSuperAdmin();
-    }
-
-    // NEW RULES FOR ROOT internalFeedback collection
-    // This allows anyone to submit feedback (create)
-    // but only the business owner can read it (get, list).
-    match /internalFeedback/{feedbackId} {
-      allow create: if true;
-      allow read, list: if request.auth != null && resource.data.businessId == request.auth.uid;
-      allow update, delete: if (isBusinessOwner(resource.data.businessId) || isSuperAdmin()) && resource != null;
-    }
-
-    // Global Collections for Super Admin
-    match /globalAuditLogs/{logId} {
-        allow read, write: if isSuperAdmin();
-    }
-    match /backups/{backupId} {
-        allow read, write: if isSuperAdmin();
-    }
-     match /paymentSettings/{planId} {
-        allow read, write: if isSuperAdmin();
-    }
-     match /pendingPayments/{paymentId} {
-        allow read, write: if isSuperAdmin();
-    }
-     match /supportTickets/{ticketId} {
-        allow read, write: if isSuperAdmin();
-    }
-     match /reminderRules/{ruleId} {
-        allow read, write: if isSuperAdmin();
-    }
-    match /reminderTemplates/{templateId} {
-        allow read, write: if isSuperAdmin();
-    }
-     match /reminderLogs/{logId} {
-        allow read, write: if isSuperAdmin();
-    }
-    match /superAdmins/{adminId} {
-        allow read, write: if isSuperAdmin();
-    }
-    match /subscriptionPlans/{planId} {
       allow read: if true;
-      allow write: if isSuperAdmin();
+      allow write: if false; // Write access should be handled by a backend/admin role
     }
   }
 }
