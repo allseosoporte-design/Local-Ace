@@ -12,7 +12,7 @@
  * - /businesses/{businessId}: Stores business information. Root collection for all business-related data.
  * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}: Stores Google My Business profile information.
  * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}: Stores customer reviews.
- * - /internalFeedback/{internalFeedbackId}: Stores internal feedback.
+ * - /internalFeedback/{internalFeedbackId}: Stores internal feedback. (Root Collection)
  * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}: Stores automated posts.
  * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages.
  * - /subscriptions/{subscriptionId}: Stores subscription plan information.
@@ -72,6 +72,11 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update: if isBusinessOwner(businessId) && resource != null;
       allow delete: if isBusinessOwner(businessId) && resource != null;
+
+      // Rule for nested landingPages subcollection
+      match /landingPages/{landingPageId} {
+        allow read, write: if isBusinessOwner(businessId);
+      }
     }
 
     /**
@@ -93,6 +98,7 @@ service cloud.firestore {
       function getBusinessIdFromProfile(googleMyBusinessProfileId) {
           return get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId;
       }
+
       function userHasBusinessId() {
         return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
                && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId != null;
@@ -103,102 +109,29 @@ service cloud.firestore {
       allow create: if isSignedIn() && isBusinessOwner(request.resource.data.businessId);
       allow update: if isSignedIn() && resource != null && isBusinessOwner(resource.data.businessId);
       allow delete: if isSignedIn() && resource != null && isBusinessOwner(resource.data.businessId);
-    }
 
-    /**
-     * @description Grants access to reviews based on Google My Business profile ownership.
-     * @path /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}
-     * @allow (create) User with UID 'user123' can create a review at /googleMyBusinessProfiles/profile123/reviews/review123 if they own the linked profile.
-     * @allow (get, update, delete) User with UID 'user123' can read/write the review at /googleMyBusinessProfiles/profile123/reviews/review123 if they own the linked profile.
-     * @deny (get, update, delete) User with UID 'user456' cannot read/write the review at /googleMyBusinessProfiles/profile123/reviews/review123 if they don't own the linked profile.
-     * @principle Enforces document ownership for reads and writes, validating against the Google My Business profile ID.
-     */
-    match /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId} {
-      function isSignedIn() {
-        return request.auth != null;
+      // Rules for subcollections of googleMyBusinessProfiles
+      match /reviews/{reviewId} {
+        allow read, write: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
       }
 
-      function isBusinessOwner(businessId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
+      match /automatedPosts/{automatedPostId} {
+        allow read, write: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
       }
-
-      function getBusinessIdFromProfile(googleMyBusinessProfileId) {
-          return get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId;
-      }
-
-      allow get: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-      allow list: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-      allow create: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-      allow update: if isSignedIn() && resource != null && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-      allow delete: if isSignedIn() && resource != null && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
     }
     
     /**
-     * @description Grants access to internal feedback based on business ownership.
-     * Now a root collection.
+     * @description Grants access to internal feedback. Public create for the funnel, restricted read for the owner.
      * @path /internalFeedback/{internalFeedbackId}
      * @allow (create) Anyone can create feedback.
-     * @allow (read) Only the business owner can read feedback.
-     * @principle Public write for funnel, restricted read for dashboard.
+     * @allow (read) A user can read feedback if the document's businessId matches their own.
+     * @principle Allows public write for anonymous feedback, but restricts read access to the business owner.
      */
     match /internalFeedback/{internalFeedbackId} {
       allow create: if true;
-      allow read: if request.auth != null && get(/databases/$(database)/documents/internalFeedback/$(internalFeedbackId)).data.businessId == request.auth.uid;
-      allow update, delete: if false; // By default, disallow updates and deletes from client.
+      allow read: if request.auth != null && resource.data.businessId == request.auth.uid;
     }
 
-
-    /**
-     * @description Grants access to automated posts based on Google My Business profile ownership.
-     * @path /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}
-     * @allow (create) User with UID 'user123' can create a post at /googleMyBusinessProfiles/profile123/automatedPosts/post123 if they own the linked profile.
-     * @allow (get, update, delete) User with UID 'user123' can read/write a post at /googleMyBusinessProfiles/profile123/automatedPosts/post123 if they own the linked profile.
-     * @deny (get, update, delete) User with UID 'user456' cannot read/write a post at /googleMyBusinessProfiles/profile123/automatedPosts/post123 if they don't own the linked profile.
-     * @principle Enforces document ownership for reads and writes, validating against the Google My Business profile ID.
-     */
-    match /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isBusinessOwner(businessId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
-      }
-
-      function getBusinessIdFromProfile(googleMyBusinessProfileId) {
-          return get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId;
-      }
-
-      allow get: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-      allow list: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-      allow create: if isSignedIn() && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-      allow update: if isSignedIn() && resource != null && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-      allow delete: if isSignedIn() && resource != null && isBusinessOwner(getBusinessIdFromProfile(googleMyBusinessProfileId));
-    }
-
-    /**
-     * @description Grants access to landing pages based on business ownership.
-     * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow (create) User with UID 'user123' can create a page at /businesses/business123/landingPages/page123 if they own the business.
-     * @allow (get, update, delete) User with UID 'user123' can read/write a page at /businesses/business123/landingPages/page123 if they own the business.
-     * @deny (get, update, delete) User with UID 'user456' cannot read/write a page at /businesses/business123/landingPages/page123 if they don't own the business.
-     * @principle Enforces document ownership for reads and writes, validating against the business ID.
-     */
-    match /businesses/{businessId}/landingPages/{landingPageId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isBusinessOwner(businessId) {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
-      }
-
-      allow get: if isBusinessOwner(businessId);
-      allow list: if isBusinessOwner(businessId);
-      allow create: if isBusinessOwner(businessId);
-      allow update: if isBusinessOwner(businessId) && resource != null;
-      allow delete: if isBusinessOwner(businessId) && resource != null;
-    }
 
     /**
      * @description Grants public read access to subscriptions, write access is denied.
