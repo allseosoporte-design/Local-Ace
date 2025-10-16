@@ -32,7 +32,8 @@ export function InternalFeedbackTable() {
     
     const sortedData = useMemo(() => {
         if (!feedbackData) return [];
-        return feedbackData.map(item => ({...item, review: (item as any).message || ''}));
+        // No mapping needed if field names match
+        return feedbackData;
     }, [feedbackData]);
 
     if (!isAuthLoading && !user) {
