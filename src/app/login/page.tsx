@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
@@ -46,60 +46,69 @@ export default function LoginPage() {
       return;
     }
 
+    const functions = getFunctions(auth.app);
+    const addSuperAdminRole = httpsCallable(functions, 'addSuperAdminRole');
+
     try {
+      // Intenta iniciar sesión primero
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      
-      const batch = writeBatch(firestore);
 
-      const userProfileRef = doc(firestore, 'users', user.uid);
-      const userProfileDoc = await getDoc(userProfileRef);
-
-      const isSuperAdmin = user.email === 'allseosoporte@gmail.com';
-
-      if (isSuperAdmin) {
-        if (!userProfileDoc.exists()) {
-            batch.set(userProfileRef, {
-                businessId: 'allseosoporte',
-                email: user.email,
-            });
-        }
+      if (user.email === 'allseosoporte@gmail.com') {
         router.push('/dashboard/admin');
       } else {
-        if (!userProfileDoc.exists()) {
-           batch.set(userProfileRef, {
-                businessId: user.uid,
-                email: user.email,
-            });
-        }
-        
-        const businessRef = doc(firestore, 'businesses', user.uid);
-        const businessDoc = await getDoc(businessRef);
-
-        if (!businessDoc.exists()) {
-          batch.set(businessRef, {
-            name: user.displayName || user.email,
-            adminEmail: user.email,
-            status: "Active",
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
-        }
         router.push('/dashboard');
       }
       
-      await batch.commit();
-
     } catch (error: any) {
-      let errorMessage = 'Credenciales incorrectas. Por favor, inténtalo de nuevo.';
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-          errorMessage = 'El correo electrónico o la contraseña son incorrectos.';
+      // SI EL USUARIO NO EXISTE (Y ES EL SUPER ADMIN), LO CREAMOS
+      if (error.code === 'auth/user-not-found' && email === 'allseosoporte@gmail.com') {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          const batch = writeBatch(firestore);
+
+          // Crear perfil de usuario
+          const userProfileRef = doc(firestore, 'users', user.uid);
+          batch.set(userProfileRef, {
+              businessId: 'allseosoporte',
+              email: user.email,
+          });
+
+          // Asignar el custom claim de super admin
+          await addSuperAdminRole({ email: user.email });
+          // Forzar la actualización del token para que el claim se refleje
+          await user.getIdToken(true); 
+
+          await batch.commit();
+          
+          toast({
+            title: '¡Bienvenido, Super Admin!',
+            description: 'Se ha creado tu cuenta de administrador.',
+          });
+          router.push('/dashboard/admin');
+
+        } catch (creationError: any) {
+           toast({
+            variant: 'destructive',
+            title: 'Error Crítico',
+            description: `No se pudo crear la cuenta de super admin: ${creationError.message}`,
+          });
+        }
+      } else {
+        // Manejar otros errores de login
+        let errorMessage = 'Credenciales incorrectas. Por favor, inténtalo de nuevo.';
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            errorMessage = 'La contraseña es incorrecta.';
+        } else if (error.code === 'auth/user-not-found') {
+            errorMessage = 'El usuario no existe. Por favor, regístrate.';
+        }
+        toast({
+          variant: 'destructive',
+          title: 'Error de inicio de sesión',
+          description: errorMessage,
+        });
       }
-      toast({
-        variant: 'destructive',
-        title: 'Error de inicio de sesión',
-        description: errorMessage,
-      });
     } finally {
       setIsLoading(false);
     }
