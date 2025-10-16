@@ -75,19 +75,26 @@ export default function ReviewFunnelPage({ params }: PageProps) {
 
   const handleSubmitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore || !businessId) return;
+    if (!firestore || !businessId) {
+        console.error("Firestore or Business ID not available");
+        return;
+    };
 
     setIsSubmitting(true);
     try {
       const feedbackColRef = collection(firestore, 'businesses', businessId, 'internalFeedback');
-      await addDoc(feedbackColRef, {
-        name,
-        email,
-        message,
-        rating,
-        status: 'Pending',
-        createdAt: serverTimestamp(),
-      });
+      
+      const feedbackData = {
+          businessId: businessId, // CRITICAL: This is required by the security rule.
+          rating: rating,
+          name: name,
+          email: email,
+          message: message,
+          status: 'Pending',
+          createdAt: serverTimestamp(),
+      };
+      
+      await addDoc(feedbackColRef, feedbackData);
       setStep(3);
     } catch (error) {
       console.error('Error submitting feedback:', error);
