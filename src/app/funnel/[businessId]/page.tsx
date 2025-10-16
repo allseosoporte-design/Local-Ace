@@ -18,9 +18,6 @@ import { CheckCircle, MessageSquare, Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
-// Define a static businessId for demonstration purposes
-const DEMO_BUSINESS_ID = 'allseosoporte';
-
 const defaultFormConfig = {
   redirectUrl: "https://www.google.com/maps/search/?api=1&query=YOUR_BUSINESS_ID",
   formTitle: "¿Cómo fue tu experiencia?",
@@ -33,14 +30,15 @@ const defaultFormConfig = {
   thankYouSubtitle: "Tus comentarios son muy valiosos para nosotros.",
 };
 
-export default function ReviewFunnelPage() {
+export default function ReviewFunnelPage({ params }: { params: { businessId: string } }) {
   const [rating, setRating] = useState(0);
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  
+  const businessId = params.businessId;
   const firestore = useFirestore();
 
   useEffect(() => {
@@ -49,32 +47,27 @@ export default function ReviewFunnelPage() {
       rating === 5 &&
       defaultFormConfig.redirectUrl
     ) {
-      const redirectUrl = defaultFormConfig.redirectUrl.replace('YOUR_BUSINESS_ID', DEMO_BUSINESS_ID);
+      const redirectUrl = defaultFormConfig.redirectUrl.replace('YOUR_BUSINESS_ID', businessId);
       window.location.href = redirectUrl;
     }
-  }, [step, rating]);
-
-  const handleRating = (rate: number) => {
-    setRating(rate);
-    setStep(2);
-  };
+  }, [step, rating, businessId]);
 
   const handleSubmitFeedback = async (e: FormEvent) => {
     e.preventDefault();
-    if (!firestore) {
-        console.error("Firestore not available");
+    if (!firestore || !businessId) {
+        console.error("Firestore not available or businessId missing");
         return;
     };
 
     setIsSubmitting(true);
     try {
-      const feedbackPath = `businesses/${DEMO_BUSINESS_ID}/internalFeedback`;
+      const feedbackPath = `businesses/${businessId}/internalFeedback`;
       console.log(`DEBUG: Guardando feedback en la ruta: ${feedbackPath}`);
       
       const feedbackColRef = collection(firestore, feedbackPath);
       
       const feedbackData = {
-          businessId: DEMO_BUSINESS_ID,
+          businessId: businessId,
           rating: rating,
           name: name,
           email: email,
