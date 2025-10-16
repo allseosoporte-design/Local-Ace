@@ -3,92 +3,119 @@
  *
  * Core Philosophy:
  * This ruleset enforces a strict ownership model for user profiles and businesses.
- * Businesses and associated entities can only be managed by authenticated users
- * who are linked to the business via their user profile. Public read access is not permitted
- * except for the subscriptions collection which is intended to be publicly readable.
+ * A super admin role is defined for full access.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information, linking auth ID to business ID.
- * - /businesses/{businessId}: Stores business information. Root collection for all business-related data.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}: Stores Google My Business profile information.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}: Stores customer reviews.
- * - /internalFeedback/{internalFeedbackId}: Stores internal feedback from the funnel (ROOT COLLECTION).
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}: Stores automated posts.
- * - /businesses/{businessId}/landingPages/{landingPageId}: Stores landing pages.
- * - /subscriptions/{subscriptionId}: Stores subscription plan information.
- *
- * Key Security Decisions:
- * - User profiles are private and only accessible to the authenticated user.
- * - Businesses and their associated data can only be created and managed by authenticated users.
- * - Subscriptions are publicly readable, but write access is restricted.
- * - Internal feedback creation is public to allow anonymous submissions, but reading is private.
- *
- * Denormalization for Authorization:
- * - The `businessId` is denormalized into the `UserProfile` to link a user's auth ID to a business.
- * - All subcollections under `/businesses/{businessId}` use the `businessId` in the path to enforce ownership.
+ * - /users/{userId}: Links auth ID to business ID.
+ * - /businesses/{businessId}: Root collection for business data.
+ * - /internalFeedback/{internalFeedbackId}: Root collection for private feedback.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- Functions ---
     function isSuperAdmin() {
-      return request.auth.token.isSuperAdmin == true || request.auth.token.email == 'allseosoporte@gmail.com';
+      return request.auth != null && request.auth.token.isSuperAdmin == true;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
     }
 
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     function isBusinessOwner(businessId) {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId;
     }
 
-    match /{document=**} {
-      allow read, write: if isSuperAdmin();
-    }
-
+    // --- User Profiles ---
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update, delete: if isOwner(userId);
+      allow read, write: if isOwner(userId) || isSuperAdmin();
+      allow list: if isSuperAdmin();
     }
 
+    // --- Businesses ---
     match /businesses/{businessId} {
-      allow get: if isBusinessOwner(businessId);
+      allow read: if isBusinessOwner(businessId) || isSuperAdmin();
       allow list: if isSuperAdmin();
-      allow create: if isOwner(businessId);
-      allow update, delete: if isBusinessOwner(businessId);
+      allow create: if isSignedIn();
+      allow update, delete: if isBusinessOwner(businessId) || isSuperAdmin();
+
+      // Subcollections
+      match /landingPages/{pageId} {
+        // Public read for the super admin's business landing page
+        allow read: if businessId == 'allseosoporte' || isBusinessOwner(businessId) || isSuperAdmin();
+        allow write: if isBusinessOwner(businessId) || isSuperAdmin();
+      }
+    }
+
+    // --- Internal Feedback (Root Collection) ---
+    match /internalFeedback/{internalFeedbackId} {
+      // Allow anyone to create feedback, as long as they provide a businessId.
+      // This is for the public funnel form.
+      allow create: if request.resource.data.businessId is string;
+
+      // Only the business owner or a super admin can read the feedback.
+      allow read, update, delete: if (isSignedIn() && isBusinessOwner(resource.data.businessId)) || isSuperAdmin();
+      allow list: if isSuperAdmin();
+    }
+
+    // --- Collection Group for Internal Feedback ---
+    // This rule allows a business owner to list their own feedback across all documents.
+    match /{path=**}/internalFeedback/{feedbackId} {
+       allow list: if isSignedIn() && request.query.where.businessId == request.auth.uid;
+    }
+
+
+    // --- Admin & Global Collections ---
+    match /subscriptions/{subscriptionId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    match /subscriptionPlans/{planId} {
+       allow read: if true;
+       allow write: if isSuperAdmin();
     }
     
-    match /businesses/{businessId}/{subcollection}/{docId} {
-      allow read, write: if isBusinessOwner(businessId);
+    match /paymentSettings/{planId} {
+        allow read, write: if isSuperAdmin();
     }
 
-    match /googleMyBusinessProfiles/{gmbId} {
-       allow read, write: if isBusinessOwner(get(/databases/$(database)/documents/googleMyBusinessProfiles/$(gmbId)).data.businessId);
+    match /superAdmins/{adminId} {
+        allow read, write: if isOwner(adminId);
+    }
+    
+    match /globalAuditLogs/{logId} {
+       allow read, write: if isSuperAdmin();
     }
 
-    match /googleMyBusinessProfiles/{gmbId}/{subcollection}/{docId} {
-       allow read, write: if isBusinessOwner(get(/databases/$(database)/documents/googleMyBusinessProfiles/$(gmbId)).data.businessId);
+    match /backups/{backupId} {
+        allow read, write: if isSuperAdmin();
     }
 
-    match /internalFeedback/{feedbackId} {
-      // Allow anyone to submit feedback (create), as long as they provide a businessId.
-      // This is crucial for the public review funnel to work.
-      allow create: if request.resource.data.businessId != null;
-
-      // Allow users to read/list feedback only if they own the business the feedback is for.
-      allow read: if isBusinessOwner(resource.data.businessId);
-      allow list: if request.auth != null && request.query.where.businessId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId;
-
-      // Only business owners can update or delete their feedback.
-      allow update, delete: if isBusinessOwner(resource.data.businessId);
+    match /pendingPayments/{paymentId} {
+       allow read, write: if isSuperAdmin();
     }
 
-    match /subscriptions/{subscriptionId} {
-      allow get, list: if true;
-      allow write: if false;
-    }
+     match /supportTickets/{ticketId} {
+        allow read, write: if isSuperAdmin();
+     }
+
+     match /reminderRules/{ruleId} {
+        allow read, write: if isSuperAdmin();
+     }
+
+     match /reminderTemplates/{templateId} {
+        allow read, write: if isSuperAdmin();
+     }
+
+     match /reminderLogs/{logId} {
+        allow read, write: if isSuperAdmin();
+     }
+
   }
 }
