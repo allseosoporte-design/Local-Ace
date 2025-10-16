@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { feedbackColumns } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -19,20 +19,31 @@ export function InternalFeedbackTable() {
             return null;
         }
 
-        // Accede directamente a la subcolección usando la ruta.
+        console.log(`[DEBUG] Creando query para: businesses/${user.uid}/internalFeedback`);
         return query(
           collection(firestore, `businesses/${user.uid}/internalFeedback`),
           orderBy('createdAt', 'desc')
         );
     }, [firestore, user, isAuthLoading]);
 
-    const { data: feedbackData, isLoading: isLoadingFeedback } = useCollection<Review>(feedbackQuery);
+    const { data: feedbackData, isLoading: isLoadingFeedback, error } = useCollection<Review>(feedbackQuery);
+    
+    useEffect(() => {
+      if (error) {
+        console.error("[DEBUG] Error en useCollection:", error);
+      }
+      if (!isLoadingFeedback && feedbackData) {
+        console.log(`[DEBUG] Datos recibidos: ${feedbackData.length} documentos.`);
+      }
+      if(!isLoadingFeedback && !feedbackData && !error){
+        console.log("[DEBUG] La consulta finalizó pero no se recibieron datos ni errores. Esto puede indicar un problema de permisos o la falta de un índice en Firestore.");
+      }
+    }, [feedbackData, isLoadingFeedback, error]);
     
     const isLoading = isAuthLoading || (feedbackQuery === null && !!user) || isLoadingFeedback;
     
     const sortedData = useMemo(() => {
         if (!feedbackData) return [];
-        // No mapping needed if field names match
         return feedbackData;
     }, [feedbackData]);
 
