@@ -4,16 +4,13 @@
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { HomeNav } from '@/components/home-nav';
 
-// This is the static content for the main public-facing homepage.
-const PUBLIC_BUSINESS_ID = 'allseosoporte';
-
 const defaultData: LandingPageData = {
   title: "Optimiza tu Presencia en Google My Business",
   subtitle: "Local Leap te ayuda a gestionar tu reputación online, interactuar con clientes y mejorar tu ranking local.",
   content: `Descubre la revolución para tu NEGOCIO. Con nuestro menú digital interactivo, tus clientes explorarán tus platos con fotos de alta calidad y descripciones detalladas.`,
   heroImageUrl: "https://picsum.photos/seed/websapmax/1200/800",
   ctaText: "Deja tu Reseña",
-  ctaUrl: `/funnel/${PUBLIC_BUSINESS_ID}`,
+  ctaUrl: `/funnel/allseosoporte`, // This now points to a consistent funnel page
   backgroundColor: "#FFFFFF",
   textColor: "#000000",
   buttonColor: "#FF4500",
@@ -30,8 +27,6 @@ const defaultData: LandingPageData = {
 
 
 export default function Home() {
-  // The page now uses static defaultData and does not fetch from Firestore.
-  // This prevents any permission errors for public visitors.
   return (
     <div className="flex flex-col min-h-screen">
       <HomeNav />

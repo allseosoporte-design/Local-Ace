@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -19,11 +18,9 @@ import { CheckCircle, MessageSquare, Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
-interface PageProps {
-  params: { businessId: string } | Promise<{ businessId: string }>;
-}
+// Define a static businessId for demonstration purposes
+const DEMO_BUSINESS_ID = 'allseosoporte';
 
-// Define default form configuration statically
 const defaultFormConfig = {
   redirectUrl: "https://www.google.com/maps/search/?api=1&query=YOUR_BUSINESS_ID",
   formTitle: "¿Cómo fue tu experiencia?",
@@ -36,8 +33,7 @@ const defaultFormConfig = {
   thankYouSubtitle: "Tus comentarios son muy valiosos para nosotros.",
 };
 
-export default function ReviewFunnelPage({ params }: PageProps) {
-  const [businessId, setBusinessId] = useState<string | null>(null);
+export default function ReviewFunnelPage() {
   const [rating, setRating] = useState(0);
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -47,48 +43,38 @@ export default function ReviewFunnelPage({ params }: PageProps) {
 
   const firestore = useFirestore();
 
-  // Resolve params whether it's a Promise or direct object
-  useEffect(() => {
-    const resolveParams = async () => {
-      const resolved = await Promise.resolve(params);
-      setBusinessId(resolved.businessId);
-    };
-    resolveParams();
-  }, [params]);
-
   useEffect(() => {
     if (
       step === 2 &&
       rating === 5 &&
       defaultFormConfig.redirectUrl
     ) {
-      // Replace placeholder with actual businessId for a more dynamic redirect
-      const redirectUrl = defaultFormConfig.redirectUrl.replace('YOUR_BUSINESS_ID', businessId || '');
+      const redirectUrl = defaultFormConfig.redirectUrl.replace('YOUR_BUSINESS_ID', DEMO_BUSINESS_ID);
       window.location.href = redirectUrl;
     }
-  }, [step, rating, businessId]);
+  }, [step, rating]);
 
   const handleRating = (rate: number) => {
     setRating(rate);
     setStep(2);
   };
 
-  const handleSubmitFeedback = async (e: React.FormEvent) => {
+  const handleSubmitFeedback = async (e: FormEvent) => {
     e.preventDefault();
-    if (!firestore || !businessId) {
-        console.error("Firestore or Business ID not available");
+    if (!firestore) {
+        console.error("Firestore not available");
         return;
     };
 
     setIsSubmitting(true);
     try {
-      const feedbackPath = `businesses/${businessId}/internalFeedback`;
-      console.log(`DEBUG: Guardando feedback en la ruta: ${feedbackPath}`); // <-- AÑADIDO PARA DEBUGGING
+      const feedbackPath = `businesses/${DEMO_BUSINESS_ID}/internalFeedback`;
+      console.log(`DEBUG: Guardando feedback en la ruta: ${feedbackPath}`);
       
       const feedbackColRef = collection(firestore, feedbackPath);
       
       const feedbackData = {
-          businessId: businessId,
+          businessId: DEMO_BUSINESS_ID,
           rating: rating,
           name: name,
           email: email,
@@ -105,14 +91,6 @@ export default function ReviewFunnelPage({ params }: PageProps) {
       setIsSubmitting(false);
     }
   };
-
-  if (!businessId) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Loader2 className="h-10 w-10 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
