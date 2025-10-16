@@ -1,6 +1,8 @@
+
 'use client';
 
 import { useState, useEffect, type FormEvent } from 'react';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -30,7 +32,7 @@ const defaultFormConfig = {
   thankYouSubtitle: "Tus comentarios son muy valiosos para nosotros.",
 };
 
-export default function ReviewFunnelPage({ params }: { params: { businessId: string } }) {
+export default function ReviewFunnelPage() {
   const [rating, setRating] = useState(0);
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -38,14 +40,21 @@ export default function ReviewFunnelPage({ params }: { params: { businessId: str
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const businessId = params.businessId;
+  const params = useParams();
+  const businessId = params.businessId as string;
   const firestore = useFirestore();
+
+  const handleRating = (newRating: number) => {
+    setRating(newRating);
+    setStep(2);
+  };
 
   useEffect(() => {
     if (
       step === 2 &&
       rating === 5 &&
-      defaultFormConfig.redirectUrl
+      defaultFormConfig.redirectUrl &&
+      businessId
     ) {
       const redirectUrl = defaultFormConfig.redirectUrl.replace('YOUR_BUSINESS_ID', businessId);
       window.location.href = redirectUrl;
