@@ -18,7 +18,13 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 // Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quilljs'), { ssr: false });
+const ReactQuill = dynamic(async () => {
+    const { default: RQ } = await import('react-quilljs');
+    // Esto es un truco para que funcione con la forma en que 'react-quilljs' exporta sus tipos en CommonJS
+    return function ReactQuillWrapper(props: any) {
+      return <RQ {...props} />;
+    };
+  }, { ssr: false });
 
 interface EditorLandingFormProps {
   data: LandingPageData;
