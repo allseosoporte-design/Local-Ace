@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import 'react-quill/dist/quill.snow.css';
 
 // Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+const ReactQuill = dynamic(() => import('react-quilljs').then((mod) => mod.ReactQuill), { ssr: false });
 
 interface EditorLandingFormProps {
   data: LandingPageData;

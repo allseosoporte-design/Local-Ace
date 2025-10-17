@@ -88,6 +88,8 @@ body {
 }
 
 /* React Quill Snow Theme Customization */
+@import 'react-quilljs/dist/quill.snow.css';
+
 .ql-editor {
   min-height: 250px;
   font-size: 1rem;
