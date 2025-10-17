@@ -10,6 +10,8 @@ import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StarRating } from '@/app/funnel/[businessId]/star-rating';
 import { useState } from 'react';
+import 'react-quill/dist/quill.snow.css';
+
 
 export interface Subsection {
   id: string;
@@ -68,15 +70,6 @@ interface EditorLandingPreviewProps {
 
 export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewProps) {
   const [previewRating, setPreviewRating] = useState(0);
-
-  const formatContent = (text: string) => {
-    return text.split('\n').map((str, index, array) => (
-      <span key={index}>
-        {str}
-        {index < array.length - 1 && <br />}
-      </span>
-    ));
-  };
   
   return (
     <div
@@ -101,9 +94,11 @@ export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewP
 
         {/* Content Section */}
         <section className="px-8 md:px-12 pb-8">
-            <div className="mx-auto max-w-[900px] text-left space-y-4 text-sm" style={{ color: data.textColor, opacity: 0.9 }}>
-                {formatContent(data.content)}
-            </div>
+            <div 
+              className="prose prose-sm lg:prose-base max-w-4xl mx-auto ql-editor"
+              style={{ color: data.textColor, opacity: 0.9 }}
+              dangerouslySetInnerHTML={{ __html: data.content }}
+            />
              {data.heroImageUrl && (
                 <div className="relative aspect-video max-w-4xl mx-auto mt-8 rounded-lg overflow-hidden shadow-lg">
                 <Image
@@ -121,9 +116,11 @@ export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewP
             <div className="container mx-auto">
               <h2 className="text-3xl font-bold text-center mb-2" style={{color: section.textColor}}>{section.title}</h2>
               <p className="text-xl text-center text-muted-foreground mb-8" style={{color: section.textColor, opacity: 0.8}}>{section.subtitle}</p>
-              <div className="text-center mb-12" style={{color: section.textColor, opacity: 0.9}}>
-                {formatContent(section.content)}
-              </div>
+              <div 
+                className="text-center mb-12 prose prose-sm lg:prose-base max-w-4xl mx-auto ql-editor" 
+                style={{color: section.textColor, opacity: 0.9}}
+                dangerouslySetInnerHTML={{ __html: section.content }}
+              />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {section.subsections.map((subsection) => (
                   <div key={subsection.id} className="bg-card/80 p-6 rounded-lg shadow-md flex flex-col items-center text-center">
@@ -133,7 +130,11 @@ export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewP
                       </div>
                     )}
                     <h3 className="text-xl font-semibold mb-2" style={{color: section.textColor}}>{subsection.title}</h3>
-                    <p className="text-sm" style={{color: section.textColor, opacity: 0.9}}>{formatContent(subsection.description)}</p>
+                    <p 
+                      className="text-sm prose prose-sm max-w-full ql-editor" 
+                      style={{color: section.textColor, opacity: 0.9}}
+                      dangerouslySetInnerHTML={{ __html: subsection.description }}
+                     />
                   </div>
                 ))}
               </div>
@@ -158,7 +159,10 @@ export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewP
                         <p className="text-sm text-muted-foreground">{testimonial.authorRole}</p>
                       </div>
                     </div>
-                    <p className="text-muted-foreground italic mb-4 flex-grow">"{formatContent(testimonial.text)}"</p>
+                    <div 
+                      className="text-muted-foreground italic mb-4 flex-grow prose prose-sm max-w-full ql-editor"
+                      dangerouslySetInnerHTML={{ __html: `"${testimonial.text}"`}}
+                     />
                     <div className="flex">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star key={i} className={cn("h-5 w-5", i < testimonial.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300")} />

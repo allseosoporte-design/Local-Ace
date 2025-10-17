@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Card,
   CardContent,
@@ -9,18 +10,34 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Eye, Save, RotateCcw, Loader2 } from 'lucide-react';
 import type { LandingPageData } from './editor-landing-preview';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import 'react-quill/dist/quill.snow.css';
+
+// Dynamically import ReactQuill to avoid SSR issues
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 interface EditorLandingFormProps {
   data: LandingPageData;
   setData: React.Dispatch<React.SetStateAction<LandingPageData>>;
 }
+
+// Custom toolbar configuration for React Quill
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, 4, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ align: [] }],
+    ['link', 'image', 'video'],
+    ['code-block'],
+    ['clean'],
+  ],
+};
 
 export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
   const { user } = useUser();
@@ -29,11 +46,15 @@ export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
   const [isSaving, setIsSaving] = useState(false);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement>
   ) => {
     setData({ ...data, [e.target.name]: e.target.value });
   };
   
+  const handleContentChange = (content: string) => {
+    setData({ ...data, content });
+  }
+
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
      setData({ ...data, [e.target.name]: e.target.value });
   }
@@ -51,7 +72,6 @@ export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
     try {
       const heroConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'hero');
       
-      // We only want to save the hero-related data, not sections or testimonials
       const { sections, testimonials, seo, ...heroData } = data;
 
       await setDoc(heroConfigRef, {
@@ -105,14 +125,15 @@ export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="content">Contenido Adicional (HTML)</Label>
-          <Textarea
-            id="content"
-            name="content"
-            value={data.content}
-            onChange={handleChange}
-            placeholder="Describe la revolución para tu NEGOCIO..."
-            className="min-h-[250px]"
-          />
+          <div className='bg-white rounded-md border'>
+             <ReactQuill
+                theme="snow"
+                value={data.content}
+                onChange={handleContentChange}
+                modules={quillModules}
+                placeholder="Describe tu negocio o servicio con más detalle. Añade imágenes, enlaces o texto enriquecido para destacar lo mejor de tu marca."
+              />
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="heroImageUrl">URL de Imagen del Hero</Label>
