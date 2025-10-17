@@ -34,20 +34,36 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
       const Quill = (await import('quill')).default;
       
       const toolbarOptions = [
-        [{ header: [1, 2, 3, 4, false] }],
+        [{ header: [1, 2, 3, 4, 5, 6, false] }],
+        [{ 'font': [] }],
         ['bold', 'italic', 'underline', 'strike'],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        [{ align: [] }],
-        ['link', 'image', 'video'],
-        ['code-block'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'align': [] }],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'script': 'sub'}, { 'script': 'super' }],
+        [{ 'indent': '-1'}, { 'indent': '+1' }],
+        ['link', 'image', 'video', 'blockquote', 'code-block'],
         ['clean']
       ];
+      
+      const handlers = {
+        undo: () => quillRef.current.history.undo(),
+        redo: () => quillRef.current.history.redo(),
+      };
 
       quillRef.current = new Quill(editorRef.current!, {
         theme: 'snow',
         placeholder: placeholder || '',
         modules: {
-          toolbar: toolbarOptions
+          toolbar: {
+            container: toolbarOptions,
+            handlers: handlers,
+          },
+           history: {
+            delay: 2000,
+            maxStack: 500,
+            userOnly: true
+          }
         }
       });
       
@@ -69,8 +85,6 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
     // Cleanup function
     return () => {
       if (quillRef.current) {
-        // This cleanup is tricky because of hot-reloading in dev.
-        // A simple null assignment might be safer in some cases.
         quillRef.current = null;
       }
     };
