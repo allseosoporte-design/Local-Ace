@@ -1,8 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import 'react-quill/dist/quill.snow.css'
+import 'quill/dist/quill.snow.css';
 
 interface RichTextEditorProps {
   value: string
@@ -10,13 +9,10 @@ interface RichTextEditorProps {
   placeholder?: string
 }
 
-const ReactQuill = dynamic(
-  () => import('react-quill'),
-  {
+const ReactQuill = dynamic(() => import('react-quilljs'), { 
     ssr: false,
     loading: () => <div className="h-64 bg-gray-50 animate-pulse rounded-lg" />
-  }
-);
+});
 
 const modules = {
   toolbar: [
