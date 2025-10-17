@@ -79,7 +79,7 @@ export function ProductModal({
     },
   });
   
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove, setValue } = useFieldArray({
     control: form.control,
     name: "imageUrls"
   });
@@ -135,16 +135,19 @@ export function ProductModal({
         });
 
         if (result.imageUrl) {
-          if (fields[index]) {
-            update(index, { value: result.imageUrl });
-          } else {
-            append({ value: result.imageUrl });
-          }
-          setSelectedImageIndex(index);
-          toast({
-            title: 'Imagen subida',
-            description: 'La imagen del producto se ha actualizado.',
-          });
+            const currentImageUrls = form.getValues('imageUrls');
+            if (index < currentImageUrls.length) {
+                const newImageUrls = [...currentImageUrls];
+                newImageUrls[index] = result.imageUrl;
+                setValue('imageUrls', newImageUrls);
+            } else {
+                setValue('imageUrls', [...currentImageUrls, result.imageUrl]);
+            }
+            setSelectedImageIndex(index);
+            toast({
+                title: 'Imagen subida',
+                description: 'La imagen del producto se ha actualizado.',
+            });
         }
       };
     } catch (error: any) {
@@ -156,13 +159,12 @@ export function ProductModal({
       });
     } finally {
       setIsUploading(null);
-      // Reset file input to allow re-uploading the same file
       if(fileInputRef.current) fileInputRef.current.value = "";
     }
   };
   
   const confirmRemoveImage = (index: number) => {
-    if(fields.length <= 1) {
+    if(form.getValues('imageUrls').length <= 1) {
         toast({ variant: "destructive", title: "Acción no permitida", description: "Debe haber al menos una imagen."});
         return;
     }
@@ -171,17 +173,20 @@ export function ProductModal({
 
   const handleRemoveImage = () => {
     if (imageToRemove !== null) {
-      remove(imageToRemove);
-      if (selectedImageIndex >= imageToRemove) {
-        setSelectedImageIndex(Math.max(0, selectedImageIndex -1));
-      }
-      setImageToRemove(null);
+        const currentImageUrls = form.getValues('imageUrls');
+        const newImageUrls = currentImageUrls.filter((_, i) => i !== imageToRemove);
+        setValue('imageUrls', newImageUrls);
+
+        if (selectedImageIndex >= imageToRemove) {
+            setSelectedImageIndex(Math.max(0, selectedImageIndex - 1));
+        }
+        setImageToRemove(null);
     }
   };
 
 
-  const mainImage = fields[selectedImageIndex]?.value;
-  const thumbnailImages = fields;
+  const mainImage = form.watch('imageUrls')[selectedImageIndex];
+  const thumbnailImages = form.watch('imageUrls');
 
 
   return (
@@ -227,7 +232,7 @@ export function ProductModal({
                                     ) : thumbnailImages[idx] ? (
                                     <>
                                         <Image
-                                            src={thumbnailImages[idx].value}
+                                            src={thumbnailImages[idx]}
                                             alt={`Thumbnail ${idx + 1}`}
                                             fill
                                             className="object-cover rounded-md"
@@ -390,3 +395,5 @@ export function ProductModal({
     </Dialog>
   );
 }
+
+    
