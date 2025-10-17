@@ -43,7 +43,8 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
         [{ 'script': 'sub'}, { 'script': 'super' }],
         [{ 'indent': '-1'}, { 'indent': '+1' }],
         ['link', 'image', 'video', 'blockquote', 'code-block'],
-        ['clean']
+        ['clean'],
+        ['undo', 'redo'] // Added Undo and Redo
       ];
       
       const handlers = {
@@ -66,6 +67,11 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
           }
         }
       });
+
+      // Custom buttons for undo/redo
+      const toolbar = quillRef.current.getModule('toolbar');
+      toolbar.addHandler('undo', handlers.undo);
+      toolbar.addHandler('redo', handlers.redo);
       
       // Set initial value
       if (value) {
