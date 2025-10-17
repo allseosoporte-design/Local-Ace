@@ -16,7 +16,6 @@ import type { LandingPageData } from './editor-landing-preview';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import 'react-quill/dist/quill.snow.css';
 
 // Dynamically import ReactQuill to avoid SSR issues
 const ReactQuill = dynamic(() => import('react-quilljs').then((mod) => mod.ReactQuill), { ssr: false });
