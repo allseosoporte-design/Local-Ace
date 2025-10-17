@@ -18,7 +18,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 // Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quilljs').then((mod) => mod.ReactQuill), { ssr: false });
+const ReactQuill = dynamic(() => import('react-quilljs'), { ssr: false });
 
 interface EditorLandingFormProps {
   data: LandingPageData;
