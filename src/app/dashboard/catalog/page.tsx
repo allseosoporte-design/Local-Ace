@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -36,6 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ShareCatalog } from '@/components/dashboard/catalog/share-catalog';
 
 export default function CatalogPage() {
   const { user, isUserLoading } = useUser();
@@ -100,10 +100,15 @@ export default function CatalogPage() {
   const handleSave = async (data: Omit<Product, 'id' | 'businessId'>) => {
     if (!firestore || !user) return;
     try {
+      const transformedData = {
+        ...data,
+        imageUrls: data.imageUrls.map((img: any) => (typeof img === 'object' ? img.value : img)),
+      };
+
       if (editingProduct) {
         // Update
         const productRef = doc(firestore, 'products', editingProduct.id);
-        await updateDoc(productRef, { ...data, updatedAt: serverTimestamp() });
+        await updateDoc(productRef, { ...transformedData, updatedAt: serverTimestamp() });
         toast({
           title: 'Producto actualizado',
           description: 'Los cambios han sido guardados.',
@@ -111,7 +116,7 @@ export default function CatalogPage() {
       } else {
         // Create
         await addDoc(collection(firestore, 'products'), {
-          ...data,
+          ...transformedData,
           businessId: user.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -182,6 +187,9 @@ export default function CatalogPage() {
             )}
           </CardContent>
         </Card>
+        
+        <ShareCatalog />
+
       </div>
       <ProductModal
         isOpen={isModalOpen}
