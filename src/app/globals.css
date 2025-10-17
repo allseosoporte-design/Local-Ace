@@ -124,3 +124,71 @@ body {
 .dark .ql-toolbar .ql-picker-label {
   color: hsl(var(--foreground));
 }
+
+/* React Quill Custom Styles */
+.rich-editor-wrapper {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+}
+
+.rich-editor-wrapper .quill {
+  font-family: 'Inter', 'Roboto', sans-serif;
+}
+
+.rich-editor-wrapper .ql-toolbar {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: #f9fafb;
+}
+
+.rich-editor-wrapper .ql-container {
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 0.5rem 0.5rem;
+  min-height: 200px;
+  font-size: 14px;
+}
+
+.rich-editor-wrapper .ql-editor {
+  min-height: 200px;
+}
+
+.rich-editor-wrapper .ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .rich-editor-wrapper {
+    background: #1f2937;
+  }
+
+  .rich-editor-wrapper .ql-toolbar {
+    background: #374151;
+    border-color: #4b5563;
+  }
+
+  .rich-editor-wrapper .ql-container {
+    border-color: #4b5563;
+    background: #1f2937;
+  }
+
+  .rich-editor-wrapper .ql-editor {
+    color: #f3f4f6;
+  }
+
+  .rich-editor-wrapper .ql-stroke {
+    stroke: #d1d5db;
+  }
+
+  .rich-editor-wrapper .ql-fill {
+    fill: #d1d5db;
+  }
+
+  .rich-editor-wrapper .ql-picker-label {
+    color: #d1d5db;
+  }
+}
