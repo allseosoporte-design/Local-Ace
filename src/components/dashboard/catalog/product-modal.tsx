@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UploadCloud, X, Plus, Trash2 } from 'lucide-react';
+import { Loader2, UploadCloud, X, Plus, Trash2, Pencil } from 'lucide-react';
 import type { Product } from '@/types/product';
 import RichTextEditor from '@/components/editor/RichTextEditor';
 import { uploadImage } from '@/ai/flows/upload-image';
