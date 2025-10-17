@@ -13,10 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { generateReviewResponse } from "@/ai/flows/generate-review-response";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Timestamp } from "firebase/firestore";
 import { format } from "date-fns";
+import { Label } from "@/components/ui/label";
 
 // This type is manually created for demonstration.
 // In a real app, you would generate this from your database schema.
@@ -33,7 +34,8 @@ export type Review = {
 
 const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
   const { toast } = useToast();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [draftResponse, setDraftResponse] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const review = row.original;
@@ -48,7 +50,7 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
         customerSentiment: review.rating >= 4 ? "positive" : "negative",
       });
       setDraftResponse(result.draftResponse);
-      setIsDialogOpen(true);
+      setIsAiDialogOpen(true);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -66,8 +68,12 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
       title: "¡Respuesta Enviada!",
       description: "Tu respuesta ha sido enviada al cliente.",
     });
-    setIsDialogOpen(false);
+    setIsAiDialogOpen(false);
   };
+  
+  const formattedDate = review.createdAt 
+    ? format(review.createdAt.toDate(), 'dd/MM/yyyy HH:mm') 
+    : review.date;
 
   return (
     <>
@@ -80,9 +86,7 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-          <DropdownMenuItem
-            onClick={() => alert(`Viendo detalles de ${review.name}`)}
-          >
+          <DropdownMenuItem onClick={() => setIsDetailsOpen(true)}>
             Ver Detalles
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleGenerateResponse} disabled={isGenerating}>
@@ -91,7 +95,73 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+
+      {/* Details Modal */}
+       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalles de la Reseña</DialogTitle>
+            <DialogDescription>
+              Reseña completa de {review.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Cliente
+              </Label>
+              <span id="name" className="col-span-3 font-medium">{review.name}</span>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <span id="email" className="col-span-3 text-muted-foreground">{review.email}</span>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="date" className="text-right">
+                Fecha
+              </Label>
+              <span id="date" className="col-span-3 text-muted-foreground">{formattedDate}</span>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                Calificación
+              </Label>
+              <div className="col-span-3 flex items-center">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-5 h-5 ${
+                      i < review.rating
+                        ? "text-yellow-400 fill-yellow-400"
+                        : "text-gray-300"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="review" className="text-right pt-1">
+                Comentario
+              </Label>
+              <p id="review" className="col-span-3 bg-muted p-3 rounded-md text-sm leading-relaxed">
+                {review.review}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Cerrar
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* AI Response Modal */}
+      <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Borrador de respuesta para {review.name}</DialogTitle>
@@ -105,7 +175,7 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
             className="min-h-[150px]"
           />
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setIsAiDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSendResponse}>Enviar Respuesta</Button>
           </DialogFooter>
         </DialogContent>
