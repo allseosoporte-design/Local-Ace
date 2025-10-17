@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import 'quill/dist/quill.snow.css';
+import 'react-quill/dist/quill.snow.css';
 
 interface RichTextEditorProps {
   value: string
@@ -9,7 +9,7 @@ interface RichTextEditorProps {
   placeholder?: string
 }
 
-const ReactQuill = dynamic(() => import('react-quilljs'), { 
+const ReactQuill = dynamic(() => import('react-quill'), { 
     ssr: false,
     loading: () => <div className="h-64 bg-gray-50 animate-pulse rounded-lg" />
 });
