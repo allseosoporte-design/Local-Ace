@@ -13,19 +13,26 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
   const [isMounted, setIsMounted] = useState(false)
   const quillRef = useRef<any>(null)
   const editorRef = useRef<HTMLDivElement>(null)
+  const onChangeRef = useRef(onChange);
+
+  // Keep onChangeRef updated with the latest onChange function
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
   useEffect(() => {
-    if (!isMounted || !editorRef.current) return
+    if (!isMounted || !editorRef.current || quillRef.current) {
+      // If not mounted, no editor ref, or quill is already initialized, do nothing.
+      return;
+    }
 
     const loadQuill = async () => {
-      const Quill = (await import('quill')).default
+      const Quill = (await import('quill')).default;
       
-      if (quillRef.current) return
-
       const toolbarOptions = [
         [{ header: [1, 2, 3, 4, false] }],
         ['bold', 'italic', 'underline', 'strike'],
@@ -34,7 +41,7 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
         ['link', 'image', 'video'],
         ['code-block'],
         ['clean']
-      ]
+      ];
 
       quillRef.current = new Quill(editorRef.current!, {
         theme: 'snow',
@@ -42,32 +49,42 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
         modules: {
           toolbar: toolbarOptions
         }
-      })
-
+      });
+      
+      // Set initial value
       if (value) {
-        quillRef.current.root.innerHTML = value
+        quillRef.current.root.innerHTML = value;
       }
 
-      quillRef.current.on('text-change', () => {
-        onChange(quillRef.current.root.innerHTML)
-      })
-    }
+      // Add listener for changes
+      quillRef.current.on('text-change', (delta: any, oldDelta: any, source: string) => {
+        if (source === 'user') {
+          onChangeRef.current(quillRef.current.root.innerHTML);
+        }
+      });
+    };
 
-    loadQuill()
+    loadQuill();
 
+    // Cleanup function
     return () => {
       if (quillRef.current) {
-        quillRef.current = null
+        // This cleanup is tricky because of hot-reloading in dev.
+        // A simple null assignment might be safer in some cases.
+        quillRef.current = null;
       }
-    }
-  }, [isMounted, onChange, placeholder, value])
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMounted]); // This effect runs only ONCE when isMounted becomes true.
 
+  // Effect to update content when `value` prop changes from outside
   useEffect(() => {
     if (quillRef.current && value !== quillRef.current.root.innerHTML) {
       const selection = quillRef.current.getSelection()
       quillRef.current.root.innerHTML = value
       if (selection) {
-        quillRef.current.setSelection(selection)
+        // Try to restore selection, might not be perfect
+        quillRef.current.setSelection(selection.index, selection.length)
       }
     }
   }, [value])
