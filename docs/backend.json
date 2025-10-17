@@ -1,5 +1,50 @@
 {
   "entities": {
+    "Product": {
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product in the catalog.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "A rich HTML description of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the product."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category the product belongs to."
+        },
+        "stock": {
+          "type": "number",
+          "description": "Available stock quantity."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the product image.",
+          "format": "uri"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Average customer rating (e.g., 1 to 5)."
+        },
+        "businessId": {
+          "type": "string",
+          "description": "The ID of the business this product belongs to."
+        }
+      },
+      "required": [
+        "name",
+        "price",
+        "businessId"
+      ]
+    },
     "Business": {
       "title": "Business",
       "type": "object",
@@ -288,6 +333,10 @@
     ]
   },
   "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Stores all products for all businesses. Security rules will enforce that a business can only access its own products."
+    },
     "/users/{userId}": {
       "schema": "UserProfile",
       "description": "Stores user profile information, linking auth ID to business ID. Users can read their own profile."
