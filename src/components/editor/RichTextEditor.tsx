@@ -10,36 +10,36 @@ interface RichTextEditorProps {
   placeholder?: string
 }
 
-const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) => {
-  const ReactQuill = useMemo(
-    () => dynamic(() => import('react-quill'), { 
-      ssr: false,
-      loading: () => <div className="h-64 bg-gray-50 animate-pulse rounded-lg" />
-    }),
-    []
-  )
-
-  const modules = {
-    toolbar: [
-      [{ header: [1, 2, 3, 4, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      [{ align: [] }],
-      ['link', 'image', 'video'],
-      ['code-block'],
-      ['clean']
-    ]
+const ReactQuill = dynamic(
+  () => import('react-quill'),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 bg-gray-50 animate-pulse rounded-lg" />
   }
+);
 
-  const formats = [
-    'header',
-    'bold', 'italic', 'underline', 'strike',
-    'list', 'bullet',
-    'align',
-    'link', 'image', 'video',
-    'code-block'
+const modules = {
+  toolbar: [
+    [{ header: [1, 2, 3, 4, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ align: [] }],
+    ['link', 'image', 'video'],
+    ['code-block'],
+    ['clean']
   ]
+};
 
+const formats = [
+  'header',
+  'bold', 'italic', 'underline', 'strike',
+  'list', 'bullet',
+  'align',
+  'link', 'image', 'video',
+  'code-block'
+];
+
+const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) => {
   return (
     <div className="rich-editor-wrapper">
       <ReactQuill
