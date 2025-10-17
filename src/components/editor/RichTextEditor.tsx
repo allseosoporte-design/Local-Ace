@@ -38,13 +38,13 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
         [{ 'font': [] }],
         ['bold', 'italic', 'underline', 'strike'],
         [{ 'color': [] }, { 'background': [] }],
-        [{ 'align': [] }],
+        [{ 'align': [false, 'center', 'right', 'justify'] }],
         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
         [{ 'script': 'sub'}, { 'script': 'super' }],
         [{ 'indent': '-1'}, { 'indent': '+1' }],
         ['link', 'image', 'video', 'blockquote', 'code-block'],
         ['clean'],
-        ['undo', 'redo'] // Added Undo and Redo
+        ['undo', 'redo']
       ];
       
       const handlers = {
