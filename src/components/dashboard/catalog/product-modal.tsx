@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
@@ -25,12 +25,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UploadCloud } from 'lucide-react';
+import { Loader2, UploadCloud, X, Plus, Trash2 } from 'lucide-react';
 import type { Product } from '@/types/product';
 import RichTextEditor from '@/components/editor/RichTextEditor';
 import { uploadImage } from '@/ai/flows/upload-image';
 import { useUser } from '@/firebase';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 const productSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido.'),
@@ -38,7 +41,7 @@ const productSchema = z.object({
   price: z.coerce.number().positive('El precio debe ser un número positivo.'),
   category: z.string().min(1, 'La categoría es requerida.'),
   stock: z.coerce.number().int().nonnegative('El stock no puede ser negativo.'),
-  imageUrl: z.string().url('Debe ser una URL válida.').min(1, 'La imagen es requerida.'),
+  imageUrls: z.array(z.string().url()).min(1, 'Se requiere al menos una imagen.'),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -59,9 +62,11 @@ export function ProductModal({
 }: ProductModalProps) {
   const { user } = useUser();
   const { toast } = useToast();
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState<number | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [imageToRemove, setImageToRemove] = useState<number | null>(null);
+  
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -70,13 +75,22 @@ export function ProductModal({
       price: 0,
       category: '',
       stock: 0,
-      imageUrl: '',
+      imageUrls: [],
     },
+  });
+  
+  const { fields, append, remove, update } = useFieldArray({
+    control: form.control,
+    name: "imageUrls"
   });
 
   useEffect(() => {
     if (product) {
-      form.reset(product);
+      form.reset({
+        ...product,
+        imageUrls: product.imageUrls || [],
+      });
+      setSelectedImageIndex(0);
     } else {
       form.reset({
         name: '',
@@ -84,8 +98,9 @@ export function ProductModal({
         price: 0,
         category: '',
         stock: 0,
-        imageUrl: '',
+        imageUrls: [],
       });
+       setSelectedImageIndex(0);
     }
   }, [product, form, isOpen]);
 
@@ -93,15 +108,22 @@ export function ProductModal({
     onSave(data);
   };
   
-  const handleFileSelect = () => {
-    fileInputRef.current?.click();
+  const handleFileSelect = (index: number) => {
+    if (isUploading !== null) return;
+    if (fileInputRef.current) {
+        fileInputRef.current.dataset.index = index.toString();
+        fileInputRef.current.click();
+    }
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    const indexStr = event.target.dataset.index;
+    const index = indexStr ? parseInt(indexStr, 10) : -1;
 
-    setIsUploading(true);
+    if (!file || !user || index === -1) return;
+
+    setIsUploading(index);
     try {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -113,7 +135,12 @@ export function ProductModal({
         });
 
         if (result.imageUrl) {
-          form.setValue('imageUrl', result.imageUrl, { shouldValidate: true });
+          if (fields[index]) {
+            update(index, { value: result.imageUrl });
+          } else {
+            append({ value: result.imageUrl });
+          }
+          setSelectedImageIndex(index);
           toast({
             title: 'Imagen subida',
             description: 'La imagen del producto se ha actualizado.',
@@ -128,14 +155,38 @@ export function ProductModal({
         description: `No se pudo subir la imagen: ${error.message}`,
       });
     } finally {
-      setIsUploading(false);
+      setIsUploading(null);
+      // Reset file input to allow re-uploading the same file
+      if(fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+  
+  const confirmRemoveImage = (index: number) => {
+    if(fields.length <= 1) {
+        toast({ variant: "destructive", title: "Acción no permitida", description: "Debe haber al menos una imagen."});
+        return;
+    }
+    setImageToRemove(index);
+  }
+
+  const handleRemoveImage = () => {
+    if (imageToRemove !== null) {
+      remove(imageToRemove);
+      if (selectedImageIndex >= imageToRemove) {
+        setSelectedImageIndex(Math.max(0, selectedImageIndex -1));
+      }
+      setImageToRemove(null);
     }
   };
 
 
+  const mainImage = fields[selectedImageIndex]?.value;
+  const thumbnailImages = fields;
+
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>
             {product ? 'Editar Producto' : 'Crear Nuevo Producto'}
@@ -145,52 +196,136 @@ export function ProductModal({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <ScrollArea className="h-[65vh] pr-6">
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre del Producto</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ej: Café Orgánico de Altura" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descripción (Contenido Adicional)</FormLabel>
-                      <FormControl>
-                        <RichTextEditor value={field.value ?? ''} onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <ScrollArea className="h-[70vh] pr-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Columna Izquierda: Imágenes y Campos Principales */}
+                <div className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="price"
-                    render={({ field }) => (
+                    name="imageUrls"
+                    render={() => (
                       <FormItem>
-                        <FormLabel>Precio</FormLabel>
+                        <FormLabel>Imágenes del Producto</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" {...field} />
+                          <div className="flex gap-2">
+                             {/* Thumbnails */}
+                            <div className="flex flex-col gap-2">
+                                {Array.from({ length: 5 }).map((_, idx) => (
+                                <button
+                                    type="button"
+                                    key={idx}
+                                    className={cn(
+                                    "relative w-16 h-16 border-2 rounded-lg flex items-center justify-center cursor-pointer transition-all",
+                                    selectedImageIndex === idx ? 'border-primary' : 'border-dashed',
+                                    isUploading === idx ? 'cursor-not-allowed' : ''
+                                    )}
+                                    onClick={() => thumbnailImages[idx] && setSelectedImageIndex(idx)}
+                                >
+                                    {isUploading === idx ? (
+                                        <Loader2 className="h-6 w-6 animate-spin" />
+                                    ) : thumbnailImages[idx] ? (
+                                    <>
+                                        <Image
+                                            src={thumbnailImages[idx].value}
+                                            alt={`Thumbnail ${idx + 1}`}
+                                            fill
+                                            className="object-cover rounded-md"
+                                        />
+                                        <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity" onClick={(e) => { e.stopPropagation(); handleFileSelect(idx); }}>
+                                            <Pencil className="h-5 w-5 text-white" />
+                                        </div>
+                                    </>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center text-muted-foreground hover:text-primary" onClick={() => handleFileSelect(idx)}>
+                                            <Plus className="h-6 w-6" />
+                                        </div>
+                                    )}
+                                </button>
+                                ))}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    className="hidden"
+                                    onChange={handleImageUpload}
+                                    accept="image/*"
+                                />
+                            </div>
+
+                             {/* Main Image */}
+                            <div className="relative flex-1 aspect-square border-2 border-dashed rounded-lg flex items-center justify-center">
+                               {mainImage ? (
+                                <div className="w-full h-full">
+                                    <Image
+                                        src={mainImage}
+                                        alt="Vista previa principal"
+                                        fill
+                                        className="object-cover rounded-lg"
+                                    />
+                                     <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => confirmRemoveImage(selectedImageIndex)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                               ) : (
+                                 <div className="text-center text-muted-foreground p-4">
+                                     <UploadCloud className="mx-auto h-12 w-12" />
+                                     <p>Selecciona o sube una imagen</p>
+                                </div>
+                               )}
+                            </div>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre del Producto</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ej: Café Orgánico de Altura" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Precio</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="stock"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Stock</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Columna Derecha: Descripción y Categoría */}
+                <div className="space-y-4">
+                   <FormField
                     control={form.control}
                     name="category"
                     render={({ field }) => (
@@ -203,62 +338,24 @@ export function ProductModal({
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
-                    name="stock"
+                    name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Stock</FormLabel>
+                        <FormLabel>Descripción (Contenido Adicional)</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <RichTextEditor value={field.value ?? ''} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Imagen del Producto</FormLabel>
-                      <FormControl>
-                        <div className="flex flex-col items-center justify-center w-full gap-4">
-                          <div className="relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted" onClick={handleFileSelect}>
-                             {isUploading ? (
-                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                             ): field.value ? (
-                                <Image src={field.value} alt="Vista previa" layout="fill" objectFit="contain" className="rounded-lg" />
-                             ) : (
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <UploadCloud className="w-8 h-8 mb-4 text-muted-foreground" />
-                                    <p className="mb-2 text-sm text-muted-foreground">
-                                    <span className="font-semibold">Haz clic para subir</span> o arrastra y suelta
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
-                                </div>
-                             )}
-                          </div>
-                          <Input
-                            ref={fileInputRef}
-                            id="dropzone-file"
-                            type="file"
-                            className="hidden"
-                            onChange={handleImageUpload}
-                            accept="image/*"
-                            disabled={isUploading}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
             </ScrollArea>
-            <DialogFooter className="pt-4 border-t">
+            <DialogFooter className="pt-4 border-t mt-4">
               <Button
                 type="button"
                 variant="ghost"
@@ -273,6 +370,22 @@ export function ProductModal({
             </DialogFooter>
           </form>
         </Form>
+        <AlertDialog open={imageToRemove !== null} onOpenChange={(open) => !open && setImageToRemove(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>¿Eliminar esta imagen?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta acción es irreversible y eliminará la imagen del producto.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setImageToRemove(null)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRemoveImage} className="bg-destructive hover:bg-destructive/90">
+                        Eliminar
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

@@ -68,7 +68,7 @@ export function ProductDataTable({
                     alt={product.name}
                     className="aspect-square rounded-md object-cover"
                     height="64"
-                    src={product.imageUrl || '/placeholder.svg'}
+                    src={product.imageUrls?.[0] || '/placeholder.svg'}
                     width="64"
                   />
                 </TableCell>

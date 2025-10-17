@@ -25,10 +25,13 @@
           "type": "number",
           "description": "Available stock quantity."
         },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL of the product image.",
-          "format": "uri"
+        "imageUrls": {
+          "type": "array",
+          "description": "URLs of the product images. The first one is the main image.",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
         },
         "rating": {
           "type": "number",

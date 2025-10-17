@@ -8,7 +8,7 @@ export type Product = {
   price: number;
   category: string;
   stock: number;
-  imageUrl: string;
+  imageUrls: string[]; // Changed from imageUrl to imageUrls
   businessId: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
