@@ -1,5 +1,5 @@
 /* React Quill Snow Theme Customization */
-@import 'react-quill/dist/quill.snow.css';
+@import 'quill/dist/quill.snow.css';
 
 @tailwind base;
 @tailwind components;

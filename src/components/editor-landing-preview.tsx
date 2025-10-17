@@ -10,7 +10,6 @@ import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StarRating } from '@/app/funnel/[businessId]/star-rating';
 import { useState } from 'react';
-import 'react-quill/dist/quill.snow.css';
 
 
 export interface Subsection {
