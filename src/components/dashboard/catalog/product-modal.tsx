@@ -79,7 +79,7 @@ export function ProductModal({
     },
   });
   
-  const { fields, append, remove, setValue } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "imageUrls"
   });
@@ -139,9 +139,9 @@ export function ProductModal({
             if (index < currentImageUrls.length) {
                 const newImageUrls = [...currentImageUrls];
                 newImageUrls[index] = result.imageUrl;
-                setValue('imageUrls', newImageUrls);
+                form.setValue('imageUrls', newImageUrls);
             } else {
-                setValue('imageUrls', [...currentImageUrls, result.imageUrl]);
+                append(result.imageUrl);
             }
             setSelectedImageIndex(index);
             toast({
@@ -173,10 +173,7 @@ export function ProductModal({
 
   const handleRemoveImage = () => {
     if (imageToRemove !== null) {
-        const currentImageUrls = form.getValues('imageUrls');
-        const newImageUrls = currentImageUrls.filter((_, i) => i !== imageToRemove);
-        setValue('imageUrls', newImageUrls);
-
+        remove(imageToRemove);
         if (selectedImageIndex >= imageToRemove) {
             setSelectedImageIndex(Math.max(0, selectedImageIndex - 1));
         }
@@ -395,5 +392,3 @@ export function ProductModal({
     </Dialog>
   );
 }
-
-    
