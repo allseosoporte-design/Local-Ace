@@ -6,18 +6,31 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Sparkles, Star } from "lucide-react";
+import { MoreHorizontal, Sparkles, Star, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { generateReviewResponse } from "@/ai/flows/generate-review-response";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Timestamp } from "firebase/firestore";
+import { Timestamp, doc, deleteDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
+import { useFirestore } from "@/firebase";
+
 
 // This type is manually created for demonstration.
 // In a real app, you would generate this from your database schema.
@@ -34,8 +47,10 @@ export type Review = {
 
 const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [draftResponse, setDraftResponse] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const review = row.original;
@@ -71,6 +86,34 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
     setIsAiDialogOpen(false);
   };
   
+  const handleDelete = async () => {
+    // This function will handle deletion from Firestore.
+    // For the static public reviews, it will just show a toast.
+    if (review.createdAt && firestore) { // Indicates it's an internal feedback from Firestore
+        try {
+            const docRef = doc(firestore, "internalFeedback", review.id);
+            await deleteDoc(docRef);
+            toast({
+                title: "Feedback eliminado",
+                description: "El comentario ha sido eliminado permanentemente."
+            });
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Error al eliminar",
+                description: "No se pudo eliminar el comentario de la base de datos."
+            });
+        }
+    } else {
+        // For static data, we just simulate the deletion
+        toast({
+            title: "Reseña eliminada (simulación)",
+            description: `La reseña de ${review.name} ha sido eliminada.`
+        });
+    }
+    setIsDeleteDialogOpen(false);
+  };
+
   const formattedDate = review.createdAt 
     ? format(review.createdAt.toDate(), 'dd/MM/yyyy HH:mm') 
     : review.date;
@@ -92,6 +135,11 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
           <DropdownMenuItem onClick={handleGenerateResponse} disabled={isGenerating}>
             <Sparkles className="mr-2 h-4 w-4" />
             {isGenerating ? "Generando..." : "Generar Respuesta con IA"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="text-destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+            <Trash2 className="mr-2 h-4 w-4" />
+            Eliminar
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -180,6 +228,24 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Esta acción no se puede deshacer. La reseña de <span className="font-bold">{review.name}</span> será eliminada permanentemente.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                    Eliminar
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
