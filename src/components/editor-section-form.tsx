@@ -9,13 +9,13 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import type { Section, Subsection } from './editor-landing-preview';
 import { v4 as uuidv4 } from 'uuid';
 import { EditorSubsectionForm } from './editor-subsection-form';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import RichTextEditor from './editor/RichTextEditor';
 
 interface EditorSectionFormProps {
   section: Section;
@@ -27,6 +27,10 @@ export function EditorSectionForm({ section, updateSection, deleteSection }: Edi
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateSection({ ...section, [e.target.name]: e.target.value });
+  };
+  
+  const handleContentChange = (content: string) => {
+    updateSection({ ...section, content });
   };
   
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,8 +86,12 @@ export function EditorSectionForm({ section, updateSection, deleteSection }: Edi
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor={`content-${section.id}`}>Contenido Adicional (HTML)</Label>
-                            <Textarea id={`content-${section.id}`} name="content" value={section.content} onChange={handleChange} className="min-h-[150px]" />
+                          <Label>Contenido Adicional (HTML)</Label>
+                          <RichTextEditor
+                            value={section.content}
+                            onChange={handleContentChange}
+                            placeholder="Describe la sección..."
+                          />
                         </div>
                         
                         <div className="grid grid-cols-3 gap-4">

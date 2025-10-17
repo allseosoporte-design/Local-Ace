@@ -129,7 +129,7 @@ export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewP
                       </div>
                     )}
                     <h3 className="text-xl font-semibold mb-2" style={{color: section.textColor}}>{subsection.title}</h3>
-                    <p 
+                    <div 
                       className="text-sm prose prose-sm max-w-full ql-editor" 
                       style={{color: section.textColor, opacity: 0.9}}
                       dangerouslySetInnerHTML={{ __html: subsection.description }}

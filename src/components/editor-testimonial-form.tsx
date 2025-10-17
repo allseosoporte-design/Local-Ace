@@ -7,13 +7,12 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Trash2, Star } from 'lucide-react';
 import type { Testimonial } from './editor-landing-preview';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { Slider } from './ui/slider';
+import RichTextEditor from './editor/RichTextEditor';
 
 interface EditorTestimonialFormProps {
   testimonial: Testimonial;
@@ -25,6 +24,10 @@ export function EditorTestimonialForm({ testimonial, updateTestimonial, deleteTe
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateTestimonial({ ...testimonial, [e.target.name]: e.target.value });
+  };
+  
+  const handleTextChange = (text: string) => {
+    updateTestimonial({ ...testimonial, text });
   };
 
   const handleRatingChange = (newRating: number) => {
@@ -60,7 +63,11 @@ export function EditorTestimonialForm({ testimonial, updateTestimonial, deleteTe
             </div>
             <div className="mt-4 space-y-2">
                 <Label htmlFor={`testimonial-text-${testimonial.id}`}>Texto del Testimonio</Label>
-                <Textarea id={`testimonial-text-${testimonial.id}`} name="text" value={testimonial.text} onChange={handleChange} className="min-h-[120px]" />
+                <RichTextEditor
+                  value={testimonial.text}
+                  onChange={handleTextChange}
+                  placeholder="Escribe el testimonio aquí..."
+                />
             </div>
             <div className="mt-4 space-y-2">
                 <Label>Calificación</Label>

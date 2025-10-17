@@ -7,11 +7,11 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import type { Subsection } from './editor-landing-preview';
 import Image from 'next/image';
+import RichTextEditor from './editor/RichTextEditor';
 
 interface EditorSubsectionFormProps {
   subsection: Subsection;
@@ -24,6 +24,10 @@ export function EditorSubsectionForm({ subsection, index, updateSubsection, dele
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateSubsection({ ...subsection, [e.target.name]: e.target.value });
+  };
+  
+  const handleDescriptionChange = (description: string) => {
+    updateSubsection({ ...subsection, description });
   };
 
   return (
@@ -41,7 +45,11 @@ export function EditorSubsectionForm({ subsection, index, updateSubsection, dele
             </div>
              <div className="space-y-2">
                 <Label htmlFor={`subsection-desc-${subsection.id}`}>Descripción</Label>
-                <Textarea id={`subsection-desc-${subsection.id}`} name="description" value={subsection.description} onChange={handleChange} className="min-h-[100px]" />
+                <RichTextEditor
+                  value={subsection.description}
+                  onChange={handleDescriptionChange}
+                  placeholder="Describe la subsección..."
+                />
             </div>
             <div className="space-y-2">
                 <Label>Imagen</Label>
