@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Dialog,
@@ -32,8 +32,13 @@ import {
   Trash2,
   Wallet,
   User,
-  MessageCircle,
 } from 'lucide-react';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
+import { doc } from 'firebase/firestore';
+import type { PlanPaymentSettings } from '@/types/payment-settings';
+import { PaymentOptionsDisplay } from './payment-options-display';
+
 
 const WhatsAppIcon = () => (
     <svg
@@ -61,6 +66,16 @@ export function CartCheckoutModal() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+  
+  const firestore = useFirestore();
+
+  const settingsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'paymentSettings', SUPER_ADMIN_BUSINESS_ID);
+  }, [firestore]);
+
+  const { data: paymentSettings, isLoading: isLoadingSettings } = useDoc<PlanPaymentSettings>(settingsDocRef);
+
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -180,8 +195,8 @@ export function CartCheckoutModal() {
                         Opciones de Pago
                     </div>
                 </AccordionTrigger>
-                <AccordionContent className="pt-2">
-                  <p className="text-sm text-muted-foreground">La selección del método de pago se coordinará al finalizar el pedido por WhatsApp.</p>
+                <AccordionContent className="pt-4">
+                  <PaymentOptionsDisplay settings={paymentSettings} isLoading={isLoadingSettings} />
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
