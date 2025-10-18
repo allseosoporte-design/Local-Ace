@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Dialog,
@@ -34,7 +35,6 @@ import {
   User,
 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 import { doc } from 'firebase/firestore';
 import type { PlanPaymentSettings } from '@/types/payment-settings';
 import { PaymentOptionsDisplay } from './payment-options-display';
@@ -69,10 +69,19 @@ export function CartCheckoutModal() {
   
   const firestore = useFirestore();
 
+  // Determine businessId from the first item in the cart.
+  const businessId = useMemo(() => {
+    if (state.items.length > 0) {
+      return state.items[0].businessId;
+    }
+    return null;
+  }, [state.items]);
+
   const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'paymentSettings', SUPER_ADMIN_BUSINESS_ID);
-  }, [firestore]);
+    if (!firestore || !businessId) return null;
+    // Dynamically get the payment settings for the correct business.
+    return doc(firestore, 'paymentSettings', businessId);
+  }, [firestore, businessId]);
 
   const { data: paymentSettings, isLoading: isLoadingSettings } = useDoc<PlanPaymentSettings>(settingsDocRef);
 
