@@ -3,6 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 import { CartProvider } from '@/context/cart-context';
+import { CartButton } from '@/components/cart/cart-button';
+import { CartCheckoutModal } from '@/components/cart/cart-checkout-modal';
 
 export const metadata: Metadata = {
   title: 'Local Leap',
@@ -25,6 +27,8 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <CartProvider>
             {children}
+            <CartButton />
+            <CartCheckoutModal />
           </CartProvider>
         </FirebaseClientProvider>
         <Toaster />

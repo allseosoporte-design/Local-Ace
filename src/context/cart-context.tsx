@@ -3,6 +3,7 @@
 
 import React, { createContext, useReducer, useEffect, ReactNode } from 'react';
 import type { Product } from '@/types/product';
+import { CartModalProvider } from './cart-modal-context';
 
 export interface CartItem extends Product {
   quantity: number;
@@ -138,7 +139,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         totalPrice,
       }}
     >
-      {children}
+      <CartModalProvider>
+        {children}
+      </CartModalProvider>
     </CartContext.Provider>
   );
 };
