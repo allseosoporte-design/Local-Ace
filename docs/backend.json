@@ -327,6 +327,58 @@
         "name",
         "price"
       ]
+    },
+    "PaymentSettings": {
+      "title": "PaymentSettings",
+      "description": "Stores the payment method configurations for a business.",
+      "type": "object",
+      "properties": {
+        "cashOnDelivery": {
+          "type": "boolean"
+        },
+        "nequi": {
+          "$ref": "#/entities/PaymentMethod"
+        },
+        "daviplata": {
+          "$ref": "#/entities/PaymentMethod"
+        },
+        "bancolombia": {
+          "$ref": "#/entities/PaymentMethod"
+        },
+        "stripe": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "publicKey": { "type": "string" },
+            "secretKey": { "type": "string" }
+          }
+        },
+        "mercadoPago": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "accessToken": { "type": "string" },
+            "publicKey": { "type": "string" },
+            "mode": { "type": "string", "enum": ["production", "sandbox"] },
+            "instructions": { "type": "string" }
+          }
+        }
+      }
+    },
+    "PaymentMethod": {
+      "title": "PaymentMethod",
+      "description": "Defines the structure for QR-based payment methods.",
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "qrImageUrl": { "type": "string", "format": "uri" },
+        "accountNumber": { "type": "string" },
+        "holderName": { "type": "string" },
+        "idDocument": { "type": "string" },
+        "phone": { "type": "string" },
+        "isMainQR": { "type": "boolean" },
+        "instructions": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -371,6 +423,10 @@
     "/subscriptions/{subscriptionId}": {
       "schema": "Subscription",
       "description": "Stores subscription plan information."
+    },
+     "/paymentSettings/{userId}": {
+      "schema": "PaymentSettings",
+      "description": "Stores payment settings for a specific user (business owner). Only the authenticated user can read/write their own settings."
     }
   }
 }
