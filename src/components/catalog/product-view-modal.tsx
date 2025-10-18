@@ -18,6 +18,8 @@ import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/types/product';
 import { cn } from '@/lib/utils';
 import { ShoppingCart } from 'lucide-react';
+import { useCart } from '@/hooks/use-cart';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductViewModalProps {
   product: Product | null;
@@ -27,6 +29,8 @@ interface ProductViewModalProps {
 
 export function ProductViewModal({ product, isOpen, onOpenChange }: ProductViewModalProps) {
   const [selectedImage, setSelectedImage] = useState(product?.imageUrls?.[0] || null);
+  const { addItem } = useCart();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Reset selected image when a new product is passed
@@ -34,6 +38,16 @@ export function ProductViewModal({ product, isOpen, onOpenChange }: ProductViewM
       setSelectedImage(product.imageUrls[0]);
     }
   }, [product]);
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    addItem(product);
+    toast({
+      title: "Producto añadido",
+      description: `${product.name} ha sido añadido al carrito.`,
+    });
+    onOpenChange(false);
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -121,7 +135,7 @@ export function ProductViewModal({ product, isOpen, onOpenChange }: ProductViewM
               </div>
             </ScrollArea>
              <DialogFooter className="p-6 border-t mt-auto bg-muted/50">
-                <Button size="lg" className="w-full md:w-auto">
+                <Button size="lg" className="w-full md:w-auto" onClick={handleAddToCart}>
                     <ShoppingCart className="mr-2 h-5 w-5"/>
                     Agregar al Carrito
                 </Button>
