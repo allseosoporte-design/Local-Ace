@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,16 +24,89 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { uploadImage } from '@/ai/flows/upload-image';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, Save } from 'lucide-react';
+import { PaymentPlanForm } from '@/components/payment-plan-form';
+import type { PlanPaymentSettings } from '@/types/payment-settings';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+
+const initialQRData = {
+  enabled: false,
+  qrImageUrl: null,
+  accountNumber: '',
+  holderName: '',
+  idDocument: '',
+  phone: '',
+  isMainQR: false,
+  instructions: '',
+};
+
+const initialStripeData = { enabled: false, publicKey: '', secretKey: '' };
+
+const initialMercadoPagoData = { enabled: false, accessToken: '', publicKey: '', mode: 'production' as 'production' | 'sandbox', instructions: '' };
+
+const initialPlanSettings: PlanPaymentSettings = {
+    nequi: initialQRData,
+    bancolombia: initialQRData,
+    daviplata: initialQRData,
+    stripe: initialStripeData,
+    mercadoPago: initialMercadoPagoData,
+    cashOnDelivery: false,
+};
+
 
 export default function SettingsPage() {
   const { user } = useUser();
   const { toast } = useToast();
+  const firestore = useFirestore();
+
   const [isUploading, setIsUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.photoURL || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [paymentSettings, setPaymentSettings] = useState<PlanPaymentSettings>(initialPlanSettings);
+  const [isSavingPayments, setIsSavingPayments] = useState(false);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(true);
+
+  const settingsDocRef = useMemoFirebase(() => {
+      if (!firestore || !user) return null;
+      // Using a single document for the business's payment settings.
+      return doc(firestore, 'paymentSettings', user.uid);
+  }, [firestore, user]);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+        if (!settingsDocRef) {
+            setIsLoadingPayments(false);
+            return;
+        };
+        setIsLoadingPayments(true);
+        try {
+            const docSnap = await getDoc(settingsDocRef);
+            if (docSnap.exists()) {
+                const loadedData = docSnap.data() as PlanPaymentSettings;
+                 const mergedSettings = {
+                    nequi: { ...initialQRData, ...(loadedData.nequi || {}) },
+                    bancolombia: { ...initialQRData, ...(loadedData.bancolombia || {}) },
+                    daviplata: { ...initialQRData, ...(loadedData.daviplata || {}) },
+                    stripe: { ...initialStripeData, ...(loadedData.stripe || {}) },
+                    mercadoPago: { ...initialMercadoPagoData, ...(loadedData.mercadoPago || {}) },
+                    cashOnDelivery: loadedData.cashOnDelivery || false,
+                };
+                setPaymentSettings(mergedSettings);
+            } else {
+                 setPaymentSettings(initialPlanSettings);
+            }
+        } catch (error) {
+            console.error("Error loading payment settings:", error);
+            setPaymentSettings(initialPlanSettings);
+        } finally {
+            setIsLoadingPayments(false);
+        }
+    };
+    loadSettings();
+  }, [settingsDocRef]);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -45,7 +118,6 @@ export default function SettingsPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string);
-        // Aquí podrías también iniciar la subida directamente
       };
       reader.readAsDataURL(file);
     }
@@ -59,19 +131,13 @@ export default function SettingsPage() {
 
     try {
       if (file && avatarPreview && avatarPreview.startsWith('data:')) {
-        // Si hay una nueva imagen para subir
         const result = await uploadImage({
           fileAsDataUrl: avatarPreview,
           folder: `avatars/${user?.uid}`
         });
-
-        // Aquí iría la lógica para actualizar la URL en el perfil del usuario en Firestore/Auth
-        // await updateUserProfile({ photoURL: result.imageUrl });
-        
-        setAvatarPreview(result.imageUrl); // Actualiza la preview a la URL de Cloudinary
+        setAvatarPreview(result.imageUrl);
         toast({ title: "¡Perfil guardado!", description: "Tu foto de perfil ha sido actualizada." });
       } else {
-        // Si solo se guardan otros datos del perfil
         toast({ title: "¡Perfil guardado!", description: "Tu información ha sido actualizada." });
       }
 
@@ -82,13 +148,30 @@ export default function SettingsPage() {
       setIsUploading(false);
     }
   };
+
+  const handleSavePaymentSettings = async () => {
+    if (!settingsDocRef) {
+      toast({ variant: "destructive", title: "Error", description: "No se puede conectar a la base de datos." });
+      return;
+    }
+    setIsSavingPayments(true);
+    try {
+      await setDoc(settingsDocRef, { ...paymentSettings, updatedAt: serverTimestamp() }, { merge: true });
+      toast({ title: 'Configuración guardada', description: 'Los ajustes de pago han sido actualizados.' });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Error", description: "No se pudo guardar la configuración." });
+    } finally {
+      setIsSavingPayments(false);
+    }
+  };
   
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Configuración</h1>
         <p className="text-muted-foreground">
-          Gestiona tu cuenta, negocio y configuración de facturación.
+          Gestiona tu cuenta, negocio y configuración de pagos.
         </p>
       </div>
       
@@ -98,7 +181,6 @@ export default function SettingsPage() {
           <CardDescription>Actualiza tu información personal.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-
           <div className="space-y-2 flex flex-col items-center sm:items-start">
             <Label>Avatar</Label>
             <div className='flex items-center gap-4'>
@@ -176,6 +258,28 @@ export default function SettingsPage() {
           <Button>Guardar Configuración del Negocio</Button>
         </CardFooter>
       </Card>
+
+      <Separator />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Opciones de Pago Disponibles</CardTitle>
+          <CardDescription>Configura los métodos de pago que aceptarás de tus clientes.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PaymentPlanForm 
+              isLoading={isLoadingPayments} 
+              settings={paymentSettings} 
+              setSettings={setPaymentSettings} 
+            />
+        </CardContent>
+        <CardFooter>
+            <Button size="lg" onClick={handleSavePaymentSettings} disabled={isSavingPayments || isLoadingPayments}>
+                {isSavingPayments ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Guardar Métodos de Pago
+            </Button>
+        </CardFooter>
+      </Card>
       
       <Separator />
 
@@ -202,3 +306,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
