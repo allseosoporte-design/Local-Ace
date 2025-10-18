@@ -465,11 +465,7 @@
       "schema": {
         "$ref": "#/entities/PaymentSettings"
       },
-      "description": "Stores payment settings for a user.",
-      "rules": {
-        "read": "userId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' || request.auth.uid == userId",
-        "write": "request.auth.uid == userId"
-      }
+      "description": "Stores payment settings for a user. The settings for the super admin (ID: DzH9Kc6eYqOih5Y705ebM0SzfZf2) are public-read for the catalog."
     }
   }
 }
