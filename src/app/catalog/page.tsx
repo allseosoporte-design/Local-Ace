@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useMemo }d'use client';
-
 import { useMemo } from 'react';
 import Image from 'next/image';
 import {
