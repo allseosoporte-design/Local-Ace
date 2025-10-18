@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -8,9 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Loader2, UploadCloud } from 'lucide-react';
 import { uploadImage } from '@/ai/flows/upload-image';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
 
 export interface QRFormData {
   enabled: boolean;
@@ -24,7 +26,7 @@ export interface QRFormData {
 }
 
 interface QRFormProps {
-    methodName: 'Nequi' | 'Bancolombia';
+    methodName: 'Nequi' | 'Bancolombia' | 'Daviplata';
     data: QRFormData;
     setData: (data: QRFormData) => void;
 }
@@ -32,10 +34,11 @@ interface QRFormProps {
 export const QRForm = ({methodName, data, setData}: QRFormProps) => {
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
+    const { user } = useUser();
     
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file) return;
+        if (!file || !user) return;
 
         setIsUploading(true);
         try {
@@ -45,7 +48,7 @@ export const QRForm = ({methodName, data, setData}: QRFormProps) => {
                 const fileAsDataUrl = reader.result as string;
                 const result = await uploadImage({
                   fileAsDataUrl,
-                  folder: `payment-qrs/${methodName.toLowerCase()}`
+                  folder: `payment_qrs/${user.uid}/${methodName.toLowerCase()}`
                 });
 
                 if (result.imageUrl) {
@@ -88,67 +91,42 @@ export const QRForm = ({methodName, data, setData}: QRFormProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="qrImageUrl">Imagen con Código QR (URL)</Label>
+                        <Label htmlFor="qrImageUrl">Imagen del Código QR</Label>
                         <Input 
-                            id="qrImageUrl"
-                            placeholder='https://...' 
-                            value={data.qrImageUrl || ''}
-                            onChange={(e) => setData({ ...data, qrImageUrl: e.target.value })}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor={`qr-code-file-${methodName.toLowerCase()}`}>o sube el archivo</Label>
-                        <Input 
-                            id={`qr-code-file-${methodName.toLowerCase()}`} 
+                            id="qr-code-file"
                             type="file" 
                             accept="image/*"
                             onChange={handleFileChange}
                             disabled={isUploading}
+                            className="text-sm"
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="accountNumber">Número de cuenta asociado*</Label>
-                        <Input id="accountNumber" value={data.accountNumber} onChange={handleInputChange} placeholder='3116028254' />
+                        <Label htmlFor="holderName">Titular</Label>
+                        <Input id="holderName" value={data.holderName} onChange={handleInputChange} placeholder='Ej: Alexander Jerez' />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="holderName">Nombre del titular*</Label>
-                        <Input id="holderName" value={data.holderName} onChange={handleInputChange} placeholder='Alexander Jerez Fernandez' />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="idDocument">Documento de identidad*</Label>
-                        <Input id="idDocument" value={data.idDocument} onChange={handleInputChange} placeholder='1111846661' />
+                        <Label htmlFor="accountNumber">Número de cuenta</Label>
+                        <Input id="accountNumber" value={data.accountNumber} onChange={handleInputChange} placeholder='Ej: 3116028254' />
                     </div>
                 </div>
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label>Vista Previa del QR</Label>
-                        <div className="w-[240px] h-[240px] bg-gray-200 rounded-md flex items-center justify-center mx-auto border">
+                        <div className="w-[200px] h-[200px] bg-gray-200 rounded-md flex items-center justify-center mx-auto border">
                              {isUploading ? (
                                 <Loader2 className="h-8 w-8 animate-spin" />
                              ) : data.qrImageUrl ? (
-                                <Image src={data.qrImageUrl} alt="QR Code Preview" width={240} height={240} className="rounded-md object-contain" />
+                                <Image src={data.qrImageUrl} alt="QR Code Preview" width={200} height={200} className="rounded-md object-contain" />
                             ) : (
-                                <p className="text-sm text-muted-foreground">Sube una imagen</p>
+                                <div className='text-center text-muted-foreground'>
+                                    <UploadCloud className='mx-auto h-10 w-10 mb-2'/>
+                                    <p className="text-sm">Sube una imagen</p>
+                                </div>
                             )}
                         </div>
-                        <div className="flex items-center gap-2 mt-2 justify-center">
-                            <Checkbox 
-                                id="isMainQR"
-                                checked={data.isMainQR}
-                                onCheckedChange={(checked) => setData({ ...data, isMainQR: !!checked })}
-                            />
-                            <Label htmlFor="isMainQR">Establecer como QR principal</Label>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="phone">Teléfono</Label>
-                        <Input id="phone" value={data.phone} onChange={handleInputChange} placeholder='(+57) 3116028254' />
                     </div>
                 </div>
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="instructions">Instrucción para el cliente</Label>
-                <Textarea id="instructions" value={data.instructions} onChange={handleInputChange} placeholder='Para validar tu pago, envía el comprobante a nuestro WhatsApp. Luego, nuestro equipo confirmará y activará tu plan.' />
             </div>
         </>
     );

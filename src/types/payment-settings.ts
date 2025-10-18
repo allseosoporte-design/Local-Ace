@@ -16,7 +16,9 @@ interface MercadoPagoData {
 }
 
 export interface PlanPaymentSettings {
+    cashOnDelivery: boolean;
     nequi: QRFormData;
+    daviplata: QRFormData;
     bancolombia: QRFormData;
     stripe: StripeData;
     mercadoPago: MercadoPagoData;

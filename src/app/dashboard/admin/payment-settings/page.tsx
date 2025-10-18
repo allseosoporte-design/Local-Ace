@@ -13,8 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Save, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { PaymentPlanForm } from '@/components/payment-plan-form';
 import type { PlanPaymentSettings } from '@/types/payment-settings';
 
@@ -37,7 +37,8 @@ const initialPlanSettings: PlanPaymentSettings = {
     nequi: initialQRData,
     bancolombia: initialQRData,
     stripe: initialStripeData,
-    mercadoPago: initialMercadoPagoData
+    mercadoPago: initialMercadoPagoData,
+    cashOnDelivery: false,
 };
 
 
@@ -45,8 +46,10 @@ export default function PaymentSettingsPage() {
   const [activeTab, setActiveTab] = useState('starter');
   const [settings, setSettings] = useState<PlanPaymentSettings>(initialPlanSettings);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
 
   const settingsDocRef = useMemoFirebase(() => {
@@ -55,22 +58,37 @@ export default function PaymentSettingsPage() {
       return doc(firestore, 'paymentSettings', docId);
   }, [firestore, activeTab]);
 
-  const { data: initialData, isLoading: isLoadingData } = useDoc<PlanPaymentSettings>(settingsDocRef);
-
   useEffect(() => {
-    if (initialData) {
-      // Merge initialData with the default structure to avoid missing fields if they are added later
-      const mergedSettings = {
-        nequi: { ...initialQRData, ...(initialData.nequi || {}) },
-        bancolombia: { ...initialQRData, ...(initialData.bancolombia || {}) },
-        stripe: { ...initialStripeData, ...(initialData.stripe || {}) },
-        mercadoPago: { ...initialMercadoPagoData, ...(initialData.mercadoPago || {}) }
-      };
-      setSettings(mergedSettings);
-    } else if (!isLoadingData) {
-      setSettings(initialPlanSettings);
-    }
-  }, [initialData, isLoadingData, activeTab]);
+    const loadSettings = async () => {
+        if (!settingsDocRef) {
+            setIsLoadingData(false);
+            return;
+        };
+        setIsLoadingData(true);
+        try {
+            const docSnap = await getDoc(settingsDocRef);
+            if (docSnap.exists()) {
+                const loadedData = docSnap.data() as PlanPaymentSettings;
+                 const mergedSettings = {
+                    nequi: { ...initialQRData, ...(loadedData.nequi || {}) },
+                    bancolombia: { ...initialQRData, ...(loadedData.bancolombia || {}) },
+                    stripe: { ...initialStripeData, ...(loadedData.stripe || {}) },
+                    mercadoPago: { ...initialMercadoPagoData, ...(loadedData.mercadoPago || {}) },
+                    cashOnDelivery: loadedData.cashOnDelivery || false,
+                };
+                setSettings(mergedSettings);
+            } else {
+                 setSettings(initialPlanSettings);
+            }
+        } catch (error) {
+            console.error("Error loading payment settings:", error);
+            setSettings(initialPlanSettings);
+        } finally {
+            setIsLoadingData(false);
+        }
+    };
+    loadSettings();
+  }, [settingsDocRef]);
   
   const handleSaveSettings = async () => {
     if (!settingsDocRef) {
@@ -128,7 +146,7 @@ export default function PaymentSettingsPage() {
       </Tabs>
       
       <div className="flex justify-end mt-8">
-        <Button size="lg" onClick={handleSaveSettings} disabled={isSaving}>
+        <Button size="lg" onClick={handleSaveSettings} disabled={isSaving || isLoadingData}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Guardar Configuración General
         </Button>
