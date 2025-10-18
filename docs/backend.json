@@ -465,7 +465,7 @@
       "schema": {
         "$ref": "#/entities/PaymentSettings"
       },
-      "description": "Stores payment settings for a specific user (business owner). Only the authenticated user can read/write their own settings. The super admin's settings are public-read."
+      "description": "Stores payment settings for a user. Rule: Allow public read for super admin's settings (`userId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2'`). Allow owner to read/write their own settings (`request.auth.uid == userId`)."
     }
   }
 }
