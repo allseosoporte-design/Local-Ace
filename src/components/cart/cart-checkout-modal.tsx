@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Dialog,
@@ -66,10 +66,10 @@ export function CartCheckoutModal() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
-  
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+
   const firestore = useFirestore();
 
-  // Determine businessId from the first item in the cart.
   const businessId = useMemo(() => {
     if (state.items.length > 0) {
       return state.items[0].businessId;
@@ -79,7 +79,6 @@ export function CartCheckoutModal() {
 
   const settingsDocRef = useMemoFirebase(() => {
     if (!firestore || !businessId) return null;
-    // Dynamically get the payment settings for the correct business.
     return doc(firestore, 'paymentSettings', businessId);
   }, [firestore, businessId]);
 
@@ -96,9 +95,8 @@ export function CartCheckoutModal() {
   };
   
   const handleCheckout = () => {
-    // Lógica para enviar pedido por WhatsApp
     const orderSummary = state.items.map(item => `${item.quantity} x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join('\n');
-    const message = `*¡Nuevo Pedido!* 🎉\n\n*Cliente:* ${customerName}\n*Teléfono:* ${customerPhone}\n*Dirección:* ${customerAddress}\n\n*Productos:*\n${orderSummary}\n\n*Total:* ${formatCurrency(totalPrice)}`;
+    const message = `*¡Nuevo Pedido!* 🎉\n\n*Cliente:* ${customerName}\n*Teléfono:* ${customerPhone}\n*Dirección:* ${customerAddress}\n\n*Productos:*\n${orderSummary}\n\n*Método de Pago:* ${selectedPaymentMethod}\n*Total:* ${formatCurrency(totalPrice)}`;
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -205,7 +203,12 @@ export function CartCheckoutModal() {
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-4">
-                  <PaymentOptionsDisplay settings={paymentSettings} isLoading={isLoadingSettings} />
+                  <PaymentOptionsDisplay 
+                    settings={paymentSettings} 
+                    isLoading={isLoadingSettings}
+                    selectedValue={selectedPaymentMethod}
+                    onValueChange={setSelectedPaymentMethod}
+                  />
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -224,7 +227,7 @@ export function CartCheckoutModal() {
                 <Trash2 className="mr-2 h-4 w-4" />
                 Vaciar Carrito
               </Button>
-              <Button onClick={handleCheckout} disabled={!customerName || !customerPhone || !customerAddress}>
+              <Button onClick={handleCheckout} disabled={!customerName || !customerPhone || !customerAddress || !selectedPaymentMethod}>
                 <WhatsAppIcon />
                 <span className="ml-2">Pedir por WhatsApp</span>
               </Button>

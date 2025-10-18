@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -11,10 +12,14 @@ import {
   MercadoPagoIcon,
   PayPalIcon,
 } from '@/components/icons/payment-methods';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 interface PaymentOptionsDisplayProps {
   settings: PlanPaymentSettings | null;
   isLoading: boolean;
+  selectedValue: string | null;
+  onValueChange: (value: string) => void;
 }
 
 const paymentMethodConfig = {
@@ -49,7 +54,7 @@ const paymentMethodConfig = {
 };
 
 
-export function PaymentOptionsDisplay({ settings, isLoading }: PaymentOptionsDisplayProps) {
+export function PaymentOptionsDisplay({ settings, isLoading, selectedValue, onValueChange }: PaymentOptionsDisplayProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-24">
@@ -67,7 +72,7 @@ export function PaymentOptionsDisplay({ settings, isLoading }: PaymentOptionsDis
       if (typeof value === 'boolean' && value === true && key === 'cashOnDelivery') {
         return { key, ...paymentMethodConfig[key], details: null };
       }
-      if (typeof value === 'object' && value.enabled) {
+      if (typeof value === 'object' && value && 'enabled' in value && value.enabled) {
         return { key, ...paymentMethodConfig[key as keyof typeof paymentMethodConfig], details: value };
       }
       return null;
@@ -80,25 +85,23 @@ export function PaymentOptionsDisplay({ settings, isLoading }: PaymentOptionsDis
 
 
   return (
-    <div className="space-y-4">
-      {enabledMethods.map((method) => (
-        method && (
-          <div key={method.key} className="p-3 border rounded-md bg-background flex flex-col sm:flex-row items-center gap-4">
-            <div className="flex items-center gap-3 flex-1">
-              {method.icon}
-              <span className="font-medium text-sm">{method.label}</span>
-            </div>
-            {method.details?.qrImageUrl && (
-                <div className="w-16 h-16 relative">
-                    <Image src={method.details.qrImageUrl} alt={`${method.label} QR`} layout='fill' objectFit='contain' />
+    <RadioGroup value={selectedValue ?? undefined} onValueChange={onValueChange} className="space-y-3">
+        {enabledMethods.map((method) => (
+            method && (
+            <Label key={method.key} htmlFor={method.key} className="p-3 border rounded-md bg-background flex items-center gap-4 cursor-pointer hover:bg-muted/50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-300">
+                <RadioGroupItem value={method.label} id={method.key} />
+                <div className="flex items-center gap-3 flex-1">
+                    {method.icon}
+                    <span className="font-medium text-sm">{method.label}</span>
                 </div>
-            )}
-             {method.details && 'instructions' in method.details && method.details.instructions && (
-                <p className='text-xs text-muted-foreground sm:w-1/2'>{method.details.instructions}</p>
-             )}
-          </div>
-        )
-      ))}
-    </div>
+                {method.details?.qrImageUrl && (
+                    <div className="w-12 h-12 relative ml-auto">
+                        <Image src={method.details.qrImageUrl} alt={`${method.label} QR`} layout='fill' objectFit='contain' />
+                    </div>
+                )}
+            </Label>
+            )
+        ))}
+    </RadioGroup>
   );
 }
