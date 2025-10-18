@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,7 @@ export const QRForm = ({methodName, data, setData}: QRFormProps) => {
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
     const { user } = useUser();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -68,12 +69,20 @@ export const QRForm = ({methodName, data, setData}: QRFormProps) => {
             });
         } finally {
             setIsUploading(false);
+            // Reset file input to allow re-uploading the same file
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
         }
     };
     
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
         setData({ ...data, [id]: value });
+    };
+
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
     };
 
     return (
@@ -91,14 +100,15 @@ export const QRForm = ({methodName, data, setData}: QRFormProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="qrImageUrl">Imagen del Código QR</Label>
+                        <Label htmlFor={`qr-code-file-${methodName}`}>Imagen del Código QR</Label>
                         <Input 
-                            id="qr-code-file"
+                            ref={fileInputRef}
+                            id={`qr-code-file-${methodName}`}
                             type="file" 
                             accept="image/*"
                             onChange={handleFileChange}
                             disabled={isUploading}
-                            className="text-sm"
+                            className="hidden" // Keep it hidden, we trigger it programmatically
                         />
                     </div>
                     <div className="space-y-2">
@@ -113,7 +123,10 @@ export const QRForm = ({methodName, data, setData}: QRFormProps) => {
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label>Vista Previa del QR</Label>
-                        <div className="w-[200px] h-[200px] bg-gray-200 rounded-md flex items-center justify-center mx-auto border">
+                        <div 
+                            className="w-[200px] h-[200px] bg-gray-200 rounded-md flex items-center justify-center mx-auto border cursor-pointer"
+                            onClick={handleUploadClick}
+                        >
                              {isUploading ? (
                                 <Loader2 className="h-8 w-8 animate-spin" />
                              ) : data.qrImageUrl ? (
