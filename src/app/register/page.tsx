@@ -22,6 +22,7 @@ import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -81,6 +82,29 @@ export default function RegisterPage() {
             updatedAt: serverTimestamp(),
         });
         
+        // Create default landing page config for the new business
+        const landingConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'config');
+        batch.set(landingConfigRef, {
+          title: `Bienvenido a ${user.email}`,
+          subtitle: "Esta es tu nueva landing page. ¡Edítala desde tu panel!",
+          content: ``,
+          heroImageUrl: "https://picsum.photos/seed/default-hero/1200/600",
+          ctaText: "Deja tu Reseña",
+          ctaUrl: `/funnel/${user.uid}`,
+          backgroundColor: "#FFFFFF",
+          textColor: "#000000",
+          buttonColor: "#FF4500",
+          sections: [],
+          testimonials: [],
+          seo: {
+            title: `Landing Page de ${user.email}`,
+            description: "Una nueva landing page creada con Local Leap.",
+            keywords: ["negocio local", "servicios"],
+          },
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
         // Create default form config for the new business
         const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
         batch.set(formConfigRef, {
