@@ -12,6 +12,7 @@ import { FormEditor, type FormConfigData } from "@/components/dashboard/landing/
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { Loader2 } from "lucide-react";
 import { doc } from "firebase/firestore";
+import { ShareLandingPage } from "@/components/dashboard/landing/share-landing-page";
 
 const defaultLandingData: LandingPageData = {
   title: "Tu Titular Atractivo Aquí",
@@ -86,8 +87,9 @@ export default function LandingPageBuilder() {
                     <TabsTrigger value="seo">SEO</TabsTrigger>
                     <TabsTrigger value="form">Formulario</TabsTrigger>
                 </TabsList>
-                <TabsContent value="hero">
+                <TabsContent value="hero" className="space-y-6">
                     <EditorLandingForm data={data} setData={setData} />
+                    <ShareLandingPage />
                 </TabsContent>
                 <TabsContent value="sections">
                     <EditorSections data={data} setData={setData} />

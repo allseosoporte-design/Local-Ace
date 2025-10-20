@@ -16,6 +16,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
 
 const TikTokIcon = () => (
   <svg
@@ -28,13 +29,15 @@ const TikTokIcon = () => (
   </svg>
 );
 
-export function ShareCatalog() {
+export function ShareLandingPage() {
   const { toast } = useToast();
+  const { user } = useUser();
 
   const handleShare = (platform: string) => {
-    const catalogLink = `${window.location.origin}/catalog`;
-    const encodedLink = encodeURIComponent(catalogLink);
-    const text = encodeURIComponent('¡Mira nuestro increíble catálogo!');
+    // A business-specific landing page URL will be constructed here in a real scenario
+    const landingPageLink = `${window.location.origin}/landing/${user?.uid || 'preview'}`;
+    const encodedLink = encodeURIComponent(landingPageLink);
+    const text = encodeURIComponent('¡Echa un vistazo a nuestra página!');
     let url = '';
 
     switch (platform) {
@@ -49,7 +52,7 @@ export function ShareCatalog() {
         break;
       case 'tiktok':
       case 'instagram':
-        navigator.clipboard.writeText(catalogLink);
+        navigator.clipboard.writeText(landingPageLink);
         toast({
           title: 'Enlace copiado al portapapeles',
           description: `Pega el enlace en tu perfil de ${platform}.`,
@@ -64,9 +67,9 @@ export function ShareCatalog() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Comparte tu Catálogo en Redes Sociales</CardTitle>
+        <CardTitle>Comparte tu Landing Page</CardTitle>
         <CardDescription>
-          Promociona tus productos en tus redes favoritas y atrae más clientes 🚀
+          Promociona tu página en redes sociales para atraer más clientes.
         </CardDescription>
       </CardHeader>
       <CardContent>
