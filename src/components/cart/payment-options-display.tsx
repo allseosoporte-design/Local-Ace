@@ -2,7 +2,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Wallet } from 'lucide-react';
 import type { PlanPaymentSettings } from '@/types/payment-settings';
 import {
   NequiIcon,
@@ -25,7 +25,7 @@ interface PaymentOptionsDisplayProps {
 const paymentMethodConfig = {
   cashOnDelivery: {
     label: 'Pago Contra Entrega',
-    icon: null,
+    icon: <Wallet className="h-6 w-6" />,
   },
   nequi: {
     label: 'Nequi',
@@ -44,7 +44,7 @@ const paymentMethodConfig = {
     icon: <MercadoPagoIcon />,
   },
   stripe: {
-    label: 'Tarjeta de Crédito (Stripe)',
+    label: 'Stripe',
     icon: <StripeIcon />,
   },
    paypal: {
@@ -69,11 +69,15 @@ export function PaymentOptionsDisplay({ settings, isLoading, selectedValue, onVa
 
   const enabledMethods = Object.entries(settings)
     .map(([key, value]) => {
+      // Handle boolean for cashOnDelivery
       if (typeof value === 'boolean' && value === true && key === 'cashOnDelivery') {
-        return { key, ...paymentMethodConfig[key], details: null };
+        const config = paymentMethodConfig[key];
+        return config ? { key, ...config, details: null } : null;
       }
+      // Handle objects with 'enabled' property
       if (typeof value === 'object' && value && 'enabled' in value && value.enabled) {
-        return { key, ...paymentMethodConfig[key as keyof typeof paymentMethodConfig], details: value };
+         const config = paymentMethodConfig[key as keyof typeof paymentMethodConfig];
+         return config ? { key, ...config, details: value } : null;
       }
       return null;
     })
