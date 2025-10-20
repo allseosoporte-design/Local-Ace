@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -196,9 +195,11 @@ export function EditorLandingPreview({ data, formConfig, isPreview }: EditorLand
           </section>
         )}
 
-        {formConfig && isPreview && (
+        {formConfig && (
             <section className="p-8 md:p-12 bg-muted/30">
-                <h3 className="text-lg font-semibold text-center mb-4 text-foreground/80">Vista Previa del Formulario</h3>
+                {isPreview && (
+                     <h3 className="text-lg font-semibold text-center mb-4 text-foreground/80">Vista Previa del Formulario</h3>
+                )}
                  <Card className="w-full max-w-md mx-auto shadow-lg">
                     <CardHeader className="text-center">
                         <CardTitle className="text-xl font-bold">{formConfig.formTitle}</CardTitle>
