@@ -280,28 +280,6 @@ export default function SettingsPage() {
             </Button>
         </CardFooter>
       </Card>
-      
-      <Separator />
-
-       <Card>
-        <CardHeader>
-          <CardTitle>Facturación y Suscripción</CardTitle>
-          <CardDescription>Gestiona tu plan de suscripción y métodos de pago.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="rounded-lg border bg-card text-card-foreground p-4">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="font-semibold">Plan Pro</p>
-                        <p className="text-sm text-muted-foreground">$49.99 / mes</p>
-                    </div>
-                    <Button variant="outline">Cambiar Plan</Button>
-                </div>
-                <Separator className="my-4" />
-                <p className="text-sm text-muted-foreground">Próximo pago el 1 de Dic, 2024.</p>
-            </div>
-        </CardContent>
-      </Card>
 
     </div>
   );
