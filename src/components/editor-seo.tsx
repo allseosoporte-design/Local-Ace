@@ -14,11 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Globe, Save, Loader2 } from 'lucide-react';
+import { X, Globe } from 'lucide-react';
 import type { LandingPageData } from './editor-landing-preview';
-import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface EditorSeoProps {
   data: LandingPageData;
@@ -27,10 +24,6 @@ interface EditorSeoProps {
 
 export function EditorSeo({ data, setData }: EditorSeoProps) {
   const [keywordInput, setKeywordInput] = useState('');
-  const { toast } = useToast();
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const [isSaving, setIsSaving] = useState(false);
 
   const handleSeoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setData((prev) => ({
@@ -67,40 +60,6 @@ export function EditorSeo({ data, setData }: EditorSeoProps) {
       seo: { ...prev.seo, keywords: newKeywords },
     }));
   };
-
-  const handleSave = async () => {
-    if (!user || !firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Debes iniciar sesión para guardar los cambios.',
-      });
-      return;
-    }
-    setIsSaving(true);
-    try {
-      const landingPageConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'config');
-      await setDoc(landingPageConfigRef, {
-        seo: data.seo,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-
-      toast({
-        title: '¡SEO guardado!',
-        description: 'La configuración de SEO ha sido actualizada.',
-      });
-    } catch (error) {
-      console.error('Error saving SEO data:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al Guardar',
-        description: 'No se pudo guardar la configuración de SEO.',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
 
   return (
     <Card className="h-full overflow-y-auto border-t-0 rounded-t-none bg-[#FEFBF9]">
@@ -160,12 +119,6 @@ export function EditorSeo({ data, setData }: EditorSeoProps) {
               </Badge>
             ))}
           </div>
-        </div>
-         <div className="flex justify-end gap-2 pt-4 border-t mt-6">
-          <Button onClick={handleSave} disabled={isSaving} style={{ backgroundColor: '#FF8550', color: '#FFFFFF' }}>
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Guardar Cambios SEO
-          </Button>
         </div>
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -9,13 +10,8 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Save, Eye, Star, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import React, { useState } from 'react';
+import React from 'react';
 
 export interface FormConfigData {
   redirectUrl: string;
@@ -36,35 +32,10 @@ interface FormEditorProps {
 }
 
 export function FormEditor({ data, setData }: FormEditorProps) {
-  const { toast } = useToast();
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const [isSaving, setIsSaving] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setData({ ...data, [e.target.name]: e.target.value });
   };
-  
-  const handleSave = async () => {
-    if (!user || !firestore) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para guardar.' });
-        return;
-    }
-    setIsSaving(true);
-    try {
-        const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
-        await setDoc(formConfigRef, {
-            ...data,
-            updatedAt: serverTimestamp()
-        }, { merge: true });
-        toast({ title: 'Configuración guardada', description: 'La configuración del formulario ha sido actualizada.' });
-    } catch (error) {
-        console.error("Error saving form config:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la configuración. Revisa los permisos de la base de datos.' });
-    } finally {
-        setIsSaving(false);
-    }
-  }
 
   return (
     <Card className="h-full overflow-y-auto border-t-0 rounded-t-none">
@@ -155,37 +126,6 @@ export function FormEditor({ data, setData }: FormEditorProps) {
                     </div>
                  </div>
             </div>
-        </div>
-
-        <div className='p-4 border rounded-lg'>
-             <h3 className='font-semibold text-md mb-2'>Vista Previa</h3>
-             <Card className="w-full max-w-md mx-auto shadow-lg">
-                <CardHeader className="text-center">
-                    <CardTitle className="text-xl font-bold">{data.formTitle}</CardTitle>
-                    <CardDescription>{data.formSubtitle}</CardDescription>
-                </CardHeader>
-                <CardContent className='flex justify-center'>
-                    <div className="flex justify-center space-x-1 py-2">
-                        <Star className="h-10 w-10 text-gray-300 hover:text-yellow-400 transition-colors" />
-                        <Star className="h-10 w-10 text-gray-300 hover:text-yellow-400 transition-colors" />
-                        <Star className="h-10 w-10 text-gray-300 hover:text-yellow-400 transition-colors" />
-                        <Star className="h-10 w-10 text-gray-300 hover:text-yellow-400 transition-colors" />
-                        <Star className="h-10 w-10 text-gray-300 hover:text-yellow-400 transition-colors" />
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-
-
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline">
-            <Eye className="mr-2 h-4 w-4" />
-            Vista Previa Completa
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Guardar Cambios
-          </Button>
         </div>
       </CardContent>
     </Card>
