@@ -73,14 +73,23 @@ export default function Home() {
   const isLoading = isLandingLoading || isFormLoading;
 
   const displayData = useMemo(() => {
+    // No calcular los datos hasta que la carga haya terminado.
     if (isLoading) {
       return null;
     }
-    return landingData ? { ...defaultLandingData, ...landingData } : defaultLandingData;
+    // Si no hay datos de landing, se usa el por defecto, pero solo DESPUÉS de cargar.
+    const finalLandingData = landingData ? { ...defaultLandingData, ...landingData } : defaultLandingData;
+    
+    // Asegurarse de que las propiedades anidadas existan
+    finalLandingData.sections = finalLandingData.sections || [];
+    finalLandingData.testimonials = finalLandingData.testimonials || [];
+    finalLandingData.seo = { ...defaultLandingData.seo, ...(finalLandingData.seo || {})};
+    
+    return finalLandingData;
   }, [isLoading, landingData]);
 
 
-  if (isLoading || !displayData) {
+  if (!displayData) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
