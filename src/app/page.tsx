@@ -33,7 +33,7 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
       id: "1",
       authorName: "Ana López",
       authorRole: "Dueña, Restaurante Sabor del Sol",
-      text: "¡WebSapMax ha transformado mi negocio! Mis ventas han aumentado un 30% desde que implementé el menú digital.",
+      text: "¡Local Leap ha transformado mi negocio! Mis ventas han aumentado un 30% desde que implementé el menú digital.",
       avatarUrl: "https://picsum.photos/seed/testi1/100/100",
       rating: 5,
     },
