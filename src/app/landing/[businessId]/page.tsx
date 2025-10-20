@@ -6,6 +6,8 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { Loader2 } from 'lucide-react';
+import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
+
 
 const defaultLandingData: LandingPageData = {
   title: "Bienvenido a Nuestro Espacio",
@@ -38,19 +40,21 @@ export default function PublicLandingPage() {
     return doc(firestore, `businesses/${businessId}/landingPages`, 'config');
   }, [firestore, businessId]);
 
-  const { data: loadedData, isLoading } = useDoc<Partial<LandingPageData>>(landingPageRef);
+  const formConfigRef = useMemoFirebase(() => {
+      if (!firestore || !businessId) return null;
+      return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
+  }, [firestore, businessId]);
+
+  const { data: loadedData, isLoading: isLandingLoading } = useDoc<Partial<LandingPageData>>(landingPageRef);
+  const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
 
   const displayData = useMemo(() => {
-    if (isLoading) return null;
+    if (isLandingLoading) return null;
 
-    // CORRECCIÓN: Si no hay datos cargados, no debemos mostrar nada.
-    // Esto asegura que se muestre el mensaje de "Página no encontrada"
-    // en lugar de los datos por defecto.
     if (!loadedData) {
       return null;
     }
     
-    // Fusión profunda para asegurar que todas las propiedades existan.
     const merged: LandingPageData = {
       ...defaultLandingData,
       ...loadedData,
@@ -63,7 +67,9 @@ export default function PublicLandingPage() {
       }
     };
     return merged;
-  }, [loadedData, isLoading]);
+  }, [loadedData, isLandingLoading]);
+
+  const isLoading = isLandingLoading || isFormLoading;
 
   if (isLoading) {
     return (
@@ -87,7 +93,7 @@ export default function PublicLandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-1">
-        <EditorLandingPreview data={displayData} />
+        <EditorLandingPreview data={displayData} formConfig={formConfig || undefined} />
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">
         <p className="text-xs text-muted-foreground">&copy; 2024 Creado con Local Leap</p>
