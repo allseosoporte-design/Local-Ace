@@ -89,7 +89,7 @@ export default function EditorLandingPage() {
             </Tabs>
         </div>
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
-          <EditorLandingPreview data={data} />
+          <EditorLandingPreview data={data} isPreview={true} />
         </div>
       </div>
     </div>
