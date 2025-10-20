@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -83,6 +82,7 @@ export const QRForm = ({ methodName, data, setData }: QRFormProps) => {
   };
 
   const handleUploadClick = () => {
+    if (isUploading) return;
     fileInputRef.current?.click();
   };
 
