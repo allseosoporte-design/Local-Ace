@@ -71,7 +71,7 @@ const DetailsCard = ({ method, methodName }: { method: QRFormData | undefined, m
                 )}
                 {method.qrImageUrl && (
                     <>
-                        <p className='font-semibold'>O escanea el código QR:</p>
+                        <p className='font-semibold text-center mt-2'>O escanea el código QR:</p>
                         <div className="relative w-[200px] h-[200px] mx-auto">
                             <Image
                                 src={method.qrImageUrl}
@@ -319,3 +319,5 @@ export function CartCheckoutModal() {
     </Dialog>
   );
 }
+
+    
