@@ -157,20 +157,20 @@ export function CartCheckoutModal() {
   const selectedMethodDetails = useMemo(() => {
     if (!selectedPaymentMethod || !paymentSettings) return undefined;
 
-    const paymentMethodMap = {
-      'Nequi': 'nequi',
-      'Daviplata': 'daviplata',
-      'Bancolombia': 'bancolombia',
-      'Pago Contra Entrega': 'cashOnDelivery'
+    const paymentMethodMap: { [key: string]: keyof PlanPaymentSettings | null } = {
+        'Nequi': 'nequi',
+        'Daviplata': 'daviplata',
+        'Bancolombia': 'bancolombia',
+        'Pago Contra Entrega': 'cashOnDelivery'
     };
 
-    const key = paymentMethodMap[selectedPaymentMethod as keyof typeof paymentMethodMap];
-    
+    const key = paymentMethodMap[selectedPaymentMethod];
+
     if (key && key !== 'cashOnDelivery' && paymentSettings[key as keyof Omit<PlanPaymentSettings, 'cashOnDelivery'>]) {
-      return {
-        method: paymentSettings[key as keyof Omit<PlanPaymentSettings, 'cashOnDelivery'>] as QRFormData,
-        methodName: key
-      }
+        return {
+            method: paymentSettings[key as keyof Omit<PlanPaymentSettings, 'cashOnDelivery'>] as QRFormData,
+            methodName: key
+        }
     }
     return undefined;
 
