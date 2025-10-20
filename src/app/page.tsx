@@ -7,6 +7,7 @@ import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 
 const defaultLandingData: LandingPageData = {
   title: "Moderniza tu negocio y aumenta tus ventas.",
@@ -60,9 +61,16 @@ export default function Home() {
     return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/landingPages`, 'config');
   }, [firestore]);
 
-  const { data: landingData, isLoading } = useDoc<LandingPageData>(landingPageRef);
+  const formConfigRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/landingPages`, 'form');
+  }, [firestore]);
+
+  const { data: landingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingPageRef);
+  const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
 
   const displayData = landingData ? { ...defaultLandingData, ...landingData } : defaultLandingData;
+  const isLoading = isLandingLoading || isFormLoading;
 
   if (isLoading) {
     return (
@@ -76,7 +84,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       <HomeNav />
       <main className="flex-1">
-        <EditorLandingPreview data={displayData} />
+        <EditorLandingPreview data={displayData} formConfig={formConfig || undefined} />
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">
           <p className="text-xs text-muted-foreground">&copy; 2024 Creado con Local Leap</p>
