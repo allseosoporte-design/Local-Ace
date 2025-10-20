@@ -51,6 +51,11 @@ const DetailsCard = ({ method, methodName }: { method: QRFormData | undefined, m
     if (methodName === 'cashOnDelivery') {
         return null;
     }
+    
+    // Only show if there's something to show (QR or account details)
+    if (!method.qrImageUrl && (!method.holderName || !method.accountNumber)) {
+        return null;
+    }
 
     return (
         <Card className="mt-4 bg-white animate-in fade-in-50">
@@ -149,11 +154,27 @@ export function CartCheckoutModal() {
     onClose();
   }
 
-  const selectedMethodKey = selectedPaymentMethod
-    ? Object.entries(paymentSettings || {}).find(([key, value]) => typeof value === 'object' && value.label === selectedPaymentMethod)?.[0] || (selectedPaymentMethod === 'Pago Contra Entrega' ? 'cashOnDelivery' : null)
-    : null;
+  const selectedMethodDetails = useMemo(() => {
+    if (!selectedPaymentMethod || !paymentSettings) return undefined;
+
+    const paymentMethodMap = {
+      'Nequi': 'nequi',
+      'Daviplata': 'daviplata',
+      'Bancolombia': 'bancolombia',
+      'Pago Contra Entrega': 'cashOnDelivery'
+    };
+
+    const key = paymentMethodMap[selectedPaymentMethod as keyof typeof paymentMethodMap];
     
-  const currentMethodDetails = selectedMethodKey && paymentSettings ? (paymentSettings as any)[selectedMethodKey] as QRFormData : undefined;
+    if (key && key !== 'cashOnDelivery' && paymentSettings[key as keyof Omit<PlanPaymentSettings, 'cashOnDelivery'>]) {
+      return {
+        method: paymentSettings[key as keyof Omit<PlanPaymentSettings, 'cashOnDelivery'>] as QRFormData,
+        methodName: key
+      }
+    }
+    return undefined;
+
+  }, [selectedPaymentMethod, paymentSettings]);
 
 
   return (
@@ -259,8 +280,11 @@ export function CartCheckoutModal() {
                       selectedValue={selectedPaymentMethod}
                       onValueChange={setSelectedPaymentMethod}
                     />
-                     {currentMethodDetails && selectedMethodKey && (
-                        <DetailsCard method={currentMethodDetails} methodName={selectedMethodKey} />
+                     {selectedMethodDetails && (
+                        <DetailsCard 
+                            method={selectedMethodDetails.method} 
+                            methodName={selectedMethodDetails.methodName} 
+                        />
                      )}
                   </AccordionContent>
                 </AccordionItem>
