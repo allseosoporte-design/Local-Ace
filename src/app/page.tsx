@@ -73,28 +73,17 @@ export default function Home() {
   const isLoading = isLandingLoading || isFormLoading;
 
   const displayData = useMemo(() => {
-    // Calculate displayData only when not loading
     if (isLoading) {
       return null;
     }
-    // If landingData is loaded, merge it with defaults. Otherwise, use defaults.
     return landingData ? { ...defaultLandingData, ...landingData } : defaultLandingData;
   }, [isLoading, landingData]);
 
 
-  if (isLoading) {
+  if (isLoading || !displayData) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // displayData should not be null here if isLoading is false
-  if (!displayData) {
-     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-         <p>No se pudo cargar la página. Inténtalo de nuevo.</p>
       </div>
     );
   }
