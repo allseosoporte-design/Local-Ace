@@ -17,6 +17,7 @@ import type { Product } from '@/types/product';
 import { Loader2 } from 'lucide-react';
 import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 import { ProductViewModal } from '@/components/catalog/product-view-modal';
+import { CartButton } from '@/components/cart/cart-button';
 
 function ProductCard({ product, onProductSelect }: { product: Product, onProductSelect: (product: Product) => void }) {
   const formatCurrency = (amount: number) => {
@@ -125,6 +126,7 @@ export default function CatalogPage() {
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
       />
+      <CartButton />
     </>
   );
 }
