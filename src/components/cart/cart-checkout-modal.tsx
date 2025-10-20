@@ -157,24 +157,37 @@ export function CartCheckoutModal() {
   const selectedMethodDetails = useMemo(() => {
     if (!selectedPaymentMethod || !paymentSettings) return undefined;
 
-    const paymentMethodMap: { [key: string]: keyof PlanPaymentSettings | null } = {
-        'Nequi': 'nequi',
-        'Daviplata': 'daviplata',
-        'Bancolombia': 'bancolombia',
-        'Pago Contra Entrega': 'cashOnDelivery'
+    // Normalizar el nombre del método seleccionado a minúsculas
+    const normalizedMethod = selectedPaymentMethod.toLowerCase().trim();
+
+    // Mapeo directo a las claves de paymentSettings
+    const methodKeyMap: { [key: string]: keyof PlanPaymentSettings } = {
+        'nequi': 'nequi',
+        'daviplata': 'daviplata',
+        'bancolombia': 'bancolombia',
+        'pago contra entrega': 'cashOnDelivery',
+        'cashondelivery': 'cashOnDelivery'
     };
 
-    const key = paymentMethodMap[selectedPaymentMethod];
+    const key = methodKeyMap[normalizedMethod];
 
-    if (key && key !== 'cashOnDelivery' && paymentSettings[key as keyof Omit<PlanPaymentSettings, 'cashOnDelivery'>]) {
+    if (!key) return undefined;
+
+    // Para cashOnDelivery no mostrar detalles
+    if (key === 'cashOnDelivery') return undefined;
+
+    const methodData = paymentSettings[key];
+    
+    if (methodData && typeof methodData === 'object' && 'enabled' in methodData) {
         return {
-            method: paymentSettings[key as keyof Omit<PlanPaymentSettings, 'cashOnDelivery'>] as QRFormData,
+            method: methodData as QRFormData,
             methodName: key
-        }
+        };
     }
+
     return undefined;
 
-  }, [selectedPaymentMethod, paymentSettings]);
+}, [selectedPaymentMethod, paymentSettings]);
 
 
   return (
