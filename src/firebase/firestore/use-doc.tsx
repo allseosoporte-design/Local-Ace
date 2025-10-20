@@ -48,16 +48,16 @@ export function useDoc<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    // CRÍTICO: Limpiar el estado inmediatamente cuando cambia la referencia
+    setData(null);
+    setError(null);
+
     if (!memoizedDocRef) {
-      setData(null);
       setIsLoading(false);
-      setError(null);
       return;
     }
 
     setIsLoading(true);
-    setError(null);
-    // Optional: setData(null); // Clear previous data instantly
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
