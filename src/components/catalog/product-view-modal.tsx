@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { ShoppingCart } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/hooks/use-toast';
+import { ImageZoom } from './image-zoom';
 
 interface ProductViewModalProps {
   product: Product | null;
@@ -67,14 +68,13 @@ export function ProductViewModal({ product, isOpen, onOpenChange }: ProductViewM
       <DialogContent className="sm:max-w-4xl p-0">
         <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Image Gallery */}
-          <div className="flex flex-col gap-4 p-6 bg-muted/50">
+          <div className="relative flex flex-col gap-4 p-6 bg-muted/50">
             <div className="relative aspect-square w-full rounded-lg overflow-hidden border">
               {selectedImage ? (
-                <Image
+                <ImageZoom
                   src={selectedImage}
                   alt={product.name}
-                  fill
-                  className="object-cover"
+                  className="rounded-lg"
                 />
               ) : (
                  <div className="w-full h-full bg-gray-200" />
