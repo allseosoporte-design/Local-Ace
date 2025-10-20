@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -29,7 +28,6 @@ const defaultLandingData: LandingPageData = {
   }
 };
 
-
 export default function PublicLandingPage() {
   const params = useParams();
   const businessId = params.businessId as string;
@@ -37,22 +35,19 @@ export default function PublicLandingPage() {
 
   const landingPageRef = useMemoFirebase(() => {
     if (!firestore || !businessId) return null;
-    return doc(firestore, `businesses/${businessId}/landingPages`, 'config');
+    // CORRECCIÓN: Ruta correcta de Firestore
+    return doc(firestore, `businesses/${businessId}/config`, 'landing');
   }, [firestore, businessId]);
 
   const { data: loadedData, isLoading } = useDoc<Partial<LandingPageData>>(landingPageRef);
 
-  // Robust data merging to prevent crashes from incomplete data
   const displayData = useMemo(() => {
     if (isLoading) return null;
 
-    // If no data is loaded at all, we show a not found message.
     if (!loadedData) {
       return null;
     }
     
-    // Deep merge loaded data onto defaults to ensure all properties exist.
-    // This is the key fix.
     const merged: LandingPageData = {
       ...defaultLandingData,
       ...loadedData,
@@ -67,7 +62,6 @@ export default function PublicLandingPage() {
     return merged;
   }, [loadedData, isLoading]);
 
-
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -78,23 +72,24 @@ export default function PublicLandingPage() {
   
   if (!displayData) {
     return (
-         <div className="flex h-screen w-full items-center justify-center bg-background text-center p-4">
-            <div>
-                <h1 className='text-2xl font-bold'>Página no encontrada</h1>
-                <p className='text-muted-foreground mt-2'>La página que buscas no existe o no se pudo cargar. Es posible que la configuración aún no se haya guardado.</p>
-            </div>
+      <div className="flex h-screen w-full items-center justify-center bg-background text-center p-4">
+        <div>
+          <h1 className='text-2xl font-bold'>Página no encontrada</h1>
+          <p className='text-muted-foreground mt-2'>La página que buscas no existe o no se pudo cargar. Es posible que la configuración aún no se haya guardado.</p>
         </div>
+      </div>
     );
   }
 
   return (
-     <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen">
       <main className="flex-1">
         <EditorLandingPreview data={displayData} />
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">
-          <p className="text-xs text-muted-foreground">&copy; 2024 Creado con Local Leap</p>
+        <p className="text-xs text-muted-foreground">&copy; 2024 Creado con Local Leap</p>
       </footer>
     </div>
   );
 }
+    
