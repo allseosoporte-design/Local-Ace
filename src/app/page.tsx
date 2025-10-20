@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { HomeNav } from '@/components/home-nav';
 import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
@@ -69,13 +70,31 @@ export default function Home() {
   const { data: landingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingPageRef);
   const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
 
-  const displayData = landingData ? { ...defaultLandingData, ...landingData } : defaultLandingData;
   const isLoading = isLandingLoading || isFormLoading;
+
+  const displayData = useMemo(() => {
+    // Calculate displayData only when not loading
+    if (isLoading) {
+      return null;
+    }
+    // If landingData is loaded, merge it with defaults. Otherwise, use defaults.
+    return landingData ? { ...defaultLandingData, ...landingData } : defaultLandingData;
+  }, [isLoading, landingData]);
+
 
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // displayData should not be null here if isLoading is false
+  if (!displayData) {
+     return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+         <p>No se pudo cargar la página. Inténtalo de nuevo.</p>
       </div>
     );
   }
