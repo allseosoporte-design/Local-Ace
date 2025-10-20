@@ -86,22 +86,27 @@ export default function Home() {
   const isLoading = isLandingLoading || isFormLoading;
 
   const displayData = useMemo(() => {
-    // No procesar hasta que la carga haya terminado
+    // TEMPORARY FIX: Ignore data from Firestore and always use default data.
+    // This forces the correct content to display until the database is fixed.
+    const finalLandingData = defaultLandingData;
+    
+    return finalLandingData;
+
+    // ORIGINAL LOGIC (to be restored after fixing DB)
+    /*
     if (isLoading) {
       return null;
     }
     
-    // Si existen datos en Firestore, fusiónalos con los por defecto para asegurar que todos los campos existan.
-    // Si no existen, usa los por defecto.
     const finalLandingData = landingData ? { ...defaultLandingData, ...landingData } : defaultLandingData;
     
-    // Asegurar que las arrays existan
     finalLandingData.sections = finalLandingData.sections || [];
     finalLandingData.testimonials = finalLandingData.testimonials || [];
     finalLandingData.seo = { ...defaultLandingData.seo, ...(finalLandingData.seo || {})};
     
     return finalLandingData;
-  }, [isLoading, landingData]);
+    */
+  }, [landingData, isLoading]);
 
   if (!displayData) {
     return (
