@@ -1,13 +1,7 @@
-
 'use client';
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -18,29 +12,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { QRForm, type QRFormData } from '@/components/qr-form';
 import { NequiIcon, BancolombiaIcon, StripeIcon, MercadoPagoIcon, PayPalIcon, DaviplataIcon } from '@/components/icons/payment-methods';
 import type { PlanPaymentSettings } from '@/types/payment-settings';
+import Image from 'next/image';
 
-const PaymentMethodForm = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
-    <AccordionItem value={title} className="bg-white border rounded-lg overflow-hidden">
-        <AccordionTrigger className="hover:no-underline px-6 py-4 data-[state=open]:bg-stone-50">
-            <div className="flex items-center gap-4 text-lg font-semibold">
-                {icon}
-                <span>{title}</span>
-            </div>
-        </AccordionTrigger>
-        <AccordionContent>
-            <Card className="border-none bg-stone-50 rounded-t-none">
-                <CardContent className="p-6 space-y-6">
-                    {children}
-                </CardContent>
-            </Card>
-        </AccordionContent>
-    </AccordionItem>
+const PaymentMethodSelector = ({ icon, title, value, children }: { icon: React.ReactNode, title: string, value: string, children?: React.ReactNode }) => (
+    <Label htmlFor={value} className="p-4 border rounded-md bg-white flex items-center gap-4 cursor-pointer hover:bg-muted/50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-300 transition-all">
+        <RadioGroupItem value={value} id={value} />
+        <div className="flex items-center gap-3 flex-1">
+            {icon}
+            <span className="font-medium text-sm">{title}</span>
+        </div>
+        {children}
+    </Label>
 );
+
+const DetailsCard = ({ method }: { method: QRFormData | undefined }) => {
+    if (!method || !method.enabled || !method.qrImageUrl) {
+        return null;
+    }
+
+    return (
+        <Card className="mt-4 bg-white animate-in fade-in-50">
+            <CardHeader>
+                <CardTitle className='text-base'>Paga a la siguiente cuenta:</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+                <div className='text-left space-y-2'>
+                    <p><span className='font-semibold'>Titular:</span> {method.holderName}</p>
+                    <p><span className='font-semibold'>Cuenta:</span> {method.accountNumber}</p>
+                </div>
+                <p className='font-semibold'>O escanea el código QR:</p>
+                <div className="relative w-[200px] h-[200px] mx-auto">
+                    <Image
+                        src={method.qrImageUrl}
+                        alt={`Código QR`}
+                        width={200}
+                        height={200}
+                        className="rounded-md object-contain"
+                    />
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 interface PaymentPlanFormProps {
     isLoading: boolean;
@@ -49,124 +68,50 @@ interface PaymentPlanFormProps {
 }
 
 export function PaymentPlanForm({ isLoading, settings, setSettings }: PaymentPlanFormProps) {
+    const [selectedMethod, setSelectedMethod] = useState<string>('nequi');
     
-    const handleStripeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { id, value } = e.target;
-        setSettings(prev => ({ ...prev, stripe: { ...prev.stripe, [id]: value } }));
-    };
-
-    const handleMercadoPagoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { id, value } = e.target;
-        setSettings(prev => ({ ...prev, mercadoPago: { ...prev.mercadoPago, [id]: value } }));
-    };
-
-    const handleSetData = (method: 'nequi' | 'bancolombia' | 'daviplata') => (data: QRFormData) => {
-        setSettings(prev => ({...prev, [method]: data}));
-    };
-
     if (isLoading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin h-8 w-8 text-muted-foreground"/></div>;
     }
+    
+    const currentMethodDetails = settings[selectedMethod as keyof typeof settings];
 
     return (
-        <div className='bg-[#FFF7F4] p-6 rounded-b-lg space-y-6'>
-            <div className="flex items-center gap-2">
-                <Switch 
-                    id="cashOnDelivery"
-                    checked={settings.cashOnDelivery}
-                    onCheckedChange={(checked) => setSettings(p => ({ ...p, cashOnDelivery: checked}))}
-                />
-                <Label htmlFor="cashOnDelivery">Habilitar pago contra entrega</Label>
-            </div>
-             <Accordion type="multiple" defaultValue={['Nequi']} className="w-full space-y-4">
-                <PaymentMethodForm icon={<NequiIcon />} title="Nequi">
-                    <QRForm methodName="Nequi" data={settings.nequi} setData={handleSetData('nequi')} />
-                </PaymentMethodForm>
+        <div className='bg-[#FFF7F4] p-6 rounded-b-lg space-y-4'>
+            <RadioGroup value={selectedMethod} onValueChange={setSelectedMethod} className="space-y-3">
+                <PaymentMethodSelector value="nequi" title="Paga con Nequi" icon={<NequiIcon />}>
+                    <Switch
+                        checked={settings.nequi.enabled}
+                        onCheckedChange={(checked) => setSettings(p => ({ ...p, nequi: { ...p.nequi, enabled: checked } }))}
+                    />
+                </PaymentMethodSelector>
+                <PaymentMethodSelector value="daviplata" title="Paga con Daviplata" icon={<DaviplataIcon />}>
+                     <Switch
+                        checked={settings.daviplata.enabled}
+                        onCheckedChange={(checked) => setSettings(p => ({ ...p, daviplata: { ...p.daviplata, enabled: checked } }))}
+                    />
+                </PaymentMethodSelector>
+                <PaymentMethodSelector value="bancolombia" title="Paga con Bancolombia QR" icon={<BancolombiaIcon />}>
+                     <Switch
+                        checked={settings.bancolombia.enabled}
+                        onCheckedChange={(checked) => setSettings(p => ({ ...p, bancolombia: { ...p.bancolombia, enabled: checked } }))}
+                    />
+                </PaymentMethodSelector>
+                <PaymentMethodSelector value="cashOnDelivery" title="Pago Contra Entrega" icon={<WalletIcon />}>
+                    <Switch
+                        checked={settings.cashOnDelivery}
+                        onCheckedChange={(checked) => setSettings(p => ({ ...p, cashOnDelivery: checked }))}
+                    />
+                </PaymentMethodSelector>
+            </RadioGroup>
 
-                 <PaymentMethodForm icon={<DaviplataIcon />} title="Daviplata">
-                    <QRForm methodName="Daviplata" data={settings.daviplata} setData={handleSetData('daviplata')} />
-                </PaymentMethodForm>
-
-                <PaymentMethodForm icon={<BancolombiaIcon />} title="Bancolombia">
-                        <QRForm methodName="Bancolombia" data={settings.bancolombia} setData={handleSetData('bancolombia')} />
-                </PaymentMethodForm>
-
-                <PaymentMethodForm icon={<MercadoPagoIcon />} title="Mercado Pago">
-                        <div className="flex justify-end">
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="switch-mp">Mercado Pago está activado</Label>
-                            <Switch 
-                                id="switch-mp"
-                                checked={settings.mercadoPago.enabled}
-                                onCheckedChange={(checked) => setSettings(p => ({ ...p, mercadoPago: {...p.mercadoPago, enabled: checked}}))}
-                            />
-                        </div>
-                    </div>
-                        <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="accessToken-mp">Access Token</Label>
-                            <Input id="accessToken" type="password" placeholder="APP_USR-********************************" value={settings.mercadoPago.accessToken} onChange={handleMercadoPagoChange} />
-                        </div>
-                            <div className="space-y-2">
-                            <Label htmlFor="publicKey-mp">Public Key</Label>
-                            <Input id="publicKey" type="password" placeholder="APP_USR-********-****-****-****-************" value={settings.mercadoPago.publicKey} onChange={handleMercadoPagoChange} />
-                        </div>
-                        <div className="space-y-2">
-                                <Label htmlFor="mode-mp">Modo de entorno</Label>
-                            <Select 
-                                value={settings.mercadoPago.mode} 
-                                onValueChange={(value: 'production' | 'sandbox') => setSettings(p => ({ ...p, mercadoPago: {...p.mercadoPago, mode: value}}))}
-                            >
-                                <SelectTrigger id="mode-mp">
-                                    <SelectValue placeholder="Seleccionar modo" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="production">Producción</SelectItem>
-                                    <SelectItem value="sandbox">Sandbox</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="instructions-mp">Instrucción para el cliente</Label>
-                            <Textarea id="instructions" placeholder='Completa tu pago a través de Mercado Pago. Justo después de confirmar tu suscripción, serás redirigido a la página de pagos.' value={settings.mercadoPago.instructions} onChange={handleMercadoPagoChange} />
-                        </div>
-                    </div>
-                </PaymentMethodForm>
-
-                <PaymentMethodForm icon={<StripeIcon />} title="Stripe">
-                        <div className="flex justify-end">
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="switch-stripe">Stripe está activado</Label>
-                            <Switch 
-                                id="switch-stripe" 
-                                checked={settings.stripe.enabled}
-                                onCheckedChange={(checked) => setSettings(p => ({ ...p, stripe: {...p.stripe, enabled: checked}}))}
-                            />
-                        </div>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="publicKey-stripe">Public Key</Label>
-                            <Input id="publicKey" type="password" placeholder="pk_test_************************" value={settings.stripe.publicKey} onChange={handleStripeChange} />
-                        </div>
-                            <div className="space-y-2">
-                            <Label htmlFor="secretKey-stripe">Secret Key</Label>
-                            <Input id="secretKey" type="password" placeholder="sk_test_************************" value={settings.stripe.secretKey} onChange={handleStripeChange} />
-                        </div>
-                    </div>
-                </PaymentMethodForm>
-                
-                 <PaymentMethodForm icon={<PayPalIcon />} title="PayPal">
-                    <div className="flex justify-end">
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="switch-paypal">PayPal está activado</Label>
-                            <Switch id="switch-paypal" disabled />
-                        </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground text-center pt-4">La configuración de PayPal estará disponible próximamente.</p>
-                </PaymentMethodForm>
-
-            </Accordion>
+            {typeof currentMethodDetails === 'object' && currentMethodDetails && 'qrImageUrl' in currentMethodDetails && (
+                 <DetailsCard method={currentMethodDetails as QRFormData} />
+            )}
         </div>
     )
 }
+
+const WalletIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-wallet"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+)
