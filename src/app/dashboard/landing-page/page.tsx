@@ -162,7 +162,7 @@ export default function LandingPageBuilder() {
           </div>
 
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
-          <EditorLandingPreview data={landingData} formConfig={formConfig} />
+          <EditorLandingPreview data={landingData} formConfig={formConfig} isPreview={true} />
         </div>
       </div>
     </div>

@@ -65,20 +65,23 @@ export interface LandingPageData {
 interface EditorLandingPreviewProps {
   data: LandingPageData;
   formConfig?: FormConfigData;
+  isPreview?: boolean;
 }
 
-export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewProps) {
+export function EditorLandingPreview({ data, formConfig, isPreview }: EditorLandingPreviewProps) {
   const [previewRating, setPreviewRating] = useState(0);
   
   return (
     <div
-      className="w-full h-full scale-[0.95] origin-top transform transition-transform p-2"
+      className={cn("w-full h-full p-2", isPreview && "scale-[0.95] origin-top transform transition-transform")}
     >
-      <h3 className="text-sm font-semibold text-muted-foreground mb-2 text-center">
-        Vista Previa en Tiempo Real
-      </h3>
+      {isPreview && (
+        <h3 className="text-sm font-semibold text-muted-foreground mb-2 text-center">
+          Vista Previa en Tiempo Real
+        </h3>
+      )}
       <div
-        className="rounded-lg border bg-background shadow-md overflow-hidden"
+        className={cn("overflow-hidden", isPreview && "rounded-lg border bg-background shadow-md")}
         style={{ backgroundColor: data.backgroundColor, color: data.textColor }}
       >
         {/* Hero Section */}
@@ -193,7 +196,7 @@ export function EditorLandingPreview({ data, formConfig }: EditorLandingPreviewP
           </section>
         )}
 
-        {formConfig && (
+        {formConfig && isPreview && (
             <section className="p-8 md:p-12 bg-muted/30">
                 <h3 className="text-lg font-semibold text-center mb-4 text-foreground/80">Vista Previa del Formulario</h3>
                  <Card className="w-full max-w-md mx-auto shadow-lg">
