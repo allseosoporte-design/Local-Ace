@@ -1,245 +1,98 @@
-/**
- * @fileoverview Firestore Security Rules for the application.
- *
- * Core Philosophy:
- * This ruleset enforces a multi-tenant data model where businesses own their data.
- * Users are linked to businesses via their user profiles.
- * Access is generally restricted to the owning business or, in some cases, to the super administrator.
- *
- * Data Structure:
- * - /products/{productId}: Products belonging to a business.
- * - /users/{userId}: User profiles, linking users to businesses.
- * - /businesses/{businessId}: Business information.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}: Google My Business profiles.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}: Reviews for GMB profiles.
- * - /internalFeedback/{internalFeedbackId}: Feedback from customers.
- * - /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}: Automated posts for GMB profiles.
- * - /businesses/{businessId}/landingPages/{landingPageId}: Landing pages for businesses.
- * - /subscriptions/{subscriptionId}: Subscription plan information.
- * - /paymentSettings/{userId}: Payment settings for each user.
- *
- * Key Security Decisions:
- * - User listing is disallowed.
- * - Strict ownership is enforced for write operations on most collections.
- * - The 'paymentSettings' collection has a special rule where the super administrator can read all settings.
- * - Most data types are not validated for rapid prototyping.
- *
- * Denormalization for Authorization:
- * - The 'Product' entity has a 'businessId' field, allowing direct ownership checks without additional reads.
- *
- * Structural Segregation:
- * - This data model does not make use of structural segregation.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Checks if the user is signed in.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the authenticated user is the owner of the resource.
-     */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the authenticated user is the owner of the resource, verifying the document exists.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Checks if the business ID in the resource matches the ID in the path.
-     */
-    function isBusinessIdMatch(businessId) {
-      return request.resource.data.businessId == businessId;
-    }
-       /**
-      * @description Checks if the business ID in the resource matches the ID in the path for existing resources.
-      */
-     function isExistingBusinessIdMatch(businessId) {
-      return resource.data.businessId == businessId;
-    }
-     /**
-      * @description Checks if the authenticated user is the super administrator.
-      */
+    // Helper function to check if the user is a super admin
     function isSuperAdmin() {
-      return request.auth.uid == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2';
+      // Allow if the user has the 'isSuperAdmin' custom claim OR if their email is the specific super admin email.
+      // This provides a fallback if custom claims are not set during local testing/development.
+      return request.auth.token.isSuperAdmin == true || request.auth.token.email == 'allseosoporte@gmail.com';
     }
 
-    /**
-     * @description Security rules for products.
-     * @path /products/{productId}
-     * @allow (create) - Allow creation if the businessId matches the user's businessId.
-     * @allow (update) - Allow update if the user is the owner (businessId matches).
-     * @deny (create) - Deny creation if the businessId does not match the user's businessId.
-     * @principle Enforces business ownership of products.
-     */
-    match /products/{productId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isBusinessIdMatch(request.auth.uid);
-      allow update: if isSignedIn() && isExistingBusinessIdMatch(request.auth.uid) && resource != null;
-      allow delete: if isSignedIn() && isExistingBusinessIdMatch(request.auth.uid) && resource != null;
-    }
-
-    /**
-     * @description Security rules for user profiles.
-     * @path /users/{userId}
-     * @allow (get) - Allow reading if the user is the owner.
-     * @allow (create) - Allow creation if the user ID matches the authenticated user ID.
-     * @deny (update) - Deny updates to enforce immutability of user ID.
-     * @principle Enforces user-owned data and prevents unauthorized profile modification.
-     */
-    match /users/{userId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == request.auth.uid;
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    /**
-     * @description Security rules for businesses.
-     * @path /businesses/{businessId}
-     * @allow (get) - Allow public read.
-     * @allow (create) - Allow creation.
-     * @allow (update) - Allow update if businessId matches the user's ID
-     * @deny (delete) - Deny deletion.
-     * @principle Allows for business creation and public data retrieval.
-     */
+    // Businesses Collection
     match /businesses/{businessId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isOwner(businessId);
-      allow update: if isSignedIn() && isExistingOwner(businessId) && resource != null;
-      allow delete: if false;
+      // Allow public read for landing page purposes
+      allow read: if true;
+      // Only the business owner or a super admin can write/update their own document.
+      allow write: if request.auth.uid == businessId || isSuperAdmin();
+
+      // Landing Pages Subcollection
+      match /landingPages/{pageId} {
+        // Allow public read access for anyone to view the published landing page.
+        allow read: if true;
+        // Only the business owner can create/update their landing page.
+        allow write: if request.auth.uid == businessId;
+      }
+    }
+    
+    // Global Audit Logs: Only Super Admins can read or write.
+    match /globalAuditLogs/{logId} {
+      allow read, write: if isSuperAdmin();
+    }
+    
+    // Backups: Only Super Admins can manage backups.
+    match /backups/{backupId} {
+      allow read, write, delete: if isSuperAdmin();
     }
 
-    /**
-     * @description Security rules for Google My Business profiles.
-     * @path /googleMyBusinessProfiles/{googleMyBusinessProfileId}
-     * @allow (get) - Allow public read.
-     * @allow (create) - Allow creation if the businessId matches the user's businessId.
-     * @allow (update) - Allow update if the businessId matches the user's businessId.
-     * @deny (delete) - Deny deletion.
-     * @principle Enforces business ownership of Google My Business profiles.
-     */
-    match /googleMyBusinessProfiles/{googleMyBusinessProfileId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isBusinessIdMatch(request.auth.uid);
-      allow update: if isSignedIn() && isExistingBusinessIdMatch(request.auth.uid) && resource != null;
-      allow delete: if false;
+    // Users Collection: Maps user UID to their businessId.
+    match /users/{userId} {
+      // A user can read their own profile to find their businessId.
+      allow read: if request.auth.uid == userId;
+      // User profiles are created during registration, so allow create.
+      allow create: if request.auth.uid == userId;
     }
 
-    /**
-     * @description Security rules for reviews within a Google My Business profile.
-     * @path /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}
-     * @allow (get) - Allow public read.
-     * @allow (create) - Allow creation if the parent businessId matches the user's businessId.
-     * @allow (update) - Allow update if the parent businessId matches the user's businessId.
-     * @deny (delete) - Deny deletion.
-     * @principle Enforces business ownership of reviews through the parent profile.
-     */
-    match /googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId == request.auth.uid;
-      allow update: if isSignedIn() && get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId == request.auth.uid && resource != null;
-      allow delete: if false;
+    // Internal Feedback Collection (Now a root collection)
+    match /internalFeedback/{feedbackId} {
+      // Allow public creation for the review funnel.
+      allow create: if true;
+      // Only the business owner (matched via businessId field) or a super admin can read/delete.
+      allow read, delete: if resource.data.businessId == request.auth.uid || isSuperAdmin();
+    }
+    
+    // Products Collection
+    match /products/{productId} {
+        // Public can read products for the main catalog
+        // Business owner can read their own products.
+        // Super Admin can read all products.
+        allow read: if resource.data.businessId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' || request.auth.uid == resource.data.businessId || isSuperAdmin();
+        // Business owner or Super Admin can create, update, delete.
+        allow write: if request.auth.uid == request.resource.data.businessId || isSuperAdmin();
     }
 
-    /**
-     * @description Security rules for internal feedback.
-     * @path /internalFeedback/{internalFeedbackId}
-     * @allow (get) - Allow public read.
-     * @allow (create) - Allow creation if the businessId matches the user's businessId.
-     * @allow (update) - Allow update if the businessId matches the user's businessId.
-     * @deny (delete) - Deny deletion.
-     * @principle Enforces business ownership of internal feedback.
-     */
-    match /internalFeedback/{internalFeedbackId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isBusinessIdMatch(request.auth.uid);
-      allow update: if isSignedIn() && isExistingBusinessIdMatch(request.auth.uid) && resource != null;
-      allow delete: if false;
+    // Subscription Plans: Public can read, only super admins can modify.
+    match /subscriptionPlans/{planId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
     }
 
-    /**
-     * @description Security rules for automated posts within a Google My Business profile.
-     * @path /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}
-     * @allow (get) - Allow public read.
-     * @allow (create) - Allow creation if the parent businessId matches the user's businessId.
-     * @allow (update) - Allow update if the parent businessId matches the user's businessId.
-     * @deny (delete) - Deny deletion.
-     * @principle Enforces business ownership of automated posts through the parent profile.
-     */
-    match /googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId == request.auth.uid;
-      allow update: if isSignedIn() && get(/databases/$(database)/documents/googleMyBusinessProfiles/$(googleMyBusinessProfileId)).data.businessId == request.auth.uid && resource != null;
-      allow delete: if false;
+    // Pending Payments: Only Super Admins can manage.
+    match /pendingPayments/{paymentId} {
+        allow read, write: if isSuperAdmin();
     }
-
-    /**
-     * @description Security rules for landing pages within a business.
-     * @path /businesses/{businessId}/landingPages/{landingPageId}
-     * @allow (get) - Allow public read.
-     * @allow (create) - Allow creation if the businessId matches the user's businessId.
-     * @allow (update) - Allow update if the businessId matches the user's businessId.
-     * @deny (delete) - Deny deletion.
-     * @principle Enforces business ownership of landing pages.
-     */
-    match /businesses/{businessId}/landingPages/{landingPageId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isBusinessIdMatch(businessId);
-      allow update: if isSignedIn() && isExistingBusinessIdMatch(businessId) && resource != null;
-      allow delete: if false;
-    }
-
-    /**
-     * @description Security rules for subscriptions.
-     * @path /subscriptions/{subscriptionId}
-     * @allow (get) - Allow public read.
-     * @allow (list) - Allow public list.
-     * @deny (create) - Deny creation.
-     * @deny (update) - Deny update.
-     * @deny (delete) - Deny deletion.
-     * @principle Restricts modification of subscription plans.
-     */
+    
+    // Subscriptions: Users can read their own, Super Admins can read all.
     match /subscriptions/{subscriptionId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+        allow read: if request.auth.uid == resource.data.empresaId || isSuperAdmin();
+        allow write: if isSuperAdmin(); // Or some specific logic for creation
     }
 
-    /**
-     * @description Security rules for payment settings.
-     * @path /paymentSettings/{userId}
-     * @allow (get) - Allow read if the user is the owner OR if it's the super admin reading other user settings.
-     * @allow (create) - Allow creation if the user is the owner.
-     * @allow (update) - Allow update if the user is the owner.
-     * @deny (delete) - Deny deletion.
-     */
+    // Support Tickets: Super Admins have full access.
+    match /supportTickets/{ticketId} {
+        allow read, write: if isSuperAdmin();
+        allow create: if true; // Allow anyone to create a ticket
+    }
+    
+    // Payment Settings
     match /paymentSettings/{userId} {
-      allow get: if (isSignedIn() && isOwner(userId)) || (isSignedIn() && isSuperAdmin());
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId) && resource != null;
-      allow delete: if false;
+      // The super admin's settings are public-read for the catalog.
+      allow read: if userId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2';
+      // A user can manage their own payment settings. Super admin can manage any.
+      allow write: if request.auth.uid == userId || isSuperAdmin();
+      // A user can read their own settings
+      allow read: if request.auth.uid == userId;
     }
   }
 }
