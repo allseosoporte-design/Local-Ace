@@ -21,8 +21,6 @@ import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -95,6 +93,8 @@ export default function RegisterPage() {
           textColor: "#000000",
           buttonColor: "#FF4500",
           sections: [],
+          testimonialsTitle: "Lo que opinan nuestros clientes",
+          testimonialsSubtitle: "La satisfacción de nuestros usuarios impulsa lo que hacemos",
           testimonials: [],
           seo: {
             title: `Landing Page de ${user.email}`,
