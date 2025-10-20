@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -53,11 +54,22 @@ export function EditorLandingForm({ data, setData }: EditorLandingFormProps) {
     }
     setIsSaving(true);
     try {
-      const heroConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'hero');
-      
-      const { sections, testimonials, seo, ...heroData } = data;
+      const landingPageConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'config');
 
-      await setDoc(heroConfigRef, {
+      // Solo guardamos los datos del hero en este componente
+      const heroData = {
+        title: data.title,
+        subtitle: data.subtitle,
+        content: data.content,
+        heroImageUrl: data.heroImageUrl,
+        ctaText: data.ctaText,
+        ctaUrl: data.ctaUrl,
+        backgroundColor: data.backgroundColor,
+        textColor: data.textColor,
+        buttonColor: data.buttonColor,
+      };
+
+      await setDoc(landingPageConfigRef, {
         ...heroData,
         updatedAt: serverTimestamp(),
       }, { merge: true });

@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { useFirestore } from '@/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { Loader2 } from 'lucide-react';
 
@@ -35,59 +35,12 @@ export default function PublicLandingPage() {
   const businessId = params.businessId as string;
   const firestore = useFirestore();
 
-  const [landingData, setLandingData] = useState<LandingPageData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!firestore || !businessId) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchLandingPageData = async () => {
-      setIsLoading(true);
-      try {
-        const landingPagesRef = collection(firestore, `businesses/${businessId}/landingPages`);
-        const querySnapshot = await getDocs(landingPagesRef);
-        
-        let combinedData: Partial<LandingPageData> = {};
-
-        querySnapshot.forEach(doc => {
-            const docId = doc.id;
-            const docData = doc.data();
-
-            if (docId === 'hero') {
-                combinedData = { ...combinedData, ...docData };
-            } else if (docId === 'sections') {
-                 if (docData.sections) {
-                    combinedData.sections = docData.sections;
-                 }
-            } else if (docId === 'testimonials') {
-                if (docData.testimonials) {
-                    combinedData.testimonials = docData.testimonials;
-                    combinedData.testimonialsTitle = docData.testimonialsTitle;
-                    combinedData.testimonialsSubtitle = docData.testimonialsSubtitle;
-                }
-            } else if (docId === 'seo') {
-                if (docData.seo) {
-                    combinedData.seo = docData.seo;
-                }
-            }
-        });
-        
-        // Merge with defaults to ensure all fields are present
-        setLandingData({ ...defaultLandingData, ...combinedData });
-
-      } catch (error) {
-        console.error("Error fetching landing page data:", error);
-        setLandingData(defaultLandingData); // Fallback to default on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLandingPageData();
+  const landingPageRef = useMemoFirebase(() => {
+    if (!firestore || !businessId) return null;
+    return doc(firestore, `businesses/${businessId}/landingPages`, 'config');
   }, [firestore, businessId]);
+
+  const { data: landingData, isLoading } = useDoc<LandingPageData>(landingPageRef);
 
   if (isLoading) {
     return (
@@ -97,7 +50,9 @@ export default function PublicLandingPage() {
     );
   }
 
-  if (!landingData) {
+  const displayData = landingData ? { ...defaultLandingData, ...landingData } : null;
+
+  if (!displayData) {
     return (
          <div className="flex h-screen w-full items-center justify-center bg-background text-center">
             <div>
@@ -111,7 +66,7 @@ export default function PublicLandingPage() {
   return (
      <div className="flex flex-col min-h-screen">
       <main className="flex-1">
-        <EditorLandingPreview data={landingData} />
+        <EditorLandingPreview data={displayData} />
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">
           <p className="text-xs text-muted-foreground">&copy; 2024 Creado con Local Leap</p>

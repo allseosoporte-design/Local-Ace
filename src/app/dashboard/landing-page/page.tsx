@@ -52,23 +52,37 @@ export default function LandingPageBuilder() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const [data, setData] = useState<LandingPageData>(defaultLandingData);
+  const [landingData, setLandingData] = useState<LandingPageData>(defaultLandingData);
   const [formConfig, setFormConfig] = useState<FormConfigData>(defaultFormConfig);
+
+  const landingConfigRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `businesses/${user.uid}/landingPages`, 'config');
+  }, [firestore, user]);
 
   const formConfigRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
   }, [firestore, user]);
 
+  const { data: initialLandingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingConfigRef);
   const { data: initialFormConfig, isLoading: isFormConfigLoading } = useDoc<FormConfigData>(formConfigRef);
 
   useEffect(() => {
+    if (initialLandingData) {
+      setLandingData(prev => ({ ...prev, ...initialLandingData }));
+    }
+  }, [initialLandingData]);
+
+  useEffect(() => {
     if (initialFormConfig) {
-      setFormConfig(initialFormConfig);
+      setFormConfig(prev => ({ ...prev, ...initialFormConfig }));
     }
   }, [initialFormConfig]);
+  
+  const isLoading = isLandingLoading || isFormConfigLoading;
 
-  if (isFormConfigLoading) {
+  if (isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -88,17 +102,17 @@ export default function LandingPageBuilder() {
                     <TabsTrigger value="form">Formulario</TabsTrigger>
                 </TabsList>
                 <TabsContent value="hero" className="space-y-6">
-                    <EditorLandingForm data={data} setData={setData} />
+                    <EditorLandingForm data={landingData} setData={setLandingData} />
                     <ShareLandingPage />
                 </TabsContent>
                 <TabsContent value="sections">
-                    <EditorSections data={data} setData={setData} />
+                    <EditorSections data={landingData} setData={setLandingData} />
                 </TabsContent>
                 <TabsContent value="testimonials">
-                    <EditorTestimonials data={data} setData={setData} />
+                    <EditorTestimonials data={landingData} setData={setLandingData} />
                 </TabsContent>
                  <TabsContent value="seo">
-                    <EditorSeo data={data} setData={setData} />
+                    <EditorSeo data={landingData} setData={setLandingData} />
                 </TabsContent>
                 <TabsContent value="form">
                     <FormEditor data={formConfig} setData={setFormConfig} />
@@ -107,7 +121,7 @@ export default function LandingPageBuilder() {
         </div>
 
       <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
-         <EditorLandingPreview data={data} formConfig={formConfig} />
+         <EditorLandingPreview data={landingData} formConfig={formConfig} />
       </div>
     </div>
   );
