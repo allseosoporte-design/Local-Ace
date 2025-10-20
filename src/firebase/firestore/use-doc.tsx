@@ -42,76 +42,62 @@ export function useDoc<T = any>(
 ): UseDocResult<T> {
   type StateDataType = WithId<T> | null;
 
-  // Incluir el path del documento en el estado para evitar contaminación
-  const docPath = memoizedDocRef?.path || null;
-
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Start loading by default
   const [error, setError] = useState<FirestoreError | Error | null>(null);
-  const [currentPath, setCurrentPath] = useState<string | null>(null);
 
   useEffect(() => {
-    // CRÍTICO: Limpiar el estado inmediatamente cuando cambia la referencia
+    // CRÍTICO: Forzar estado de carga y limpiar datos al cambiar la referencia.
+    setIsLoading(true);
     setData(null);
     setError(null);
 
     if (!memoizedDocRef) {
       setIsLoading(false);
-      setCurrentPath(null);
       return;
     }
-
-    // Actualizar el path actual
+    
     const newPath = memoizedDocRef.path;
-    setCurrentPath(newPath);
-    setIsLoading(true);
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        // Verificar que el snapshot es del documento actual
+        // Asegurarse de que el snapshot corresponde a la suscripción actual.
         if (snapshot.ref.path !== newPath) {
-          console.warn('Snapshot obsoleto ignorado:', snapshot.ref.path);
           return;
         }
 
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
-          // Document does not exist
-          setData(null);
+          setData(null); // El documento no existe.
         }
         setError(null);
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        // Verificar que el error es del documento actual
+         // Asegurarse de que el error corresponde a la suscripción actual.
         if (memoizedDocRef.path !== newPath) {
           return;
         }
-
+        
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
-        })
+        });
 
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
-
-        // trigger global error propagation
+        setError(contextualError);
+        setData(null);
+        setIsLoading(false);
+        
         errorEmitter.emit('permission-error', contextualError);
       }
     );
 
     return () => {
       unsubscribe();
-      // Limpiar estado al desmontar
-      setData(null);
-      setError(null);
-      setIsLoading(false);
     };
-  }, [memoizedDocRef, docPath]); // Incluir docPath en las dependencias
+  }, [memoizedDocRef]); // Re-ejecutar solo si la referencia del documento cambia.
 
   return { data, isLoading, error };
 }
