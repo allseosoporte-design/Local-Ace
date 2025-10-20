@@ -1,26 +1,14 @@
 
 'use client';
 
-import { useState, useEffect, type FormEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { StarRating } from './star-rating';
-import { CheckCircle, MessageSquare, Loader2 } from 'lucide-react';
-import { useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
+import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
+import { InteractiveReviewForm } from '@/components/interactive-review-form';
 
-const defaultFormConfig = {
+const defaultFormConfig: FormConfigData = {
   redirectUrl: "https://www.google.com/maps/search/?api=1&query=YOUR_BUSINESS_ID",
   formTitle: "¿Cómo fue tu experiencia?",
   formSubtitle: "Tus comentarios nos ayudan a mejorar.",
@@ -33,178 +21,30 @@ const defaultFormConfig = {
 };
 
 export default function ReviewFunnelPage() {
-  const [rating, setRating] = useState(0);
-  const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
   const params = useParams();
   const businessId = params.businessId as string;
   const firestore = useFirestore();
 
-  const handleRating = (newRating: number) => {
-    setRating(newRating);
-    setStep(2);
-  };
+  const formConfigRef = useMemoFirebase(() => {
+    if (!firestore || !businessId) return null;
+    return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
+  }, [firestore, businessId]);
 
-  useEffect(() => {
-    if (
-      step === 2 &&
-      rating === 5 &&
-      defaultFormConfig.redirectUrl &&
-      businessId
-    ) {
-      const redirectUrl = defaultFormConfig.redirectUrl.replace('YOUR_BUSINESS_ID', businessId);
-      window.location.href = redirectUrl;
-    }
-  }, [step, rating, businessId]);
+  const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
 
-  const handleSubmitFeedback = async (e: FormEvent) => {
-    e.preventDefault();
-    
-    if (!firestore) {
-      console.error("Firestore not initialized");
-      alert("Error: Base de datos no disponible");
-      return;
-    }
-  
-    if (!businessId) {
-      console.error("BusinessId missing");
-      alert("Error: ID de negocio no encontrado");
-      return;
-    }
-  
-    setIsSubmitting(true);
-    
-    try {
-      const feedbackColRef = collection(firestore, 'internalFeedback');
-      
-      const feedbackData = {
-        businessId: businessId,
-        rating: rating,
-        name: name,
-        email: email,
-        review: message,
-        status: 'Pending',
-        createdAt: serverTimestamp(),
-      };
-      
-      console.log("Enviando feedback:", feedbackData);
-      
-      const docRef = await addDoc(feedbackColRef, feedbackData);
-      
-      console.log("Feedback guardado con ID:", docRef.id);
-      
-      // Solo cambiar a step 3 después de confirmar guardado
-      setStep(3);
-    } catch (error) {
-      console.error('Error completo al enviar feedback:', error);
-      alert(`Error al enviar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const displayFormConfig = formConfig || defaultFormConfig;
+
+  if (isFormLoading || !businessId) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-2xl">
-        {step === 1 && (
-          <>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold">
-                {defaultFormConfig.formTitle}
-              </CardTitle>
-              <CardDescription>
-                {defaultFormConfig.formSubtitle}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <StarRating onRating={handleRating} />
-            </CardContent>
-          </>
-        )}
-
-        {step === 2 && rating > 0 && rating < 5 && (
-          <form onSubmit={handleSubmitFeedback}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="text-primary" />{' '}
-                {defaultFormConfig.negativeFeedbackTitle}
-              </CardTitle>
-              <CardDescription>
-                {defaultFormConfig.negativeFeedbackSubtitle}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@ejemplo.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="message">Mensaje</Label>
-                <Textarea
-                  id="message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Tus comentarios..."
-                  required
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                Enviar Comentarios
-              </Button>
-            </CardFooter>
-          </form>
-        )}
-
-        {step === 2 && rating === 5 && (
-          <CardHeader className="text-center">
-            <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
-            <CardTitle className="text-2xl font-bold pt-4">
-              {defaultFormConfig.positiveFeedbackTitle}
-            </CardTitle>
-            <CardDescription>
-              {defaultFormConfig.positiveFeedbackSubtitle}
-            </CardDescription>
-          </CardHeader>
-        )}
-
-        {step === 3 && (
-          <CardHeader className="text-center">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-            <CardTitle className="text-2xl font-bold">
-              {defaultFormConfig.thankYouTitle}
-            </CardTitle>
-            <CardDescription>
-              {defaultFormConfig.thankYouSubtitle}
-            </CardDescription>
-          </CardHeader>
-        )}
-      </Card>
+      <InteractiveReviewForm businessId={businessId} formConfig={displayFormConfig} />
     </div>
   );
 }

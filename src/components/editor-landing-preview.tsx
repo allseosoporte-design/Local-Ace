@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -9,6 +10,7 @@ import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StarRating } from '@/app/funnel/[businessId]/star-rating';
 import { useState } from 'react';
+import { InteractiveReviewForm } from './interactive-review-form';
 
 
 export interface Subsection {
@@ -64,10 +66,11 @@ export interface LandingPageData {
 interface EditorLandingPreviewProps {
   data: LandingPageData;
   formConfig?: FormConfigData;
+  businessId?: string; // Add businessId to props
   isPreview?: boolean;
 }
 
-export function EditorLandingPreview({ data, formConfig, isPreview }: EditorLandingPreviewProps) {
+export function EditorLandingPreview({ data, formConfig, businessId, isPreview }: EditorLandingPreviewProps) {
   const [previewRating, setPreviewRating] = useState(0);
   
   return (
@@ -195,20 +198,12 @@ export function EditorLandingPreview({ data, formConfig, isPreview }: EditorLand
           </section>
         )}
 
-        {formConfig && (
+        {formConfig && businessId && (
             <section className="p-8 md:p-12 bg-muted/30">
                 {isPreview && (
                      <h3 className="text-lg font-semibold text-center mb-4 text-foreground/80">Vista Previa del Formulario</h3>
                 )}
-                 <Card className="w-full max-w-md mx-auto shadow-lg">
-                    <CardHeader className="text-center">
-                        <CardTitle className="text-xl font-bold">{formConfig.formTitle}</CardTitle>
-                        <CardDescription>{formConfig.formSubtitle}</CardDescription>
-                    </CardHeader>
-                    <CardContent className='flex justify-center'>
-                       <StarRating rating={previewRating} onRating={setPreviewRating} />
-                    </CardContent>
-                </Card>
+                <InteractiveReviewForm businessId={businessId} formConfig={formConfig} />
             </section>
         )}
       </div>

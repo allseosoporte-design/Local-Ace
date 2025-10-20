@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useEffect, useState, useRef } from 'react';
@@ -86,18 +87,6 @@ export default function Home() {
   const isLoading = isLandingLoading || isFormLoading;
 
   const displayData = useMemo(() => {
-    // TEMPORARY FIX: Ignore data from Firestore and always use default data.
-    // This forces the correct content to display until the database is fixed.
-    const finalLandingData = defaultLandingData;
-    
-    return finalLandingData;
-
-    // ORIGINAL LOGIC (to be restored after fixing DB)
-    /*
-    if (isLoading) {
-      return null;
-    }
-    
     const finalLandingData = landingData ? { ...defaultLandingData, ...landingData } : defaultLandingData;
     
     finalLandingData.sections = finalLandingData.sections || [];
@@ -105,10 +94,9 @@ export default function Home() {
     finalLandingData.seo = { ...defaultLandingData.seo, ...(finalLandingData.seo || {})};
     
     return finalLandingData;
-    */
-  }, [landingData, isLoading]);
+  }, [landingData]);
 
-  if (!displayData) {
+  if (isLoading || !displayData) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -123,7 +111,8 @@ export default function Home() {
         <EditorLandingPreview 
           key={`preview-superadmin-${renderKey}`}
           data={displayData} 
-          formConfig={formConfig || undefined} 
+          formConfig={formConfig || undefined}
+          businessId={SUPER_ADMIN_BUSINESS_ID}
         />
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">

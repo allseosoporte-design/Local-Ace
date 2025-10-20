@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useEffect, useRef, useState } from 'react';
@@ -109,7 +110,8 @@ export default function PublicLandingPage() {
         <EditorLandingPreview 
           key={`preview-${businessId}-${renderKey}`}
           data={displayData} 
-          formConfig={formConfig || undefined} 
+          formConfig={formConfig || undefined}
+          businessId={businessId}
         />
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">
