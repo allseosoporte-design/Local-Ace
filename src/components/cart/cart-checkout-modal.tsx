@@ -33,11 +33,55 @@ import {
   Trash2,
   Wallet,
   User,
+  Loader2,
 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { PlanPaymentSettings } from '@/types/payment-settings';
 import { PaymentOptionsDisplay } from './payment-options-display';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import type { QRFormData } from '../qr-form';
+
+const DetailsCard = ({ method, methodName }: { method: QRFormData | undefined, methodName: string }) => {
+    if (!method || !method.enabled) {
+        return null;
+    }
+
+    // Hide for cash on delivery
+    if (methodName === 'cashOnDelivery') {
+        return null;
+    }
+
+    return (
+        <Card className="mt-4 bg-white animate-in fade-in-50">
+            <CardHeader>
+                <CardTitle className='text-base'>Paga a la siguiente cuenta:</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+                {method.holderName && method.accountNumber && (
+                    <div className='text-left space-y-2'>
+                        <p><span className='font-semibold'>Titular:</span> {method.holderName}</p>
+                        <p><span className='font-semibold'>Cuenta:</span> {method.accountNumber}</p>
+                    </div>
+                )}
+                {method.qrImageUrl && (
+                    <>
+                        <p className='font-semibold'>O escanea el código QR:</p>
+                        <div className="relative w-[200px] h-[200px] mx-auto">
+                            <Image
+                                src={method.qrImageUrl}
+                                alt={`Código QR de ${methodName}`}
+                                width={200}
+                                height={200}
+                                className="rounded-md object-contain"
+                            />
+                        </div>
+                    </>
+                )}
+            </CardContent>
+        </Card>
+    )
+}
 
 
 const WhatsAppIcon = () => (
@@ -105,6 +149,13 @@ export function CartCheckoutModal() {
     onClose();
   }
 
+  const selectedMethodKey = selectedPaymentMethod
+    ? Object.entries(paymentSettings || {}).find(([key, value]) => typeof value === 'object' && value.label === selectedPaymentMethod)?.[0] || (selectedPaymentMethod === 'Pago Contra Entrega' ? 'cashOnDelivery' : null)
+    : null;
+    
+  const currentMethodDetails = selectedMethodKey && paymentSettings ? (paymentSettings as any)[selectedMethodKey] as QRFormData : undefined;
+
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -121,7 +172,7 @@ export function CartCheckoutModal() {
 
         {totalItems > 0 ? (
           <>
-            <ScrollArea className="max-h-[300px] pr-4">
+            <ScrollArea className="max-h-[60vh] pr-4">
               <div className="space-y-4">
                 {state.items.map((item) => (
                   <div key={item.id} className="flex items-center gap-4">
@@ -165,53 +216,56 @@ export function CartCheckoutModal() {
                   </div>
                 ))}
               </div>
-            </ScrollArea>
-            <Separator />
-            <div className="flex justify-between font-semibold">
-              <span>Total</span>
-              <span>{formatCurrency(totalPrice)}</span>
-            </div>
+              <Separator className='my-4' />
+              <div className="flex justify-between font-semibold">
+                <span>Total</span>
+                <span>{formatCurrency(totalPrice)}</span>
+              </div>
 
-            <Accordion type="single" collapsible defaultValue="customer-info" className="w-full">
-              <AccordionItem value="customer-info">
-                <AccordionTrigger>
-                    <div className="flex items-center gap-2">
-                        <User className="h-5 w-5" />
-                        Información del Cliente
+              <Accordion type="single" collapsible defaultValue="customer-info" className="w-full">
+                <AccordionItem value="customer-info">
+                  <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                          <User className="h-5 w-5" />
+                          Información del Cliente
+                      </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nombre Completo</Label>
+                      <Input id="name" placeholder="John Doe" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
                     </div>
-                </AccordionTrigger>
-                <AccordionContent className="space-y-4 pt-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nombre Completo</Label>
-                    <Input id="name" placeholder="John Doe" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
-                  </div>
-                   <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
-                    <Input id="phone" type="tel" placeholder="3001234567" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Dirección de Entrega</Label>
-                    <Textarea id="address" placeholder="Calle 123 #45-67, Apto 89" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} required />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="payment-options">
-                <AccordionTrigger>
-                    <div className="flex items-center gap-2">
-                        <Wallet className="h-5 w-5"/>
-                        Opciones de Pago
+                     <div className="space-y-2">
+                      <Label htmlFor="phone">Teléfono</Label>
+                      <Input id="phone" type="tel" placeholder="3001234567" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} required />
                     </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-4">
-                  <PaymentOptionsDisplay 
-                    settings={paymentSettings} 
-                    isLoading={isLoadingSettings}
-                    selectedValue={selectedPaymentMethod}
-                    onValueChange={setSelectedPaymentMethod}
-                  />
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Dirección de Entrega</Label>
+                      <Textarea id="address" placeholder="Calle 123 #45-67, Apto 89" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} required />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="payment-options">
+                  <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                          <Wallet className="h-5 w-5"/>
+                          Opciones de Pago
+                      </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <PaymentOptionsDisplay 
+                      settings={paymentSettings} 
+                      isLoading={isLoadingSettings}
+                      selectedValue={selectedPaymentMethod}
+                      onValueChange={setSelectedPaymentMethod}
+                    />
+                     {currentMethodDetails && selectedMethodKey && (
+                        <DetailsCard method={currentMethodDetails} methodName={selectedMethodKey} />
+                     )}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </ScrollArea>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-48 text-center">
