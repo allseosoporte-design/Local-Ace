@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -92,8 +91,8 @@ export function ShareLandingPage() {
             variant="secondary"
             className="flex-1 min-w-[120px] transition-transform transform hover:scale-105"
           >
-            <Copy />
-            <span className="ml-2">Copiar Enlace</span>
+            <Copy className="mr-2 h-4 w-4" />
+            Copiar Enlace
           </Button>
           <Button
             onClick={() => handleShare('whatsapp')}
