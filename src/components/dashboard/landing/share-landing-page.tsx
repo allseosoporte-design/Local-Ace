@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -13,7 +14,7 @@ import {
   Instagram,
   Facebook,
   MessageCircle,
-  Share2,
+  Copy,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
@@ -33,9 +34,21 @@ export function ShareLandingPage() {
   const { toast } = useToast();
   const { user } = useUser();
 
+  const getLandingPageLink = () => {
+    return `${window.location.origin}/landing/${user?.uid || 'preview'}`;
+  }
+
+  const handleCopyLink = () => {
+    const landingPageLink = getLandingPageLink();
+    navigator.clipboard.writeText(landingPageLink);
+    toast({
+        title: 'Enlace Copiado',
+        description: 'La URL de tu landing page ha sido copiada al portapapeles.',
+    });
+  }
+
   const handleShare = (platform: string) => {
-    // A business-specific landing page URL will be constructed here in a real scenario
-    const landingPageLink = `${window.location.origin}/landing/${user?.uid || 'preview'}`;
+    const landingPageLink = getLandingPageLink();
     const encodedLink = encodeURIComponent(landingPageLink);
     const text = encodeURIComponent('¡Echa un vistazo a nuestra página!');
     let url = '';
@@ -69,11 +82,27 @@ export function ShareLandingPage() {
       <CardHeader>
         <CardTitle>Comparte tu Landing Page</CardTitle>
         <CardDescription>
-          Promociona tu página en redes sociales para atraer más clientes.
+          Copia el enlace de tu página o compártelo directamente en redes sociales para atraer más clientes.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-4">
+          <Button
+            onClick={handleCopyLink}
+            variant="secondary"
+            className="flex-1 min-w-[120px] transition-transform transform hover:scale-105"
+          >
+            <Copy />
+            <span className="ml-2">Copiar Enlace</span>
+          </Button>
+          <Button
+            onClick={() => handleShare('whatsapp')}
+            className="flex-1 min-w-[120px] text-white transition-transform transform hover:scale-105"
+            style={{ backgroundColor: '#25D366' }}
+          >
+            <MessageCircle />
+            <span className="ml-2">WhatsApp</span>
+          </Button>
           <Button
             onClick={() => handleShare('tiktok')}
             className="flex-1 min-w-[120px] transition-transform transform hover:scale-105"
@@ -100,14 +129,6 @@ export function ShareLandingPage() {
           >
             <Facebook />
             <span className="ml-2">Facebook</span>
-          </Button>
-          <Button
-            onClick={() => handleShare('whatsapp')}
-            className="flex-1 min-w-[120px] text-white transition-transform transform hover:scale-105"
-            style={{ backgroundColor: '#25D366' }}
-          >
-            <MessageCircle />
-            <span className="ml-2">WhatsApp</span>
           </Button>
           <Button
             onClick={() => handleShare('twitter')}
