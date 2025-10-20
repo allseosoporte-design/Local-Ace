@@ -27,11 +27,10 @@ export interface UseDocResult<T> {
 /**
  * React hook to subscribe to a single Firestore document in real-time.
  * Handles nullable references.
- * 
- * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
- * use useMemo to memoize it per React guidence.  Also make sure that it's dependencies are stable
- * references
  *
+ * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
+ * use useMemo to memoize it per React guidence. Also make sure that it's dependencies are stable
+ * references
  *
  * @template T Optional type for document data. Defaults to any.
  * @param {DocumentReference<DocumentData> | null | undefined} docRef -
@@ -43,9 +42,13 @@ export function useDoc<T = any>(
 ): UseDocResult<T> {
   type StateDataType = WithId<T> | null;
 
+  // Incluir el path del documento en el estado para evitar contaminación
+  const docPath = memoizedDocRef?.path || null;
+
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const [currentPath, setCurrentPath] = useState<string | null>(null);
 
   useEffect(() => {
     // CRÍTICO: Limpiar el estado inmediatamente cuando cambia la referencia
@@ -54,24 +57,39 @@ export function useDoc<T = any>(
 
     if (!memoizedDocRef) {
       setIsLoading(false);
+      setCurrentPath(null);
       return;
     }
 
+    // Actualizar el path actual
+    const newPath = memoizedDocRef.path;
+    setCurrentPath(newPath);
     setIsLoading(true);
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
+        // Verificar que el snapshot es del documento actual
+        if (snapshot.ref.path !== newPath) {
+          console.warn('Snapshot obsoleto ignorado:', snapshot.ref.path);
+          return;
+        }
+
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
           // Document does not exist
           setData(null);
         }
-        setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
+        setError(null);
         setIsLoading(false);
       },
       (error: FirestoreError) => {
+        // Verificar que el error es del documento actual
+        if (memoizedDocRef.path !== newPath) {
+          return;
+        }
+
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
@@ -86,8 +104,14 @@ export function useDoc<T = any>(
       }
     );
 
-    return () => unsubscribe();
-  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+    return () => {
+      unsubscribe();
+      // Limpiar estado al desmontar
+      setData(null);
+      setError(null);
+      setIsLoading(false);
+    };
+  }, [memoizedDocRef, docPath]); // Incluir docPath en las dependencias
 
   return { data, isLoading, error };
 }

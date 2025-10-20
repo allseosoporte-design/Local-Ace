@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState, useRef } from 'react';
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { HomeNav } from '@/components/home-nav';
 import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
@@ -56,6 +55,20 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
 
 export default function Home() {
   const firestore = useFirestore();
+  const [renderKey, setRenderKey] = useState(0);
+  const isMountedRef = useRef(false);
+
+  // Forzar re-render completo al montar el componente
+  useEffect(() => {
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      setRenderKey(prev => prev + 1);
+    }
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const landingPageRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -76,6 +89,7 @@ export default function Home() {
     if (isLoading) {
       return null;
     }
+    
     const finalLandingData = landingData ? { ...defaultLandingData, ...landingData } : defaultLandingData;
     
     finalLandingData.sections = finalLandingData.sections || [];
@@ -84,7 +98,6 @@ export default function Home() {
     
     return finalLandingData;
   }, [isLoading, landingData]);
-
 
   if (!displayData) {
     return (
@@ -95,10 +108,14 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div key={`home-superadmin-${renderKey}`} className="flex flex-col min-h-screen">
       <HomeNav />
       <main className="flex-1">
-        <EditorLandingPreview data={displayData} formConfig={formConfig || undefined} />
+        <EditorLandingPreview 
+          key={`preview-superadmin-${renderKey}`}
+          data={displayData} 
+          formConfig={formConfig || undefined} 
+        />
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">
           <p className="text-xs text-muted-foreground">&copy; 2024 Creado con Local Leap</p>

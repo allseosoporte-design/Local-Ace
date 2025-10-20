@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { Loader2 } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
-
 
 const defaultLandingData: LandingPageData = {
   title: "Bienvenido a Nuestro Espacio",
@@ -34,6 +33,20 @@ export default function PublicLandingPage() {
   const params = useParams();
   const businessId = params.businessId as string;
   const firestore = useFirestore();
+  const [renderKey, setRenderKey] = useState(0);
+  const isMountedRef = useRef(false);
+
+  // Forzar re-render completo al montar o cambiar businessId
+  useEffect(() => {
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+    }
+    setRenderKey(prev => prev + 1);
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [businessId]);
 
   const landingPageRef = useMemoFirebase(() => {
     if (!firestore || !businessId) return null;
@@ -41,8 +54,8 @@ export default function PublicLandingPage() {
   }, [firestore, businessId]);
 
   const formConfigRef = useMemoFirebase(() => {
-      if (!firestore || !businessId) return null;
-      return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
+    if (!firestore || !businessId) return null;
+    return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
   }, [firestore, businessId]);
 
   const { data: loadedData, isLoading: isLandingLoading } = useDoc<Partial<LandingPageData>>(landingPageRef);
@@ -91,9 +104,13 @@ export default function PublicLandingPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div key={`landing-${businessId}-${renderKey}`} className="flex flex-col min-h-screen">
       <main className="flex-1">
-        <EditorLandingPreview data={displayData} formConfig={formConfig || undefined} />
+        <EditorLandingPreview 
+          key={`preview-${businessId}-${renderKey}`}
+          data={displayData} 
+          formConfig={formConfig || undefined} 
+        />
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">
         <p className="text-xs text-muted-foreground">&copy; 2024 Creado con Local Leap</p>
