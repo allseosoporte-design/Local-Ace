@@ -9,7 +9,7 @@ import { EditorSections } from "@/components/editor-sections";
 import { EditorTestimonials } from "@/components/editor-testimonials";
 import { EditorSeo } from "@/components/editor-seo";
 import { FormEditor, type FormConfigData } from "@/components/dashboard/landing/FormEditor";
-import { useUser, useFirestore, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { Loader2, Save } from "lucide-react";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ShareLandingPage } from "@/components/dashboard/landing/share-landing-page";
