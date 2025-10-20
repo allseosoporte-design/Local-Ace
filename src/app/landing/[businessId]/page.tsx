@@ -40,7 +40,33 @@ export default function PublicLandingPage() {
     return doc(firestore, `businesses/${businessId}/landingPages`, 'config');
   }, [firestore, businessId]);
 
-  const { data: landingData, isLoading } = useDoc<LandingPageData>(landingPageRef);
+  const { data: loadedData, isLoading } = useDoc<Partial<LandingPageData>>(landingPageRef);
+
+  // Robust data merging to prevent crashes from incomplete data
+  const displayData = useMemo(() => {
+    if (isLoading) return null;
+
+    // If no data is loaded at all, we show a not found message.
+    if (!loadedData) {
+      return null;
+    }
+    
+    // Deep merge loaded data onto defaults to ensure all properties exist.
+    // This is the key fix.
+    const merged: LandingPageData = {
+      ...defaultLandingData,
+      ...loadedData,
+      sections: loadedData.sections || [],
+      testimonials: loadedData.testimonials || [],
+      seo: {
+        ...defaultLandingData.seo,
+        ...(loadedData.seo || {}),
+        keywords: loadedData.seo?.keywords || [],
+      }
+    };
+    return merged;
+  }, [loadedData, isLoading]);
+
 
   if (isLoading) {
     return (
@@ -49,15 +75,13 @@ export default function PublicLandingPage() {
       </div>
     );
   }
-
-  const displayData = landingData ? { ...defaultLandingData, ...landingData } : null;
-
+  
   if (!displayData) {
     return (
-         <div className="flex h-screen w-full items-center justify-center bg-background text-center">
+         <div className="flex h-screen w-full items-center justify-center bg-background text-center p-4">
             <div>
                 <h1 className='text-2xl font-bold'>Página no encontrada</h1>
-                <p className='text-muted-foreground'>La página que buscas no existe o no se pudo cargar.</p>
+                <p className='text-muted-foreground mt-2'>La página que buscas no existe o no se pudo cargar. Es posible que la configuración aún no se haya guardado.</p>
             </div>
         </div>
     );
