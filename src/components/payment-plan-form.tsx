@@ -11,6 +11,7 @@ import {
   StripeIcon,
   MercadoPagoIcon,
   PayPalIcon,
+  WompiIcon,
 } from '@/components/icons/payment-methods';
 import type { PlanPaymentSettings } from '@/types/payment-settings';
 import { Label } from '@/components/ui/label';
@@ -86,6 +87,58 @@ const MercadoPagoForm = ({ data, setData }: any) => (
     </Card>
 );
 
+const PayPalForm = ({ data, setData }: any) => (
+    <Card className="mt-4 bg-white animate-in fade-in-50">
+        <CardHeader><CardTitle className="text-base">Configuración de PayPal</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+             <div className="space-y-2">
+                <Label htmlFor="paypal-clientId">Client ID</Label>
+                <Input id="paypal-clientId" value={data.clientId} onChange={(e) => setData({ ...data, clientId: e.target.value })} placeholder="Abc..."/>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="paypal-clientSecret">Client Secret</Label>
+                <Input id="paypal-clientSecret" type="password" value={data.clientSecret} onChange={(e) => setData({ ...data, clientSecret: e.target.value })} placeholder="Efg..."/>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="paypal-mode">Modo</Label>
+                <Select value={data.mode} onValueChange={(value) => setData({ ...data, mode: value })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="production">Producción</SelectItem>
+                        <SelectItem value="sandbox">Sandbox</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+        </CardContent>
+    </Card>
+);
+
+const WompiForm = ({ data, setData }: any) => (
+    <Card className="mt-4 bg-white animate-in fade-in-50">
+        <CardHeader><CardTitle className="text-base">Configuración de Wompi</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+             <div className="space-y-2">
+                <Label htmlFor="wompi-publicKey">Public Key</Label>
+                <Input id="wompi-publicKey" value={data.publicKey} onChange={(e) => setData({ ...data, publicKey: e.target.value })} placeholder="pub_..."/>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="wompi-privateKey">Private Key</Label>
+                <Input id="wompi-privateKey" type="password" value={data.privateKey} onChange={(e) => setData({ ...data, privateKey: e.target.value })} placeholder="prv_..."/>
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="wompi-mode">Modo</Label>
+                <Select value={data.mode} onValueChange={(value) => setData({ ...data, mode: value })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="production">Producción</SelectItem>
+                        <SelectItem value="sandbox">Sandbox</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+        </CardContent>
+    </Card>
+);
+
 interface PaymentPlanFormProps {
   isLoading: boolean;
   settings: PlanPaymentSettings;
@@ -98,7 +151,7 @@ export function PaymentPlanForm({
   setSettings,
 }: PaymentPlanFormProps) {
   const [selectedMethod, setSelectedMethod] =
-    useState<keyof PlanPaymentSettings | 'paypal'>('nequi');
+    useState<keyof PlanPaymentSettings>('nequi');
 
   if (isLoading) {
     return (
@@ -122,15 +175,21 @@ export function PaymentPlanForm({
   const handleMercadoPagoDataChange = (data: any) => {
     setSettings(prev => ({...prev, mercadoPago: data}));
   }
+  
+  const handlePayPalDataChange = (data: any) => {
+    setSettings(prev => ({...prev, paypal: data}));
+  }
 
-  const currentMethodData = settings[selectedMethod as keyof PlanPaymentSettings];
+  const handleWompiDataChange = (data: any) => {
+    setSettings(prev => ({...prev, wompi: data}));
+  }
 
   return (
     <div className="bg-[#FFF7F4] p-6 rounded-b-lg space-y-4">
       <RadioGroup
         value={selectedMethod}
         onValueChange={(value) =>
-          setSelectedMethod(value as keyof PlanPaymentSettings | 'paypal')
+          setSelectedMethod(value as keyof PlanPaymentSettings)
         }
         className="space-y-3"
       >
@@ -179,6 +238,22 @@ export function PaymentPlanForm({
             }
           />
         </PaymentMethodSelector>
+        
+        <PaymentMethodSelector
+          value="wompi"
+          title="Wompi"
+          icon={<WompiIcon />}
+        >
+          <Switch
+            checked={settings.wompi.enabled}
+            onCheckedChange={(checked) =>
+              setSettings((p) => ({
+                ...p,
+                wompi: { ...p.wompi, enabled: checked },
+              }))
+            }
+          />
+        </PaymentMethodSelector>
 
         <PaymentMethodSelector
           value="stripe"
@@ -217,8 +292,15 @@ export function PaymentPlanForm({
           title="PayPal"
           icon={<PayPalIcon />}
         >
-           {/* PayPal might just be an email or simple link, could be added later */}
-           <Switch disabled />
+           <Switch
+            checked={settings.paypal.enabled}
+            onCheckedChange={(checked) =>
+              setSettings((p) => ({
+                ...p,
+                paypal: { ...p.paypal, enabled: checked },
+              }))
+            }
+          />
         </PaymentMethodSelector>
 
         <PaymentMethodSelector
@@ -261,6 +343,12 @@ export function PaymentPlanForm({
       )}
       {selectedMethod === 'mercadoPago' && (
         <MercadoPagoForm data={settings.mercadoPago} setData={handleMercadoPagoDataChange} />
+      )}
+      {selectedMethod === 'paypal' && (
+        <PayPalForm data={settings.paypal} setData={handlePayPalDataChange} />
+      )}
+      {selectedMethod === 'wompi' && (
+        <WompiForm data={settings.wompi} setData={handleWompiDataChange} />
       )}
     </div>
   );

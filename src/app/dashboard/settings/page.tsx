@@ -46,12 +46,18 @@ const initialStripeData = { enabled: false, publicKey: '', secretKey: '' };
 
 const initialMercadoPagoData = { enabled: false, accessToken: '', publicKey: '', mode: 'production' as 'production' | 'sandbox', instructions: '' };
 
+const initialPayPalData = { enabled: false, clientId: '', clientSecret: '', mode: 'sandbox' as 'production' | 'sandbox'};
+
+const initialWompiData = { enabled: false, publicKey: '', privateKey: '', mode: 'sandbox' as 'production' | 'sandbox'};
+
 const initialPlanSettings: PlanPaymentSettings = {
     nequi: initialQRData,
     bancolombia: initialQRData,
     daviplata: initialQRData,
     stripe: initialStripeData,
     mercadoPago: initialMercadoPagoData,
+    paypal: initialPayPalData,
+    wompi: initialWompiData,
     cashOnDelivery: false,
 };
 
@@ -87,11 +93,15 @@ export default function SettingsPage() {
             if (docSnap.exists()) {
                 const loadedData = docSnap.data() as PlanPaymentSettings;
                  const mergedSettings = {
+                    ...initialPlanSettings,
+                    ...loadedData,
                     nequi: { ...initialQRData, ...(loadedData.nequi || {}) },
                     bancolombia: { ...initialQRData, ...(loadedData.bancolombia || {}) },
                     daviplata: { ...initialQRData, ...(loadedData.daviplata || {}) },
                     stripe: { ...initialStripeData, ...(loadedData.stripe || {}) },
                     mercadoPago: { ...initialMercadoPagoData, ...(loadedData.mercadoPago || {}) },
+                    paypal: { ...initialPayPalData, ...(loadedData.paypal || {}) },
+                    wompi: { ...initialWompiData, ...(loadedData.wompi || {}) },
                     cashOnDelivery: loadedData.cashOnDelivery || false,
                 };
                 setPaymentSettings(mergedSettings);

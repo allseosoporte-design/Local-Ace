@@ -15,6 +15,20 @@ interface MercadoPagoData {
     instructions: string;
 }
 
+interface PayPalData {
+    enabled: boolean;
+    clientId: string;
+    clientSecret: string;
+    mode: 'production' | 'sandbox';
+}
+
+interface WompiData {
+    enabled: boolean;
+    publicKey: string;
+    privateKey: string;
+    mode: 'production' | 'sandbox';
+}
+
 export interface PlanPaymentSettings {
     cashOnDelivery: boolean;
     nequi: QRFormData;
@@ -22,4 +36,6 @@ export interface PlanPaymentSettings {
     bancolombia: QRFormData;
     stripe: StripeData;
     mercadoPago: MercadoPagoData;
+    paypal: PayPalData;
+    wompi: WompiData;
 }
