@@ -35,8 +35,8 @@ export default function PublicLandingPage() {
 
   const landingPageRef = useMemoFirebase(() => {
     if (!firestore || !businessId) return null;
-    // CORRECCIÓN: Ruta correcta de Firestore
-    return doc(firestore, `businesses/${businessId}/config`, 'landing');
+    // CORRECCIÓN FINAL: Ruta correcta con permisos de lectura públicos.
+    return doc(firestore, `businesses/${businessId}/landingPages`, 'config');
   }, [firestore, businessId]);
 
   const { data: loadedData, isLoading } = useDoc<Partial<LandingPageData>>(landingPageRef);
@@ -45,9 +45,12 @@ export default function PublicLandingPage() {
     if (isLoading) return null;
 
     if (!loadedData) {
-      return null;
+      // Si no hay datos, en lugar de fallar, mostramos la data por defecto.
+      // Esto es útil si el usuario aún no ha guardado nada.
+      return defaultLandingData;
     }
     
+    // Fusión profunda para asegurar que todas las propiedades existan.
     const merged: LandingPageData = {
       ...defaultLandingData,
       ...loadedData,
@@ -71,6 +74,7 @@ export default function PublicLandingPage() {
   }
   
   if (!displayData) {
+      // Esta condición ahora es menos probable que se cumpla, pero es una buena práctica mantenerla.
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background text-center p-4">
         <div>
@@ -92,4 +96,3 @@ export default function PublicLandingPage() {
     </div>
   );
 }
-    
