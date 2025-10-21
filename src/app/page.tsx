@@ -87,7 +87,7 @@ export default function Home() {
   const isLoading = isLandingLoading || isFormLoading;
 
   const displayData = useMemo(() => {
-    const finalLandingData = landingData ? { ...defaultLandingData, ...landingData } : defaultLandingData;
+    const finalLandingData = defaultLandingData;
     
     finalLandingData.sections = finalLandingData.sections || [];
     finalLandingData.testimonials = finalLandingData.testimonials || [];
