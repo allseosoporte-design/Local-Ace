@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { EditorLandingForm } from "@/components/editor-landing-form";
-import { EditorLandingPreview, type LandingPageData } from "@/components/editor-landing-preview";
+import { EditorLandingPreview, type LandingPageData, type HeaderConfig, type FooterConfig } from "@/components/editor-landing-preview";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditorSections } from "@/components/editor-sections";
 import { EditorTestimonials } from "@/components/editor-testimonials";
@@ -15,6 +15,42 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ShareLandingPage } from "@/components/dashboard/landing/share-landing-page";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { EditorNavigation } from "@/components/dashboard/landing/EditorNavigation";
+
+const defaultNavigation: HeaderConfig = {
+  enabled: true,
+  links: [
+    { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
+    { id: '2', text: 'Servicios', url: '#', order: 2, newTab: false },
+    { id: '3', text: 'Contacto', url: '#', order: 3, newTab: false },
+  ],
+  backgroundColor: '#FFFFFF',
+  textColor: '#000000',
+  hoverColor: '#4169E1',
+  fontSize: '16',
+  spacing: '24',
+  shadow: true,
+};
+
+const defaultFooter: FooterConfig = {
+    enabled: true,
+    copyrightText: `© ${new Date().getFullYear()} Tu Negocio. Todos los derechos reservados.`,
+    columns: [
+        { id: '1', title: 'Compañía', links: [{id: 'l1', text: 'Sobre nosotros', url: '#'}] },
+        { id: '2', title: 'Legal', links: [{id: 'l2', text: 'Términos y condicones', url: '#'}] },
+    ],
+    socialLinks: [
+        { id: '1', network: 'facebook', url: '#' },
+        { id: '2', network: 'instagram', url: '#' },
+    ],
+    address: 'Calle Falsa 123, Ciudad',
+    phone: '+123 456 7890',
+    email: 'contacto@tu-negocio.com',
+    backgroundColor: '#F8F9FA',
+    textColor: '#333333',
+    iconColor: '#4169E1'
+};
+
 
 const defaultLandingData: LandingPageData = {
   title: "Tu Titular Atractivo Aquí",
@@ -34,7 +70,9 @@ const defaultLandingData: LandingPageData = {
     title: "Tu Negocio - El Mejor Lugar en la Ciudad",
     description: "Describe tu negocio de una manera que entusiasme a tus clientes y les haga querer saber más.",
     keywords: ["palabra clave 1", "palabra clave 2", "tu ciudad"],
-  }
+  },
+  navigation: defaultNavigation,
+  footer: defaultFooter,
 };
 
 const defaultFormConfig: FormConfigData = {
@@ -74,7 +112,13 @@ export default function LandingPageBuilder() {
 
   useEffect(() => {
     if (initialLandingData) {
-      setLandingData(prev => ({ ...defaultLandingData, ...prev, ...initialLandingData }));
+      setLandingData(prev => ({ 
+          ...defaultLandingData, 
+          ...prev, 
+          ...initialLandingData,
+          navigation: { ...defaultNavigation, ...(initialLandingData.navigation || {}) },
+          footer: { ...defaultFooter, ...(initialLandingData.footer || {}) }
+        }));
     }
   }, [initialLandingData]);
 
@@ -137,6 +181,7 @@ export default function LandingPageBuilder() {
               <Tabs defaultValue="hero">
                   <TabsList>
                       <TabsTrigger value="hero">Principal</TabsTrigger>
+                      <TabsTrigger value="navigation">Navegación</TabsTrigger>
                       <TabsTrigger value="sections">Secciones</TabsTrigger>
                       <TabsTrigger value="testimonials">Testimonios</TabsTrigger>
                       <TabsTrigger value="seo">SEO</TabsTrigger>
@@ -145,6 +190,9 @@ export default function LandingPageBuilder() {
                   <TabsContent value="hero" className="space-y-6">
                       <EditorLandingForm data={landingData} setData={setLandingData} />
                       <ShareLandingPage />
+                  </TabsContent>
+                   <TabsContent value="navigation">
+                      <EditorNavigation data={landingData} setData={setLandingData} />
                   </TabsContent>
                   <TabsContent value="sections">
                       <EditorSections data={landingData} setData={setLandingData} />
@@ -168,3 +216,5 @@ export default function LandingPageBuilder() {
     </div>
   );
 }
+
+    
