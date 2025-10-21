@@ -5,11 +5,8 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Star, Facebook, Twitter, Instagram, Linkedin, Youtube, Rss } from 'lucide-react';
+import { Star, Facebook, Twitter, Instagram, Linkedin, Youtube, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { StarRating } from '@/app/funnel/[businessId]/star-rating';
-import { useState } from 'react';
 import { InteractiveReviewForm } from './interactive-review-form';
 
 export interface NavLink {
@@ -29,6 +26,10 @@ export interface HeaderConfig {
   fontSize: string;
   spacing: string;
   shadow: boolean;
+  logoUrl: string | null;
+  logoText: string;
+  logoWidth: number;
+  logoAlignment: 'left' | 'center' | 'right';
 }
 
 export interface FooterLink {
@@ -130,14 +131,18 @@ const SocialIcon = ({ network, color }: { network: string; color: string }) => {
         case 'instagram': return <Instagram {...iconProps} />;
         case 'linkedin': return <Linkedin {...iconProps} />;
         case 'youtube': return <Youtube {...iconProps} />;
-        case 'tiktok': return <Rss {...iconProps} />; // Placeholder, lucide doesn't have tiktok
         default: return null;
     }
 }
 
 
 export function EditorLandingPreview({ data, formConfig, businessId, isPreview }: EditorLandingPreviewProps) {
-  const [previewRating, setPreviewRating] = useState(0);
+  
+  const alignmentClasses = {
+    left: 'justify-start',
+    center: 'justify-center',
+    right: 'justify-end'
+  };
   
   return (
     <div
@@ -158,9 +163,15 @@ export function EditorLandingPreview({ data, formConfig, businessId, isPreview }
                 className={cn("w-full sticky top-0 z-40 transition-shadow", { 'shadow-md': data.navigation.shadow })}
                 style={{ backgroundColor: data.navigation.backgroundColor, fontSize: `${data.navigation.fontSize}px` }}
              >
-                <nav className="container mx-auto px-6 py-3 flex justify-between items-center">
-                    <div className="text-lg font-bold" style={{ color: data.navigation.textColor }}>Mi Negocio</div>
-                    <div className="flex items-center" style={{ gap: `${data.navigation.spacing}px` }}>
+                <nav className={cn("container mx-auto px-6 py-3 flex items-center", alignmentClasses[data.navigation.logoAlignment])}>
+                   <div style={{width: `${data.navigation.logoWidth}px`}}>
+                    {data.navigation.logoUrl ? (
+                      <Image src={data.navigation.logoUrl} alt={data.navigation.logoText} width={data.navigation.logoWidth} height={50} style={{objectFit: 'contain', height: 'auto'}}/>
+                    ) : (
+                      <div className="text-lg font-bold" style={{ color: data.navigation.textColor }}>{data.navigation.logoText}</div>
+                    )}
+                   </div>
+                    <div className="flex-grow flex items-center" style={{ gap: `${data.navigation.spacing}px`, justifyContent: alignmentClasses[data.navigation.logoAlignment] === 'justify-center' ? 'center' : 'flex-end' }}>
                         {[...data.navigation.links].sort((a, b) => a.order - b.order).map(link => (
                             <Link key={link.id} href={link.url} target={link.newTab ? '_blank' : '_self'} rel={link.newTab ? 'noopener noreferrer' : ''}>
                                 <span 
@@ -306,7 +317,7 @@ export function EditorLandingPreview({ data, formConfig, businessId, isPreview }
             <footer style={{ backgroundColor: data.footer.backgroundColor, color: data.footer.textColor }} className="py-8 px-6">
                 <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
                     <div className="md:col-span-1">
-                        <h3 className="text-lg font-bold mb-4">Mi Negocio</h3>
+                        <h3 className="text-lg font-bold mb-4">{data.navigation.logoText}</h3>
                         <p className="text-sm">{data.footer.address}</p>
                         <p className="text-sm">{data.footer.phone}</p>
                         <p className="text-sm">{data.footer.email}</p>
@@ -343,5 +354,3 @@ export function EditorLandingPreview({ data, formConfig, businessId, isPreview }
     </div>
   );
 }
-
-    

@@ -30,6 +30,10 @@ const defaultNavigation: HeaderConfig = {
   fontSize: '16',
   spacing: '24',
   shadow: true,
+  logoUrl: null,
+  logoText: "Mi Negocio",
+  logoWidth: 120,
+  logoAlignment: 'left'
 };
 
 const defaultFooter: FooterConfig = {
@@ -210,11 +214,9 @@ export default function LandingPageBuilder() {
           </div>
 
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
-          <EditorLandingPreview data={landingData} formConfig={formConfig} isPreview={true} />
+          <EditorLandingPreview data={landingData} formConfig={formConfig} isPreview={true} businessId={user?.uid} />
         </div>
       </div>
     </div>
   );
 }
-
-    

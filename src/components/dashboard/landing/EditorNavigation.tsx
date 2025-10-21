@@ -1,17 +1,23 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { PlusCircle, Trash2, GripVertical, Facebook, Twitter, Instagram, Linkedin, Youtube, Rss } from 'lucide-react';
+import { PlusCircle, Trash2, GripVertical, Facebook, Twitter, Instagram, Linkedin, Youtube, Rss, UploadCloud, Loader2, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { LandingPageData, NavLink, HeaderConfig, FooterConfig, FooterColumn, FooterLink, SocialLink } from '@/components/editor-landing-preview';
+import { useUser } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { uploadImage } from '@/ai/flows/upload-image';
+import { cn } from '@/lib/utils';
 
 interface EditorNavigationProps {
   data: LandingPageData;
@@ -19,10 +25,40 @@ interface EditorNavigationProps {
 }
 
 export function EditorNavigation({ data, setData }: EditorNavigationProps) {
-  
+  const { user } = useUser();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const handleHeaderChange = (field: keyof HeaderConfig, value: any) => {
     setData(prev => ({ ...prev, navigation: { ...prev.navigation, [field]: value } }));
   };
+  
+  const handleLogoUploadClick = () => {
+    if (isUploading) return;
+    fileInputRef.current?.click();
+  };
+  
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+    
+    setIsUploading(true);
+    try {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = async () => {
+            const fileAsDataUrl = reader.result as string;
+            const result = await uploadImage({ fileAsDataUrl, folder: `logos/${user.uid}`});
+            handleHeaderChange('logoUrl', result.imageUrl);
+            toast({ title: "Logo subido", description: "El logo se ha actualizado exitosamente." });
+        }
+    } catch(e) {
+        toast({ variant: 'destructive', title: "Error", description: "No se pudo subir el logo." });
+    } finally {
+        setIsUploading(false);
+    }
+  }
 
   const handleNavLinkChange = (id: string, field: keyof NavLink, value: any) => {
     const updatedLinks = data.navigation.links.map(link => 
@@ -121,6 +157,42 @@ export function EditorNavigation({ data, setData }: EditorNavigationProps) {
 
               {data.navigation.enabled && (
                 <>
+                  <div className="space-y-4 p-4 border rounded-lg">
+                      <Label className="font-semibold text-base">Logo del Negocio</Label>
+                       <div className="flex gap-4 items-center">
+                          <div className="relative w-24 h-24 border-2 border-dashed rounded-md flex items-center justify-center bg-muted/50">
+                              {isUploading ? (
+                                <Loader2 className="h-6 w-6 animate-spin"/>
+                              ) : data.navigation.logoUrl ? (
+                                <Image src={data.navigation.logoUrl} alt="Logo preview" fill style={{ objectFit: 'contain', padding: '4px'}}/>
+                              ) : (
+                                <UploadCloud className="h-8 w-8 text-muted-foreground"/>
+                              )}
+                          </div>
+                           <div className="space-y-2">
+                               <input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" accept="image/*" />
+                               <Button type="button" onClick={handleLogoUploadClick} disabled={isUploading}>+ Subir Logo</Button>
+                               {data.navigation.logoUrl && <Button type="button" variant="destructive" size="sm" onClick={() => handleHeaderChange('logoUrl', null)}>Eliminar</Button>}
+                           </div>
+                       </div>
+                       <div className="space-y-2">
+                           <Label htmlFor="logo-text">Texto Alternativo (si no hay logo)</Label>
+                           <Input id="logo-text" value={data.navigation.logoText} onChange={(e) => handleHeaderChange('logoText', e.target.value)} />
+                       </div>
+                       <div className="space-y-2">
+                           <Label>Ancho del Logo: {data.navigation.logoWidth}px</Label>
+                           <Slider defaultValue={[data.navigation.logoWidth]} max={200} min={30} step={1} onValueChange={([val]) => handleHeaderChange('logoWidth', val)} />
+                       </div>
+                       <div className="space-y-2">
+                           <Label>Alineación</Label>
+                            <div className="flex items-center gap-2">
+                                <Button type="button" variant={data.navigation.logoAlignment === 'left' ? 'secondary' : 'ghost'} size="icon" onClick={() => handleHeaderChange('logoAlignment', 'left')}><AlignLeft/></Button>
+                                <Button type="button" variant={data.navigation.logoAlignment === 'center' ? 'secondary' : 'ghost'} size="icon" onClick={() => handleHeaderChange('logoAlignment', 'center')}><AlignCenter/></Button>
+                                <Button type="button" variant={data.navigation.logoAlignment === 'right' ? 'secondary' : 'ghost'} size="icon" onClick={() => handleHeaderChange('logoAlignment', 'right')}><AlignRight/></Button>
+                            </div>
+                       </div>
+                  </div>
+
                   <div className="space-y-4">
                     <Label className="font-semibold">Enlaces de Navegación</Label>
                     {data.navigation.links.map((link, index) => (
@@ -277,5 +349,3 @@ export function EditorNavigation({ data, setData }: EditorNavigationProps) {
     </Card>
   );
 }
-
-    
