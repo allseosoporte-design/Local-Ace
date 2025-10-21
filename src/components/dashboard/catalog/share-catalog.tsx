@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -13,6 +14,7 @@ import {
   Instagram,
   Facebook,
   MessageCircle,
+  Copy,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
@@ -31,6 +33,15 @@ const TikTokIcon = () => (
 export function ShareCatalog() {
   const { toast } = useToast();
   const { user } = useUser();
+
+  const handleCopyLink = () => {
+    const catalogLink = `${window.location.origin}/catalog`;
+    navigator.clipboard.writeText(catalogLink);
+    toast({
+        title: 'Enlace Copiado',
+        description: 'La URL de tu catálogo ha sido copiada al portapapeles.',
+    });
+  }
 
   const handleShare = (platform: string) => {
     // This will be the public catalog link. For now, it points to a generic path.
@@ -73,6 +84,14 @@ export function ShareCatalog() {
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-4">
+          <Button
+            onClick={handleCopyLink}
+            variant="secondary"
+            className="flex-1 min-w-[120px] transition-transform transform hover:scale-105"
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            Copiar Enlace
+          </Button>
           <Button
             onClick={() => handleShare('tiktok')}
             className="flex-1 min-w-[120px] transition-transform transform hover:scale-105"
