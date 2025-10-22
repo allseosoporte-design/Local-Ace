@@ -510,7 +510,16 @@
       "allow": ["public-read", "owner-write"]
     },
      "/contact_forms/{userId}/submissions/{submissionId}": {
-      "description": "Stores submissions for a given contact form. Users can read their own submissions. Public can create submissions."
+      "schema": {
+        "type": "object",
+        "properties": {
+          "submittedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "description": "Stores submissions for a given contact form. Users can read their own submissions. Public can create submissions.",
+      "allow": ["public-create", "owner-read"]
     }
   }
 }
+
+    
