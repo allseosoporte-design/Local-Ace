@@ -27,10 +27,22 @@ const initialFields: FormField[] = [
     { id: uuidv4(), type: 'textarea', label: 'Mensaje', placeholder: 'Escribe tu mensaje aquí...', required: true },
 ];
 
+interface EmailConfig {
+    recipientEmail: string;
+    subject: string;
+}
+
+const initialEmailConfig: EmailConfig = {
+    recipientEmail: '',
+    subject: 'Nuevo mensaje desde tu formulario de contacto',
+}
+
 export default function EditorContactoPage() {
   const { user } = useUser();
   const { toast } = useToast();
   const [fields, setFields] = useState<FormField[]>(initialFields);
+  const [emailConfig, setEmailConfig] = useState<EmailConfig>(initialEmailConfig);
+
 
   const publicUrl = user
     ? `${window.location.origin}/contact/${user.uid}`
@@ -68,6 +80,11 @@ export default function EditorContactoPage() {
   
   const removeField = (id: string) => {
     setFields(fields.filter(f => f.id !== id));
+  }
+
+  const handleEmailConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEmailConfig(prev => ({...prev, [name]: value}));
   }
 
 
@@ -124,12 +141,30 @@ export default function EditorContactoPage() {
                 respuestas.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center text-center text-muted-foreground h-32 border-2 border-dashed rounded-lg">
-                <p>
-                  Las opciones de configuración de correo estarán aquí.
-                </p>
-              </div>
+            <CardContent className="space-y-4">
+                 <div className="space-y-2">
+                    <Label htmlFor="recipientEmail">Correo de Destino</Label>
+                    <Input 
+                        id="recipientEmail"
+                        name="recipientEmail"
+                        type="email"
+                        value={emailConfig.recipientEmail}
+                        onChange={handleEmailConfigChange}
+                        placeholder={user?.email || 'tu@email.com'}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Aquí recibirás los mensajes de tus clientes.
+                    </p>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="subject">Asunto del Mensaje</Label>
+                    <Input 
+                        id="subject"
+                        name="subject"
+                        value={emailConfig.subject}
+                        onChange={handleEmailConfigChange}
+                    />
+                </div>
             </CardContent>
           </Card>
         </div>
