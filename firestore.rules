@@ -6,7 +6,6 @@ service cloud.firestore {
     // Helper function to check if the user is a super admin
     function isSuperAdmin() {
       // Allow if the user has the 'isSuperAdmin' custom claim OR if their email is the specific super admin email.
-      // This provides a fallback if custom claims are not set during local testing/development.
       return request.auth.token.isSuperAdmin == true || request.auth.token.email == 'allseosoporte@gmail.com';
     }
 
@@ -16,6 +15,22 @@ service cloud.firestore {
       allow read: if true;
       // Only the business owner or a super admin can write/update their own document.
       allow write: if request.auth.uid == businessId || isSuperAdmin();
+
+      // Contact Forms Subcollection - CORRECTED RULE
+      match /contactForms/{formId} {
+        // Anyone can read the form configuration to display it publicly.
+        allow read: if true;
+        // Only the business owner can edit the form configuration.
+        allow write: if request.auth.uid == businessId;
+      }
+      
+      // Contact Submissions Subcollection - ADDED RULE
+      match /contactSubmissions/{submissionId} {
+        // Anyone can create a submission (send the form).
+        allow create: if true;
+        // Only the business owner can read or delete their submissions.
+        allow read, delete: if request.auth.uid == businessId;
+      }
 
       // Landing Pages Subcollection
       match /landingPages/{pageId} {
@@ -87,12 +102,10 @@ service cloud.firestore {
     
     // Payment Settings
     match /paymentSettings/{userId} {
-      // The super admin's settings are public-read for the catalog.
-      allow read: if userId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2';
+      // Allow read if it's the super admin's settings (for public catalog) OR if the user is reading their own settings.
+      allow read: if userId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' || request.auth.uid == userId;
       // A user can manage their own payment settings. Super admin can manage any.
       allow write: if request.auth.uid == userId || isSuperAdmin();
-      // A user can read their own settings
-      allow read: if request.auth.uid == userId;
     }
   }
 }
