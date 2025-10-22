@@ -441,7 +441,7 @@
     },
     "/businesses/{businessId}/contactForms/{formId}": {
       "description": "Stores the configuration for a business's contact form.",
-      "access": ["owner-write", "public-read"]
+      "access": ["public-read", "owner-write"]
     },
     "/businesses/{businessId}/contactSubmissions/{submissionId}": {
         "description": "Stores submissions from the public contact form.",
@@ -475,7 +475,8 @@
       "schema": {
         "$ref": "#/entities/PaymentSettings"
       },
-      "description": "Stores payment settings for a user. The settings for the super admin (ID: DzH9Kc6eYqOih5Y705ebM0SzfZf2) are public-read for the catalog, while all other user settings are private."
+      "description": "Stores payment settings for a user. The settings for the super admin (ID: DzH9Kc6eYqOih5Y705ebM0SzfZf2) are public-read for the catalog, while all other user settings are private.",
+      "access": ["public-read-if-superadmin", "owner-read", "owner-write"]
     }
   }
 }
