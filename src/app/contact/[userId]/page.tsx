@@ -41,7 +41,7 @@ export default function PublicContactPage() {
 
   const formConfigRef = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
-    return doc(firestore, `businesses/${userId}/contactForms`, 'config');
+    return doc(firestore, `businesses/${userId}/contactForm`, 'config');
   }, [firestore, userId]);
 
   const { data: formConfig, isLoading, error } = useDoc<FormConfig>(formConfigRef);

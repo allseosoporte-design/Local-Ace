@@ -439,7 +439,7 @@
       "description": "Stores business information.  Root collection for all business-related data. Businesses can manage their Google My Business profiles, landing pages, etc.",
       "access": ["owner-read", "owner-write", "superadmin-read", "superadmin-write"]
     },
-    "/businesses/{businessId}/contactForms/{formId}": {
+    "/businesses/{businessId}/contactForm/{formId}": {
       "description": "Stores the configuration for a business's contact form.",
       "access": ["public-read", "owner-write"]
     },
@@ -481,5 +481,3 @@
     }
   }
 }
-
-    
