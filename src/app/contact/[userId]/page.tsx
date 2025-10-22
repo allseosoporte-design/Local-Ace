@@ -107,10 +107,25 @@ export default function PublicContactPage() {
     );
   }
 
-  if (isLoading || !formConfig) {
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-muted/40">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+  
+  if (!formConfig) {
+      return (
+      <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-8">
+         <Card className="w-full max-w-lg text-center">
+            <CardHeader>
+                <CardTitle>Formulario no disponible</CardTitle>
+                <CardDescription>
+                   La configuración para este formulario no fue encontrada o no existe.
+                </CardDescription>
+            </CardHeader>
+         </Card>
       </div>
     );
   }
