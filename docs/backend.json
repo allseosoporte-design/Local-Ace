@@ -417,42 +417,6 @@
           "type": "string"
         }
       }
-    },
-    "ContactForm": {
-      "title": "ContactForm",
-      "type": "object",
-      "description": "Represents the configuration of a user's contact form.",
-      "properties": {
-        "fields": {
-          "type": "array",
-          "items": {
-            "$ref": "#/entities/FormField"
-          }
-        },
-        "emailConfig": {
-          "type": "object",
-          "properties": {
-            "recipientEmail": {
-              "type": "string",
-              "format": "email"
-            },
-            "subject": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "FormField": {
-      "title": "FormField",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "type": { "type": "string" },
-        "label": { "type": "string" },
-        "placeholder": { "type": "string" },
-        "required": { "type": "boolean" }
-      }
     }
   },
   "auth": {
@@ -503,23 +467,6 @@
         "$ref": "#/entities/PaymentSettings"
       },
       "description": "Stores payment settings for a user. The settings for the super admin (ID: DzH9Kc6eYqOih5Y705ebM0SzfZf2) are public-read for the catalog, while all other user settings are private."
-    },
-    "/contact_forms/{userId}": {
-      "schema": "ContactForm",
-      "description": "Stores the configuration for a user's contact form. A user can read/write their own config. The public can read the config to render the form.",
-      "allow": ["public-read", "owner-write"]
-    },
-     "/contact_forms/{userId}/submissions/{submissionId}": {
-      "schema": {
-        "type": "object",
-        "properties": {
-          "submittedAt": { "type": "string", "format": "date-time" }
-        }
-      },
-      "description": "Stores submissions for a given contact form. Users can read their own submissions. Public can create submissions.",
-      "allow": ["public-create", "owner-read"]
     }
   }
 }
-
-    

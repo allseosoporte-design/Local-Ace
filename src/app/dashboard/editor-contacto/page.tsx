@@ -55,7 +55,7 @@ export default function EditorContactoPage() {
 
   const formConfigRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, 'contact_forms', user.uid);
+    return doc(firestore, `businesses/${user.uid}/contactForms`, 'config');
   }, [firestore, user]);
 
   const { data: loadedConfig, isLoading: isConfigLoading } = useDoc<FormConfig>(formConfigRef);

@@ -41,7 +41,7 @@ export default function PublicContactPage() {
 
   const formConfigRef = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
-    return doc(firestore, 'contact_forms', userId);
+    return doc(firestore, `businesses/${userId}/contactForms`, 'config');
   }, [firestore, userId]);
 
   const { data: formConfig, isLoading } = useDoc<FormConfig>(formConfigRef);
@@ -59,7 +59,7 @@ export default function PublicContactPage() {
     }
     setIsSubmitting(true);
     try {
-      const submissionsCollection = collection(firestore, `contact_forms/${userId}/submissions`);
+      const submissionsCollection = collection(firestore, `businesses/${userId}/contactSubmissions`);
       await addDoc(submissionsCollection, {
         ...formData,
         submittedAt: serverTimestamp(),
