@@ -58,16 +58,16 @@ export default function EditorContactoPage() {
     return doc(firestore, `businesses/${user.uid}/contactForms`, 'config');
   }, [firestore, user]);
 
-  const { data: loadedConfig, isLoading: isConfigLoading } = useDoc<FormConfig>(formConfigRef);
+  const { data: loadedConfig, isLoading: isConfigLoading, error } = useDoc<FormConfig>(formConfigRef);
 
   useEffect(() => {
     if (loadedConfig) {
       setFields(loadedConfig.fields || initialFields);
       setEmailConfig(loadedConfig.emailConfig || initialEmailConfig);
-    } else if (user && !isConfigLoading) {
+    } else if (user && !isConfigLoading && !error) { // Avoid overwriting on error
       setEmailConfig(prev => ({...prev, recipientEmail: user.email || ''}));
     }
-  }, [loadedConfig, user, isConfigLoading]);
+  }, [loadedConfig, user, isConfigLoading, error]);
 
 
   const publicUrl = user
@@ -139,6 +139,26 @@ export default function EditorContactoPage() {
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
+  }
+  
+   if (error) {
+    return (
+      <div className="flex h-full w-full items-center justify-center p-8">
+        <Card className="text-center bg-destructive/10 border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error de Permisos</CardTitle>
+            <CardDescription className="text-destructive/80">No se pudo cargar la configuración del formulario.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Asegúrate de que las reglas de seguridad de Firestore permiten la lectura de la ruta 
+              <code className="text-xs bg-muted p-1 rounded-sm">/businesses/&#123;businessId&#125;/contactForms/config</code> para el propietario.
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">Error: {error.message}</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (

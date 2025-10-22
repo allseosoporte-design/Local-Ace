@@ -122,6 +122,21 @@ export default function RegisterPage() {
           updatedAt: serverTimestamp()
         });
 
+        // Create initial contact form config
+        const contactFormConfigRef = doc(firestore, `businesses/${user.uid}/contactForms`, 'config');
+        batch.set(contactFormConfigRef, {
+            fields: [
+              { id: 'name', type: 'text', label: 'Nombre', placeholder: 'Tu nombre completo', required: true },
+              { id: 'email', type: 'email', label: 'Correo Electrónico', placeholder: 'tu@ejemplo.com', required: true },
+              { id: 'message', type: 'textarea', label: 'Mensaje', placeholder: 'Escribe tu mensaje aquí...', required: true },
+            ],
+            emailConfig: {
+                recipientEmail: user.email,
+                subject: 'Nuevo mensaje desde tu formulario de contacto',
+            },
+            updatedAt: serverTimestamp(),
+        });
+
         if (!user.displayName) {
            await updateProfile(user, { displayName: user.email });
         }

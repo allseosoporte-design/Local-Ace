@@ -44,7 +44,7 @@ export default function PublicContactPage() {
     return doc(firestore, `businesses/${userId}/contactForms`, 'config');
   }, [firestore, userId]);
 
-  const { data: formConfig, isLoading } = useDoc<FormConfig>(formConfigRef);
+  const { data: formConfig, isLoading, error } = useDoc<FormConfig>(formConfigRef);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -81,11 +81,18 @@ export default function PublicContactPage() {
       </div>
     );
   }
-
-  if (!formConfig) {
+  
+  if (error || !formConfig) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-muted/40">
-        <p>No se encontró la configuración de este formulario.</p>
+      <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-8">
+         <Card className="w-full max-w-lg text-center">
+            <CardHeader>
+                <CardTitle>Formulario no disponible</CardTitle>
+                <CardDescription>
+                   No se pudo cargar la configuración de este formulario. Es posible que no exista o haya un problema de permisos.
+                </CardDescription>
+            </CardHeader>
+         </Card>
       </div>
     );
   }
