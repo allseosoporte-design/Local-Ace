@@ -73,29 +73,6 @@ export default function PublicContactPage() {
       setIsSubmitting(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-muted/40">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-  
-  if (error || !formConfig) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-8">
-         <Card className="w-full max-w-lg text-center">
-            <CardHeader>
-                <CardTitle>Formulario no disponible</CardTitle>
-                <CardDescription>
-                   No se pudo cargar la configuración de este formulario. Es posible que no exista o haya un problema de permisos.
-                </CardDescription>
-            </CardHeader>
-         </Card>
-      </div>
-    );
-  }
   
   if (isSubmitted) {
       return (
@@ -114,7 +91,31 @@ export default function PublicContactPage() {
           </div>
       )
   }
+  
+  if (error) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-8">
+         <Card className="w-full max-w-lg text-center">
+            <CardHeader>
+                <CardTitle>Error al cargar</CardTitle>
+                <CardDescription>
+                   Hubo un problema al cargar el formulario. Por favor, revisa la consola para más detalles.
+                </CardDescription>
+            </CardHeader>
+         </Card>
+      </div>
+    );
+  }
 
+  if (isLoading || !formConfig) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-muted/40">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+  
+  // Si llegamos aquí, es porque no hay error, no está cargando y sí hay formConfig.
   return (
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg">
