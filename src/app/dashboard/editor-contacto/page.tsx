@@ -18,6 +18,7 @@ import { useUser } from '@/firebase';
 import { Copy, Eye, Settings, List, PlusCircle } from 'lucide-react';
 import { ContactFormField } from '@/components/dashboard/editor-contacto/ContactFormField';
 import type { FormField } from '@/types/contact-form';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const initialFields: FormField[] = [
