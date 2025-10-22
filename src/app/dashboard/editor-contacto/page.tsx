@@ -1,6 +1,8 @@
 
 'use client';
 
+import React, { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Card,
   CardContent,
@@ -14,11 +16,20 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { Copy, Eye, Settings, List, PlusCircle } from 'lucide-react';
-import React from 'react';
+import { ContactFormField } from '@/components/dashboard/editor-contacto/ContactFormField';
+import type { FormField } from '@/types/contact-form';
+
+
+const initialFields: FormField[] = [
+    { id: uuidv4(), type: 'text', label: 'Nombre', placeholder: 'Tu nombre completo', required: true },
+    { id: uuidv4(), type: 'email', label: 'Correo Electrónico', placeholder: 'tu@ejemplo.com', required: true },
+    { id: uuidv4(), type: 'textarea', label: 'Mensaje', placeholder: 'Escribe tu mensaje aquí...', required: true },
+];
 
 export default function EditorContactoPage() {
   const { user } = useUser();
   const { toast } = useToast();
+  const [fields, setFields] = useState<FormField[]>(initialFields);
 
   const publicUrl = user
     ? `${window.location.origin}/contact/${user.uid}`
@@ -38,6 +49,26 @@ export default function EditorContactoPage() {
       window.open(publicUrl, '_blank');
     }
   };
+
+  const addField = () => {
+    const newField: FormField = {
+        id: uuidv4(),
+        type: 'text',
+        label: 'Nuevo Campo',
+        placeholder: '',
+        required: false,
+    };
+    setFields([...fields, newField]);
+  }
+
+  const updateField = (id: string, updatedField: FormField) => {
+    setFields(fields.map(f => f.id === id ? updatedField : f));
+  }
+  
+  const removeField = (id: string) => {
+    setFields(fields.filter(f => f.id !== id));
+  }
+
 
   return (
     <div className="space-y-6">
@@ -64,13 +95,20 @@ export default function EditorContactoPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-48 border-2 border-dashed rounded-lg">
-                <p>El editor de campos estará disponible aquí.</p>
-                <Button variant="outline" className="mt-4" disabled>
-                    <PlusCircle className="mr-2 h-4 w-4"/>
-                    Agregar Campo
-                </Button>
+              <div className="space-y-4">
+                  {fields.map((field) => (
+                      <ContactFormField 
+                        key={field.id} 
+                        field={field} 
+                        updateField={updateField}
+                        removeField={removeField}
+                      />
+                  ))}
               </div>
+              <Button variant="outline" className="mt-4" onClick={addField}>
+                  <PlusCircle className="mr-2 h-4 w-4"/>
+                  Agregar Campo
+              </Button>
             </CardContent>
           </Card>
 
@@ -135,8 +173,24 @@ export default function EditorContactoPage() {
               <CardTitle>Vista Previa</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center text-center text-muted-foreground h-64 border-2 border-dashed rounded-lg">
-                <p>La vista previa del formulario aparecerá aquí.</p>
+              <div className="space-y-4 rounded-lg border p-4">
+                 {fields.map(field => {
+                     if (field.type === 'textarea') {
+                         return (
+                            <div key={field.id} className="space-y-2">
+                                <Label>{field.label}</Label>
+                                <Textarea placeholder={field.placeholder} disabled />
+                            </div>
+                         )
+                     }
+                     return (
+                         <div key={field.id} className="space-y-2">
+                            <Label>{field.label}</Label>
+                            <Input type={field.type} placeholder={field.placeholder} disabled />
+                         </div>
+                     )
+                 })}
+                 <Button className='w-full' disabled>Enviar</Button>
               </div>
             </CardContent>
           </Card>
