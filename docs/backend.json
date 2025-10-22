@@ -444,8 +444,8 @@
       "access": ["public-read", "owner-write"]
     },
     "/businesses/{businessId}/contactSubmissions/{submissionId}": {
-        "description": "Stores submissions from the public contact form.",
-        "access": ["public-create", "owner-read", "owner-delete"]
+      "description": "Stores submissions from the public contact form.",
+      "access": ["public-create", "owner-read", "owner-delete"]
     },
     "/googleMyBusinessProfiles/{googleMyBusinessProfileId}": {
       "schema": "GoogleMyBusinessProfile",
