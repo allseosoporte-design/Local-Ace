@@ -465,7 +465,8 @@
     },
     "/businesses/{businessId}/landingPages/{landingPageId}": {
       "schema": "LandingPage",
-      "description": "Stores landing pages created for a business. Located as a subcollection to ensure efficient querying of landing pages associated with a business."
+      "description": "Stores landing pages created for a business. Located as a subcollection to ensure efficient querying of landing pages associated with a business.",
+      "access": ["public-read", "owner-write"]
     },
     "/subscriptions/{subscriptionId}": {
       "schema": "Subscription",
