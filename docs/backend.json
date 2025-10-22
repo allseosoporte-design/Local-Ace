@@ -436,7 +436,16 @@
     },
     "/businesses/{businessId}": {
       "schema": "Business",
-      "description": "Stores business information.  Root collection for all business-related data. Businesses can manage their Google My Business profiles, landing pages, etc."
+      "description": "Stores business information.  Root collection for all business-related data. Businesses can manage their Google My Business profiles, landing pages, etc.",
+      "access": ["owner-read", "owner-write", "superadmin-read", "superadmin-write"]
+    },
+    "/businesses/{businessId}/contactForms/{formId}": {
+      "description": "Stores the configuration for a business's contact form.",
+      "access": ["owner-read", "owner-write", "public-read"]
+    },
+    "/businesses/{businessId}/contactSubmissions/{submissionId}": {
+        "description": "Stores submissions from the public contact form.",
+        "access": ["public-create", "owner-read", "owner-delete"]
     },
     "/googleMyBusinessProfiles/{googleMyBusinessProfileId}": {
       "schema": "GoogleMyBusinessProfile",
@@ -470,3 +479,5 @@
     }
   }
 }
+
+    
