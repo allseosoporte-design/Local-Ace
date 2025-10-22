@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Product": {
@@ -505,7 +506,8 @@
     },
     "/contact_forms/{userId}": {
       "schema": "ContactForm",
-      "description": "Stores the configuration for a user's contact form. A user can read/write their own config. The public can read the config to render the form."
+      "description": "Stores the configuration for a user's contact form. A user can read/write their own config. The public can read the config to render the form.",
+      "allow": ["public-read", "owner-write"]
     },
      "/contact_forms/{userId}/submissions/{submissionId}": {
       "description": "Stores submissions for a given contact form. Users can read their own submissions. Public can create submissions."
