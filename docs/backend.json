@@ -441,7 +441,7 @@
     },
     "/businesses/{businessId}/contactForms/{formId}": {
       "description": "Stores the configuration for a business's contact form.",
-      "access": ["owner-read", "owner-write", "public-read"]
+      "access": ["owner-write", "public-read"]
     },
     "/businesses/{businessId}/contactSubmissions/{submissionId}": {
         "description": "Stores submissions from the public contact form.",
