@@ -1,12 +1,13 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -14,11 +15,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
-import { Copy, Eye, Settings, List, PlusCircle } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { Copy, Eye, Settings, List, PlusCircle, Save, Loader2 } from 'lucide-react';
 import { ContactFormField } from '@/components/dashboard/editor-contacto/ContactFormField';
 import type { FormField } from '@/types/contact-form';
 import { Textarea } from '@/components/ui/textarea';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 
 const initialFields: FormField[] = [
@@ -37,11 +39,35 @@ const initialEmailConfig: EmailConfig = {
     subject: 'Nuevo mensaje desde tu formulario de contacto',
 }
 
+interface FormConfig {
+    fields: FormField[];
+    emailConfig: EmailConfig;
+}
+
 export default function EditorContactoPage() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
+  
   const [fields, setFields] = useState<FormField[]>(initialFields);
   const [emailConfig, setEmailConfig] = useState<EmailConfig>(initialEmailConfig);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const formConfigRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'contact_forms', user.uid);
+  }, [firestore, user]);
+
+  const { data: loadedConfig, isLoading: isConfigLoading } = useDoc<FormConfig>(formConfigRef);
+
+  useEffect(() => {
+    if (loadedConfig) {
+      setFields(loadedConfig.fields || initialFields);
+      setEmailConfig(loadedConfig.emailConfig || initialEmailConfig);
+    } else if (user && !isConfigLoading) {
+      setEmailConfig(prev => ({...prev, recipientEmail: user.email || ''}));
+    }
+  }, [loadedConfig, user, isConfigLoading]);
 
 
   const publicUrl = user
@@ -87,16 +113,49 @@ export default function EditorContactoPage() {
     setEmailConfig(prev => ({...prev, [name]: value}));
   }
 
+  const handleSaveChanges = async () => {
+    if (!formConfigRef) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se puede guardar, usuario no autenticado.'});
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const configToSave: FormConfig = { fields, emailConfig };
+      await setDoc(formConfigRef, { ...configToSave, updatedAt: serverTimestamp() }, { merge: true });
+      toast({ title: '¡Guardado!', description: 'La configuración de tu formulario de contacto ha sido guardada.'});
+    } catch (error) {
+      console.error("Error saving form config:", error);
+      toast({ variant: 'destructive', title: 'Error al Guardar', description: 'No se pudo guardar la configuración.'});
+    } finally {
+      setIsSaving(false);
+    }
+  }
+  
+  const isLoading = isUserLoading || isConfigLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          Editor de Contacto
-        </h1>
-        <p className="text-muted-foreground">
-          Crea y personaliza tu formulario de contacto profesional.
-        </p>
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+            Editor de Contacto
+          </h1>
+          <p className="text-muted-foreground">
+            Crea y personaliza tu formulario de contacto profesional.
+          </p>
+        </div>
+        <Button onClick={handleSaveChanges} disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Guardar Cambios
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -202,6 +261,12 @@ export default function EditorContactoPage() {
                 Vista Previa Pública
               </Button>
             </CardContent>
+            <CardFooter className="flex justify-center">
+                 <Button onClick={handleSaveChanges} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Guardar Cambios
+                </Button>
+            </CardFooter>
           </Card>
 
           <Card>
