@@ -99,7 +99,7 @@ export default function PublicContactPage() {
             <CardHeader>
                 <CardTitle>Error al cargar</CardTitle>
                 <CardDescription>
-                   Hubo un problema al cargar el formulario. Por favor, revisa la consola para más detalles.
+                   Hubo un problema al cargar el formulario: {error.message}
                 </CardDescription>
             </CardHeader>
          </Card>
@@ -115,7 +115,6 @@ export default function PublicContactPage() {
     );
   }
   
-  // Si llegamos aquí, es porque no hay error, no está cargando y sí hay formConfig.
   return (
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg">
