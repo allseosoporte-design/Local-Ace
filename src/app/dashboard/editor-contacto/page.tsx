@@ -64,10 +64,10 @@ export default function EditorContactoPage() {
     if (loadedConfig) {
       setFields(loadedConfig.fields || initialFields);
       setEmailConfig(loadedConfig.emailConfig || initialEmailConfig);
-    } else if (user && !isConfigLoading && !error) { // Avoid overwriting on error
+    } else if (user && !isConfigLoading) { 
       setEmailConfig(prev => ({...prev, recipientEmail: user.email || ''}));
     }
-  }, [loadedConfig, user, isConfigLoading, error]);
+  }, [loadedConfig, user, isConfigLoading]);
 
 
   const publicUrl = user
