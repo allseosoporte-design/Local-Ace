@@ -127,9 +127,9 @@ export function CartCheckoutModal() {
   }, [state.items]);
 
   const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore || !businessId) return null;
+    if (!firestore || !businessId || !isOpen) return null;
     return doc(firestore, 'paymentSettings', businessId);
-  }, [firestore, businessId]);
+  }, [firestore, businessId, isOpen]);
 
   const { data: paymentSettings, isLoading: isLoadingSettings } = useDoc<PlanPaymentSettings>(settingsDocRef);
 
