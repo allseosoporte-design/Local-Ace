@@ -85,7 +85,7 @@ export default function PublicContactPage() {
     }
   };
   
-    if (isLoading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-muted/40">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -111,14 +111,15 @@ export default function PublicContactPage() {
       )
   }
   
-  if (error) {
+  if (error || !loadedConfig) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-8">
          <Card className="w-full max-w-lg text-center">
             <CardHeader>
-                <CardTitle>Error al cargar</CardTitle>
+                <CardTitle>Error al cargar el formulario</CardTitle>
                 <CardDescription>
-                   Hubo un problema al cargar el formulario: {error.message}
+                   No se pudo encontrar la configuración del formulario. Es posible que el enlace sea incorrecto o el formulario no esté configurado.
+                   {error && ` Detalle: ${error.message}`}
                 </CardDescription>
             </CardHeader>
          </Card>
@@ -126,7 +127,6 @@ export default function PublicContactPage() {
     );
   }
 
-  // Determine the form configuration only after loading is complete
   const formConfig = loadedConfig || defaultFormConfig;
   
   return (
