@@ -19,6 +19,7 @@ import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { Loader2, CheckCircle } from 'lucide-react';
 import type { FormField } from '@/types/contact-form';
 import { useToast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
 
 interface FormConfig {
   fields: FormField[];
