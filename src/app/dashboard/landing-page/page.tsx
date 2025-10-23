@@ -17,25 +17,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { EditorNavigation } from "@/components/dashboard/landing/EditorNavigation";
 
-const defaultNavigation: HeaderConfig = {
-  enabled: true,
-  links: [
-    { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
-    { id: '2', text: 'Servicios', url: '#', order: 2, newTab: false },
-    { id: '3', text: 'Contacto', url: '#', order: 3, newTab: false },
-  ],
-  backgroundColor: '#FFFFFF',
-  textColor: '#000000',
-  hoverColor: '#4169E1',
-  fontSize: '16',
-  spacing: '24',
-  shadow: true,
-  logoUrl: null,
-  logoText: "Mi Negocio",
-  logoWidth: 120,
-  logoAlignment: 'left'
-};
-
 const defaultFooter: FooterConfig = {
     enabled: true,
     copyrightText: `© ${new Date().getFullYear()} Tu Negocio. Todos los derechos reservados.`,
@@ -75,7 +56,20 @@ const defaultLandingData: LandingPageData = {
     description: "Describe tu negocio de una manera que entusiasme a tus clientes y les haga querer saber más.",
     keywords: ["palabra clave 1", "palabra clave 2", "tu ciudad"],
   },
-  navigation: defaultNavigation,
+  navigation: {
+      enabled: true,
+      links: [],
+      backgroundColor: '#FFFFFF',
+      textColor: '#000000',
+      hoverColor: '#4169E1',
+      fontSize: '16',
+      spacing: '24',
+      shadow: true,
+      logoUrl: null,
+      logoText: "Mi Negocio",
+      logoWidth: 120,
+      logoAlignment: 'left'
+  },
   footer: defaultFooter,
 };
 
@@ -100,6 +94,25 @@ export default function LandingPageBuilder() {
 
   const [landingData, setLandingData] = useState<LandingPageData>(defaultLandingData);
   const [formConfig, setFormConfig] = useState<FormConfigData>(defaultFormConfig);
+  
+  const defaultNavigation: HeaderConfig = {
+    enabled: true,
+    links: [
+      { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
+      { id: '2', text: 'Servicios', url: '#', order: 2, newTab: false },
+      { id: '3', text: 'Contacto', url: user ? `/contact/${user.uid}` : '#', order: 3, newTab: false },
+    ],
+    backgroundColor: '#FFFFFF',
+    textColor: '#000000',
+    hoverColor: '#4169E1',
+    fontSize: '16',
+    spacing: '24',
+    shadow: true,
+    logoUrl: null,
+    logoText: "Mi Negocio",
+    logoWidth: 120,
+    logoAlignment: 'left'
+  };
 
   const landingConfigRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -123,8 +136,10 @@ export default function LandingPageBuilder() {
           navigation: { ...defaultNavigation, ...(initialLandingData.navigation || {}) },
           footer: { ...defaultFooter, ...(initialLandingData.footer || {}) }
         }));
+    } else if (!isLandingLoading && user) {
+        setLandingData(prev => ({...prev, navigation: defaultNavigation}));
     }
-  }, [initialLandingData]);
+  }, [initialLandingData, isLandingLoading, user]);
 
   useEffect(() => {
     if (initialFormConfig) {
