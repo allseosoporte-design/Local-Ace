@@ -63,8 +63,7 @@ export default function PublicContactPage() {
   // This makes the form robust for users who might not have a config doc.
   const formConfig = loadedConfig || defaultFormConfig;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+  const handleInputChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -149,11 +148,10 @@ export default function PublicContactPage() {
                 {field.type === 'textarea' ? (
                   <Textarea
                     id={field.id}
-                    name={field.id}
                     placeholder={field.placeholder}
                     required={field.required}
                     value={formData[field.id] || ''}
-                    onChange={handleInputChange}
+                    onChange={(e) => handleInputChange(field.id, e.target.value)}
                   />
                 ) : (
                   <Input
@@ -163,7 +161,7 @@ export default function PublicContactPage() {
                     placeholder={field.placeholder}
                     required={field.required}
                     value={formData[field.id] || ''}
-                    onChange={handleInputChange}
+                    onChange={(e) => handleInputChange(e.target.name, e.target.value)}
                   />
                 )}
               </div>
