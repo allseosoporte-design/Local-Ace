@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -111,9 +110,7 @@ export default function PublicContactPage() {
       )
   }
   
-  const formConfig = loadedConfig || defaultFormConfig;
-  
-  if (error || !formConfig) {
+  if (error) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-8">
          <Card className="w-full max-w-lg text-center">
@@ -128,6 +125,8 @@ export default function PublicContactPage() {
       </div>
     );
   }
+
+  const formConfig = loadedConfig || defaultFormConfig;
 
   return (
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
