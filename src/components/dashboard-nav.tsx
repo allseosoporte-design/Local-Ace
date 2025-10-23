@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Home, Star, User, Settings, FileText, Image as ImageIcon, ShoppingCart, MessageSquare } from "lucide-react";
+import { Home, Star, User, Settings, FileText, Image as ImageIcon, ShoppingCart, MessageSquare, Mail } from "lucide-react";
 
 const links = [
   {
@@ -42,6 +42,11 @@ const links = [
     href: "/dashboard/editor-contacto",
     label: "Editor Contacto",
     icon: <MessageSquare />,
+  },
+    {
+    href: "/dashboard/messages",
+    label: "Mensajes",
+    icon: <Mail />,
   },
   {
     href: "/dashboard/settings",
