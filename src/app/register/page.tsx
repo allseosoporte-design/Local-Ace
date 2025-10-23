@@ -81,14 +81,14 @@ export default function RegisterPage() {
         });
         
         // Create default landing page config for the new business
-        const landingConfigRef = doc(firestore, `businesses/${'user.uid'}/landingPages`, 'config');
+        const landingConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'config');
         batch.set(landingConfigRef, {
-          title: `Bienvenido a ${'user.email'}`,
+          title: `Bienvenido a ${user.email}`,
           subtitle: "Esta es tu nueva landing page. ¡Edítala desde tu panel!",
           content: ``,
           heroImageUrl: "https://picsum.photos/seed/default-hero/1200/600",
           ctaText: "Deja tu Reseña",
-          ctaUrl: `/funnel/${'user.uid'}`,
+          ctaUrl: `/funnel/${user.uid}`,
           backgroundColor: "#FFFFFF",
           textColor: "#000000",
           buttonColor: "#FF4500",
@@ -97,7 +97,7 @@ export default function RegisterPage() {
           testimonialsSubtitle: "La satisfacción de nuestros usuarios impulsa lo que hacemos",
           testimonials: [],
           seo: {
-            title: `Landing Page de ${'user.email'}`,
+            title: `Landing Page de ${user.email}`,
             description: "Una nueva landing page creada con Local Leap.",
             keywords: ["negocio local", "servicios"],
           },
@@ -106,9 +106,9 @@ export default function RegisterPage() {
         });
 
         // Create default form config for the new business
-        const formConfigRef = doc(firestore, `businesses/${'user.uid'}/landingPages`, 'form');
+        const formConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
         batch.set(formConfigRef, {
-          redirectUrl: `https://www.google.com/maps/search/?api=1&query=${'user.uid'}`,
+          redirectUrl: `https://www.google.com/maps/search/?api=1&query=${user.uid}`,
           notificationEmail: user.email,
           formTitle: "¿Cómo fue tu experiencia?",
           formSubtitle: "Tus comentarios nos ayudan a mejorar.",
@@ -123,7 +123,7 @@ export default function RegisterPage() {
         });
 
         // Create initial contact form config
-        const contactFormConfigRef = doc(firestore, `businesses/${'user.uid'}/contactForm`, 'config');
+        const contactFormConfigRef = doc(firestore, `businesses/${user.uid}/contactForms`, 'config');
         batch.set(contactFormConfigRef, {
             fields: [
               { id: 'nombre', type: 'text', label: 'Nombre', placeholder: 'Tu nombre completo', required: true },
