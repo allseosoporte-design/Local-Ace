@@ -149,20 +149,20 @@ export default function PublicContactPage() {
                 {field.type === 'textarea' ? (
                   <Textarea
                     id={field.id}
-                    name={field.label}
+                    name={field.id}
                     placeholder={field.placeholder}
                     required={field.required}
-                    value={formData[field.label] || ''}
+                    value={formData[field.id] || ''}
                     onChange={handleInputChange}
                   />
                 ) : (
                   <Input
                     id={field.id}
-                    name={field.label}
+                    name={field.id}
                     type={field.type}
                     placeholder={field.placeholder}
                     required={field.required}
-                    value={formData[field.label] || ''}
+                    value={formData[field.id] || ''}
                     onChange={handleInputChange}
                   />
                 )}
