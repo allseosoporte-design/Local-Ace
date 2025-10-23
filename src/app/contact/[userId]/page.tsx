@@ -57,10 +57,6 @@ export default function PublicContactPage() {
   }, [firestore, userId]);
 
   const { data: loadedConfig, isLoading, error } = useDoc<FormConfig>(formConfigRef);
-  
-  // Use loaded config if it exists, otherwise fall back to the default config.
-  // This makes the form robust for users who might not have a config doc.
-  const formConfig = loadedConfig || defaultFormConfig;
 
   const handleInputChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -129,6 +125,9 @@ export default function PublicContactPage() {
       </div>
     );
   }
+
+  // Determine the form configuration only after loading is complete
+  const formConfig = loadedConfig || defaultFormConfig;
   
   return (
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
