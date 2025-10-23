@@ -20,6 +20,7 @@ import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { Loader2, CheckCircle } from 'lucide-react';
 import type { FormField } from '@/types/contact-form';
 import { useToast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
 
 interface FormConfig {
   fields: FormField[];
@@ -28,6 +29,18 @@ interface FormConfig {
     subject: string;
   };
 }
+
+const defaultFormConfig: FormConfig = {
+    fields: [
+        { id: uuidv4(), type: 'text', label: 'Nombre', placeholder: 'Tu nombre completo', required: true },
+        { id: uuidv4(), type: 'email', label: 'Correo Electrónico', placeholder: 'tu@ejemplo.com', required: true },
+        { id: uuidv4(), type: 'textarea', label: 'Mensaje', placeholder: 'Escribe tu mensaje aquí...', required: true },
+    ],
+    emailConfig: {
+        recipientEmail: '',
+        subject: 'Nuevo mensaje desde tu formulario de contacto',
+    }
+};
 
 export default function PublicContactPage() {
   const params = useParams();
@@ -44,7 +57,11 @@ export default function PublicContactPage() {
     return doc(firestore, `businesses/${userId}/contactForm`, 'config');
   }, [firestore, userId]);
 
-  const { data: formConfig, isLoading, error } = useDoc<FormConfig>(formConfigRef);
+  const { data: loadedConfig, isLoading, error } = useDoc<FormConfig>(formConfigRef);
+  
+  // Use loaded config if it exists, otherwise fall back to the default config.
+  // This makes the form robust for users who might not have a config doc.
+  const formConfig = loadedConfig || defaultFormConfig;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -108,21 +125,6 @@ export default function PublicContactPage() {
                 <CardTitle>Error al cargar</CardTitle>
                 <CardDescription>
                    Hubo un problema al cargar el formulario: {error.message}
-                </CardDescription>
-            </CardHeader>
-         </Card>
-      </div>
-    );
-  }
-  
-  if (!formConfig) {
-      return (
-      <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-8">
-         <Card className="w-full max-w-lg text-center">
-            <CardHeader>
-                <CardTitle>Formulario no disponible</CardTitle>
-                <CardDescription>
-                   La configuración para este formulario no fue encontrada o no existe.
                 </CardDescription>
             </CardHeader>
          </Card>
