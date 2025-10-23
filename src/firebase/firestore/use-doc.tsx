@@ -1,6 +1,6 @@
 'use client';
     
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   DocumentReference,
   onSnapshot,
@@ -28,7 +28,7 @@ export interface UseDocResult<T> {
  * React hook to subscribe to a single Firestore document in real-time.
  * Handles nullable references.
  *
- * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
+ * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedDocRef or BAD THINGS WILL HAPPEN
  * use useMemo to memoize it per React guidence. Also make sure that it's dependencies are stable
  * references
  *
@@ -45,39 +45,49 @@ export function useDoc<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true); 
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const pathRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // CRÍTICO: Forzar estado de carga y limpiar datos al cambiar la referencia.
+    // If the ref is null/undefined, reset to initial state and do nothing.
+    if (!memoizedDocRef) {
+      pathRef.current = null;
+      setData(null);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
+    const newPath = memoizedDocRef.path;
+
+    // If the path is the same as the current one, do nothing.
+    if (pathRef.current === newPath) {
+      return;
+    }
+
+    pathRef.current = newPath;
     setIsLoading(true);
     setData(null);
     setError(null);
 
-    if (!memoizedDocRef) {
-      setIsLoading(false);
-      return;
-    }
-    
-    const newPath = memoizedDocRef.path;
-
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        // Asegurarse de que el snapshot corresponde a la suscripción actual.
-        if (snapshot.ref.path !== newPath) {
+        // Ensure the callback corresponds to the current subscription.
+        if (pathRef.current !== snapshot.ref.path) {
           return;
         }
 
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
-          setData(null); // El documento no existe.
+          setData(null); // Document does not exist.
         }
         setError(null);
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-         // Asegurarse de que el error corresponde a la suscripción actual.
-        if (memoizedDocRef.path !== newPath) {
+        // Ensure the error corresponds to the current subscription.
+        if (pathRef.current !== memoizedDocRef.path) {
           return;
         }
         
@@ -94,10 +104,11 @@ export function useDoc<T = any>(
       }
     );
 
+    // Cleanup function for this effect.
     return () => {
       unsubscribe();
     };
-  }, [memoizedDocRef]); // Re-ejecutar solo si la referencia del documento cambia.
+  }, [memoizedDocRef]); // Re-run only if the document reference itself changes.
 
   return { data, isLoading, error };
 }
