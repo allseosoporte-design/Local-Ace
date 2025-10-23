@@ -53,7 +53,7 @@ export default function PublicContactPage() {
 
   const formConfigRef = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
-    return doc(firestore, `businesses/${userId}/contactForms`, 'config');
+    return doc(firestore, `businesses/${userId}/contactForms`, 'main_form');
   }, [firestore, userId]);
 
   const { data: loadedConfig, isLoading, error } = useDoc<FormConfig>(formConfigRef);
@@ -111,7 +111,9 @@ export default function PublicContactPage() {
       )
   }
   
-  if (error || !loadedConfig) {
+  const formConfig = loadedConfig || defaultFormConfig;
+  
+  if (error || !formConfig) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-8">
          <Card className="w-full max-w-lg text-center">
@@ -127,8 +129,6 @@ export default function PublicContactPage() {
     );
   }
 
-  const formConfig = loadedConfig || defaultFormConfig;
-  
   return (
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg">

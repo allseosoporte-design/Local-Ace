@@ -123,7 +123,7 @@ export default function RegisterPage() {
         });
 
         // Create initial contact form config
-        const contactFormConfigRef = doc(firestore, `businesses/${user.uid}/contactForms`, 'config');
+        const contactFormConfigRef = doc(firestore, `businesses/${user.uid}/contactForms`, 'main_form');
         batch.set(contactFormConfigRef, {
             fields: [
               { id: 'nombre', type: 'text', label: 'Nombre', placeholder: 'Tu nombre completo', required: true },
