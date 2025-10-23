@@ -101,6 +101,8 @@ export default function LandingPageBuilder() {
       { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
       { id: '2', text: 'Servicios', url: '#', order: 2, newTab: false },
       { id: '3', text: 'Contacto', url: user ? `/contact/${user.uid}` : '#', order: 3, newTab: false },
+      { id: '4', text: 'Catalogo', url: '/catalog', order: 4, newTab: false },
+      { id: '5', text: 'Blog', url: '#', order: 5, newTab: false },
     ],
     backgroundColor: '#FFFFFF',
     textColor: '#000000',
