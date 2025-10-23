@@ -20,7 +20,6 @@ import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { Loader2, CheckCircle } from 'lucide-react';
 import type { FormField } from '@/types/contact-form';
 import { useToast } from '@/hooks/use-toast';
-import { v4 as uuidv4 } from 'uuid';
 
 interface FormConfig {
   fields: FormField[];
@@ -32,9 +31,9 @@ interface FormConfig {
 
 const defaultFormConfig: FormConfig = {
     fields: [
-        { id: uuidv4(), type: 'text', label: 'Nombre', placeholder: 'Tu nombre completo', required: true },
-        { id: uuidv4(), type: 'email', label: 'Correo Electrónico', placeholder: 'tu@ejemplo.com', required: true },
-        { id: uuidv4(), type: 'textarea', label: 'Mensaje', placeholder: 'Escribe tu mensaje aquí...', required: true },
+        { id: 'nombre', type: 'text', label: 'Nombre', placeholder: 'Tu nombre completo', required: true },
+        { id: 'correo', type: 'email', label: 'Correo Electrónico', placeholder: 'tu@ejemplo.com', required: true },
+        { id: 'mensaje', type: 'textarea', label: 'Mensaje', placeholder: 'Escribe tu mensaje aquí...', required: true },
     ],
     emailConfig: {
         recipientEmail: '',
@@ -54,7 +53,7 @@ export default function PublicContactPage() {
 
   const formConfigRef = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
-    return doc(firestore, `businesses/${userId}/contactForm`, 'config');
+    return doc(firestore, `businesses/${userId}/contactForms`, 'config');
   }, [firestore, userId]);
 
   const { data: loadedConfig, isLoading, error } = useDoc<FormConfig>(formConfigRef);
