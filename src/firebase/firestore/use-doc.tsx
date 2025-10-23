@@ -45,38 +45,21 @@ export function useDoc<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true); 
   const [error, setError] = useState<FirestoreError | Error | null>(null);
-  const pathRef = useRef<string | null>(null);
 
   useEffect(() => {
     // If the ref is null/undefined, reset to initial state and do nothing.
     if (!memoizedDocRef) {
-      pathRef.current = null;
       setData(null);
       setError(null);
       setIsLoading(false);
       return;
     }
 
-    const newPath = memoizedDocRef.path;
-
-    // If the path is the same as the current one, do nothing.
-    if (pathRef.current === newPath) {
-      return;
-    }
-
-    pathRef.current = newPath;
     setIsLoading(true);
-    setData(null);
-    setError(null);
-
+    
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        // Ensure the callback corresponds to the current subscription.
-        if (pathRef.current !== snapshot.ref.path) {
-          return;
-        }
-
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
@@ -86,11 +69,6 @@ export function useDoc<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        // Ensure the error corresponds to the current subscription.
-        if (pathRef.current !== memoizedDocRef.path) {
-          return;
-        }
-        
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
