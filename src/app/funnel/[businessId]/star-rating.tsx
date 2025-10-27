@@ -39,7 +39,7 @@ export function StarRating({ onRating, totalStars = 5, rating: controlledRating 
             />
             <Star
               className={cn(
-                "h-12 w-12 cursor-pointer transition-colors duration-200",
+                "h-12 w-12 cursor-pointer transition-all duration-200 transform hover:scale-110",
                 ratingValue <= (hover || rating)
                   ? "text-yellow-400"
                   : "text-gray-300"
