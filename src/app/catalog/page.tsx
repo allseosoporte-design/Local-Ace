@@ -12,14 +12,17 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { HomeNav } from '@/components/home-nav';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 import type { Product } from '@/types/product';
+import type { CatalogHeaderConfigData } from '@/types/catalog';
 import { Loader2 } from 'lucide-react';
 import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 import { ProductViewModal } from '@/components/catalog/product-view-modal';
 import { CartButton } from '@/components/cart/cart-button';
 import { CartCheckoutModal } from '@/components/cart/cart-checkout-modal';
+import { CatalogHeader } from '@/components/catalog/catalog-header';
+
 
 function ProductCard({ product, onProductSelect }: { product: Product, onProductSelect: (product: Product) => void }) {
   const formatCurrency = (amount: number) => {
@@ -66,6 +69,12 @@ export default function CatalogPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const headerConfigRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // Assuming the super admin's catalog config is what's public.
+    return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/catalogConfig/header`);
+  }, [firestore]);
+
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -74,29 +83,27 @@ export default function CatalogPage() {
     );
   }, [firestore]);
 
-  const { data: products, isLoading } = useCollection<Product>(productsQuery);
+  const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsQuery);
+  const { data: headerConfig, isLoading: isLoadingHeader } = useDoc<CatalogHeaderConfigData>(headerConfigRef);
   
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setIsModalOpen(true);
   }
 
+  const isLoading = isLoadingProducts || isLoadingHeader;
+
   return (
     <>
       <div className="flex flex-col min-h-screen bg-muted/40">
         <HomeNav />
+        {isLoadingHeader ? (
+          <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>
+        ) : (
+          headerConfig && <CatalogHeader config={headerConfig} />
+        )}
         <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-              Nuestro Catálogo
-            </h1>
-            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Explora nuestra selección de productos de alta calidad, elegidos
-              especialmente para ti.
-            </p>
-          </div>
-
-          {isLoading ? (
+          {isLoadingProducts ? (
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>

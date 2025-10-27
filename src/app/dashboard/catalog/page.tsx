@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -36,6 +37,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ShareCatalog } from '@/components/dashboard/catalog/share-catalog';
+import { CatalogHeaderConfig } from '@/components/dashboard/catalog/catalog-header-config';
 
 export default function CatalogPage() {
   const { user, isUserLoading } = useUser();
@@ -151,27 +153,22 @@ export default function CatalogPage() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-              Catálogo de Productos
-            </h1>
-            <p className="text-muted-foreground">
-              Gestiona los productos de tu tienda.
-            </p>
-          </div>
-          <Button onClick={handleCreate} disabled={!user}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Agregar Producto
-          </Button>
-        </div>
+        <CatalogHeaderConfig />
 
         <Card>
           <CardHeader>
-            <CardTitle>Tus Productos</CardTitle>
-            <CardDescription>
-              Aquí puedes ver, editar y eliminar los productos de tu catálogo.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Tus Productos</CardTitle>
+                <CardDescription>
+                  Aquí puedes ver, editar y eliminar los productos de tu catálogo.
+                </CardDescription>
+              </div>
+              <Button onClick={handleCreate} disabled={!user}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Agregar Producto
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (

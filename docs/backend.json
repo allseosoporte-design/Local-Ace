@@ -417,6 +417,40 @@
           "type": "string"
         }
       }
+    },
+    "CatalogHeaderConfig": {
+      "title": "CatalogHeaderConfig",
+      "type": "object",
+      "description": "Configuration for the public catalog header.",
+      "properties": {
+        "bannerUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "businessName": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "socialLinks": {
+          "type": "object",
+          "properties": {
+            "tiktok": { "type": "string", "format": "uri" },
+            "instagram": { "type": "string", "format": "uri" },
+            "facebook": { "type": "string", "format": "uri" },
+            "whatsapp": { "type": "string" },
+            "twitter": { "type": "string", "format": "uri" }
+          }
+        }
+      }
     }
   },
   "auth": {
@@ -438,6 +472,11 @@
       "schema": "Business",
       "description": "Stores business information.  Root collection for all business-related data. Businesses can manage their Google My Business profiles, landing pages, etc.",
       "access": ["owner-read", "owner-write", "superadmin-read", "superadmin-write"]
+    },
+    "/businesses/{businessId}/catalogConfig/header": {
+      "schema": "CatalogHeaderConfig",
+      "description": "Stores the configuration for the catalog header of a business.",
+      "access": ["owner-read", "owner-write", "public-read"]
     },
     "/businesses/{businessId}/contactForms/{formId}": {
       "description": "Stores the configuration for a business's contact form.",
