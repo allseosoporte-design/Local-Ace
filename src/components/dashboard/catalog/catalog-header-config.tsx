@@ -17,8 +17,8 @@ import { useUser, useFirestore, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { uploadImage } from '@/ai/flows/upload-image';
-import { Loader2, UploadCloud, Save, RotateCcw } from 'lucide-react';
-import type { CatalogHeaderConfigData, SocialLinks } from '@/types/catalog';
+import { Loader2, UploadCloud, Save, RotateCcw, Trash2, Pencil } from 'lucide-react';
+import type { CatalogHeaderConfigData, SocialLinks, CarouselItemData } from '@/types/catalog';
 import {
   Twitter,
   Instagram,
@@ -53,6 +53,7 @@ const defaultValues: CatalogHeaderConfigData = {
     whatsapp: '',
     twitter: '',
   },
+  carouselItems: [],
 };
 
 export function CatalogHeaderConfig() {
@@ -60,10 +61,13 @@ export function CatalogHeaderConfig() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const carouselFileInputRef = useRef<HTMLInputElement>(null);
   const [config, setConfig] = useState<CatalogHeaderConfigData>(defaultValues);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCarouselUploading, setIsCarouselUploading] = useState<number | null>(null);
+
 
   const configDocRef = useMemo(() => {
     if (!user || !firestore) return null;
@@ -75,7 +79,13 @@ export function CatalogHeaderConfig() {
   useEffect(() => {
     if (!isUserLoading) {
         if (initialData) {
-            setConfig(prev => ({...prev, ...initialData, socialLinks: {...prev.socialLinks, ...initialData.socialLinks}}));
+            const mergedConfig = {
+                ...defaultValues,
+                ...initialData,
+                socialLinks: {...defaultValues.socialLinks, ...initialData.socialLinks},
+                carouselItems: initialData.carouselItems || []
+            };
+            setConfig(mergedConfig);
         } else if (!isLoadingDoc) {
             setConfig(defaultValues);
         }
@@ -117,6 +127,60 @@ export function CatalogHeaderConfig() {
         setIsUploading(false);
     }
   };
+
+  const handleCarouselImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, index?: number) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+    
+    const uploadIndex = index !== undefined ? index : (config.carouselItems?.length || 0);
+    setIsCarouselUploading(uploadIndex);
+
+    try {
+        const fileAsDataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+        });
+
+        const result = await uploadImage({ fileAsDataUrl, folder: `catalog_carousel/${user.uid}` });
+        
+        if (result.imageUrl) {
+            setConfig(prev => {
+                const newItems = [...(prev.carouselItems || [])];
+                if (index !== undefined) {
+                    newItems[index] = { ...newItems[index], imageUrl: result.imageUrl };
+                } else {
+                    newItems.push({ imageUrl: result.imageUrl, slogan: 'Nuevo Slogan', imageHint: 'new image' });
+                }
+                return { ...prev, carouselItems: newItems };
+            });
+            toast({ title: 'Imagen del carrusel actualizada.' });
+        }
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo subir la imagen del carrusel.' });
+    } finally {
+        setIsCarouselUploading(null);
+        if (carouselFileInputRef.current) carouselFileInputRef.current.value = "";
+    }
+};
+
+const handleCarouselSloganChange = (index: number, slogan: string) => {
+    setConfig(prev => {
+        const newItems = [...(prev.carouselItems || [])];
+        if(newItems[index]) {
+            newItems[index] = { ...newItems[index], slogan };
+        }
+        return { ...prev, carouselItems: newItems };
+    });
+};
+
+const removeCarouselItem = (index: number) => {
+    setConfig(prev => ({
+        ...prev,
+        carouselItems: (prev.carouselItems || []).filter((_, i) => i !== index)
+    }));
+};
 
   const handleSaveChanges = async () => {
     if (!configDocRef) return;
@@ -179,6 +243,48 @@ export function CatalogHeaderConfig() {
                  )}
             </div>
         </div>
+
+        <div className="space-y-4 pt-4 border-t">
+          <Label className="text-base font-semibold">Imágenes del Carrusel</Label>
+          <p className="text-sm text-muted-foreground">Sube aquí las imágenes que se mostrarán en el carrusel de tu catálogo (máximo 3).</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, index) => {
+              const item = config.carouselItems?.[index];
+              return (
+                <Card key={index}>
+                  <CardHeader className='p-4'>
+                    <div className="relative aspect-video w-full bg-muted rounded-lg border-2 border-dashed">
+                      {isCarouselUploading === index ? <div className='flex items-center justify-center h-full'><Loader2 className="h-6 w-6 animate-spin" /></div> :
+                       item?.imageUrl ? (
+                        <Image src={item.imageUrl} alt={`Carousel image ${index + 1}`} fill className="object-cover rounded-md" />
+                      ) : (
+                        <div className='flex items-center justify-center h-full text-muted-foreground text-xs p-2'>
+                            <UploadCloud className="h-6 w-6" />
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 space-y-2">
+                    <Label htmlFor={`slogan-${index}`}>Texto sobreimpreso</Label>
+                    <Input id={`slogan-${index}`} value={item?.slogan || ''} onChange={(e) => handleCarouselSloganChange(index, e.target.value)} disabled={!item}/>
+                    <div className='flex gap-2 justify-center'>
+                      <Button size="sm" variant="outline" onClick={() => carouselFileInputRef.current?.click()}>
+                        <Pencil className="mr-2 h-4 w-4"/> {item ? 'Reemplazar' : 'Subir'}
+                      </Button>
+                      {item && (
+                          <Button size="sm" variant="destructive" onClick={() => removeCarouselItem(index)}>
+                            <Trash2 className="mr-2 h-4 w-4"/> Eliminar
+                          </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+             <input type="file" ref={carouselFileInputRef} onChange={(e) => handleCarouselImageUpload(e)} className="hidden" accept="image/jpeg,image/png,image/webp" />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="businessName">Nombre del Negocio</Label>

@@ -8,7 +8,7 @@ import {
   Facebook,
   MessageCircle,
 } from 'lucide-react';
-import type { CatalogHeaderConfigData } from '@/types/catalog';
+import type { CatalogHeaderConfigData, CarouselItemData } from '@/types/catalog';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 const socialIconMap = {
@@ -21,8 +21,7 @@ const socialIconMap = {
   twitter: <Twitter className="h-5 w-5" />,
 };
 
-export const CatalogHeader = ({ config }: { config: CatalogHeaderConfigData }) => {
-  const carouselItems = [
+const defaultCarouselItems: CarouselItemData[] = [
     {
       imageUrl: 'https://picsum.photos/seed/tech1/1200/400',
       slogan: 'Ofertas exclusivas',
@@ -39,6 +38,9 @@ export const CatalogHeader = ({ config }: { config: CatalogHeaderConfigData }) =
       imageHint: 'computer hardware'
     }
   ];
+
+export const CatalogHeader = ({ config }: { config: CatalogHeaderConfigData }) => {
+  const carouselItems = (config.carouselItems && config.carouselItems.length > 0) ? config.carouselItems : defaultCarouselItems;
 
   return (
     <header className="relative">

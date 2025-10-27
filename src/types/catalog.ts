@@ -7,6 +7,12 @@ export interface SocialLinks {
     twitter: string;
 }
 
+export interface CarouselItemData {
+    imageUrl: string;
+    slogan: string;
+    imageHint: string;
+}
+
 export interface CatalogHeaderConfigData {
   bannerUrl: string;
   businessName: string;
@@ -14,4 +20,5 @@ export interface CatalogHeaderConfigData {
   phone: string;
   email: string;
   socialLinks: SocialLinks;
+  carouselItems?: CarouselItemData[];
 }
