@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useCollection, useFirestore, useUser } from "@/firebase";
 import { collection, query, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { BusinessModal, BusinessFormData } from "@/components/business-modal";
 import { useToast } from "@/hooks/use-toast";
@@ -86,7 +86,7 @@ export default function AdminDashboardPage() {
     checkAdmin();
   }, [user, isUserLoading]);
 
-  const businessesQuery = useMemoFirebase(() => {
+  const businessesQuery = useMemo(() => {
     // CRITICAL: Do not run the query until we've confirmed the user is a super admin.
     if (isCheckingAdmin || !isSuperAdmin || !firestore) {
       return null;

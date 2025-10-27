@@ -36,7 +36,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Eye, MessageSquare, Loader2 } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useUser } from '@/firebase';
 import {
   collection,
   query,
@@ -104,7 +104,7 @@ export default function AdminSupportPage() {
     checkAdmin();
   }, [user, isUserLoading]);
 
-  const ticketsQuery = useMemoFirebase(() => {
+  const ticketsQuery = useMemo(() => {
     if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     
     let q = collection(firestore, 'supportTickets');

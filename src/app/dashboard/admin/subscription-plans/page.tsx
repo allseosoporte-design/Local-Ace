@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { PlusCircle, BarChart, CheckCircle, Star, Loader2 } from 'lucide-react';
 import { collection, query, doc, writeBatch, deleteDoc } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useUser } from '@/firebase';
 import { PlanModal } from '@/components/plan-modal';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { PlanCard } from '@/components/plan-card';
@@ -61,7 +61,7 @@ export default function SubscriptionPlansPage() {
     checkAdmin();
   }, [user, isUserLoading]);
 
-  const plansQuery = useMemoFirebase(() => {
+  const plansQuery = useMemo(() => {
     if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return collection(firestore, 'subscriptionPlans');
   }, [firestore, isSuperAdmin, isCheckingAdmin]);

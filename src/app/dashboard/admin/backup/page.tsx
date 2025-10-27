@@ -57,7 +57,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, orderBy, addDoc, deleteDoc, doc, serverTimestamp, updateDoc, Timestamp } from 'firebase/firestore';
 import { getIdTokenResult } from 'firebase/auth';
 import { format } from 'date-fns';
@@ -106,7 +106,7 @@ export default function BackupPage() {
         checkAdmin();
     }, [user, isUserLoading]);
 
-    const backupsQuery = useMemoFirebase(() => {
+    const backupsQuery = useMemo(() => {
         if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
         return query(collection(firestore, 'backups'), orderBy('date', 'desc'));
     }, [firestore, isSuperAdmin, isCheckingAdmin]);

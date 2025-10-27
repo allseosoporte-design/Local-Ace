@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,7 +24,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { uploadImage } from '@/ai/flows/upload-image';
 import { Loader2, Upload, Save } from 'lucide-react';
 import { PaymentPlanForm } from '@/components/payment-plan-form';
@@ -75,7 +75,7 @@ export default function SettingsPage() {
   const [isSavingPayments, setIsSavingPayments] = useState(false);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
 
-  const settingsDocRef = useMemoFirebase(() => {
+  const settingsDocRef = useMemo(() => {
       if (!firestore || !user) return null;
       // Using a single document for the business's payment settings.
       return doc(firestore, 'paymentSettings', user.uid);

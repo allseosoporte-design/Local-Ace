@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, RefreshCw, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useUser } from '@/firebase';
 import {
   collection,
   query,
@@ -76,7 +76,7 @@ export default function PendingPaymentsPage() {
     checkAdmin();
   }, [user, isUserLoading]);
 
-  const paymentsQuery = useMemoFirebase(() => {
+  const paymentsQuery = useMemo(() => {
     if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return query(
       collection(firestore, 'pendingPayments'),

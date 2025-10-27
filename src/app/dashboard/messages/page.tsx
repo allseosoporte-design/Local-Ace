@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { columns, type Message } from './columns';
@@ -21,7 +21,7 @@ export default function MessagesPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const submissionsQuery = useMemoFirebase(() => {
+  const submissionsQuery = useMemo(() => {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, `businesses/${user.uid}/contactSubmissions`),

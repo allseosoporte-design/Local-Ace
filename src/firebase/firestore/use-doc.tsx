@@ -1,6 +1,7 @@
+
 'use client';
     
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DocumentReference,
   onSnapshot,
@@ -38,7 +39,7 @@ export interface UseDocResult<T> {
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
 export function useDoc<T = any>(
-  memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
+  docRef: DocumentReference<DocumentData> | null | undefined,
 ): UseDocResult<T> {
   type StateDataType = WithId<T> | null;
 
@@ -48,7 +49,7 @@ export function useDoc<T = any>(
 
   useEffect(() => {
     // If the ref is null/undefined, reset to initial state and do nothing.
-    if (!memoizedDocRef) {
+    if (!docRef) {
       setData(null);
       setError(null);
       setIsLoading(false);
@@ -58,7 +59,7 @@ export function useDoc<T = any>(
     setIsLoading(true);
     
     const unsubscribe = onSnapshot(
-      memoizedDocRef,
+      docRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
@@ -71,7 +72,7 @@ export function useDoc<T = any>(
       (error: FirestoreError) => {
         const contextualError = new FirestorePermissionError({
           operation: 'get',
-          path: memoizedDocRef.path,
+          path: docRef.path,
         });
 
         setError(contextualError);
@@ -86,7 +87,7 @@ export function useDoc<T = any>(
     return () => {
       unsubscribe();
     };
-  }, [memoizedDocRef]); // Re-run only if the document reference itself changes.
+  }, [docRef]); // Re-run only if the document reference itself changes.
 
   return { data, isLoading, error };
 }

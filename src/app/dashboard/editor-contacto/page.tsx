@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Card,
@@ -14,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc } from '@/firebase';
 import { Copy, Eye, Settings, List, PlusCircle, Save, Loader2 } from 'lucide-react';
 import { ContactFormField } from '@/components/dashboard/editor-contacto/ContactFormField';
 import type { FormField } from '@/types/contact-form';
@@ -52,7 +53,7 @@ export default function EditorContactoPage() {
   const [emailConfig, setEmailConfig] = useState<EmailConfig>(initialEmailConfig);
   const [isSaving, setIsSaving] = useState(false);
 
-  const formConfigRef = useMemoFirebase(() => {
+  const formConfigRef = useMemo(() => {
     if (!firestore || !user) return null;
     return doc(firestore, `businesses/${user.uid}/contactForms`, 'config');
   }, [firestore, user]);

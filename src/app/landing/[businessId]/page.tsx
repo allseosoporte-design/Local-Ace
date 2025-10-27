@@ -3,7 +3,7 @@
 
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { Loader2 } from 'lucide-react';
@@ -49,12 +49,12 @@ export default function PublicLandingPage() {
     };
   }, [businessId]);
 
-  const landingPageRef = useMemoFirebase(() => {
+  const landingPageRef = useMemo(() => {
     if (!firestore || !businessId) return null;
     return doc(firestore, `businesses/${businessId}/landingPages`, 'config');
   }, [firestore, businessId]);
 
-  const formConfigRef = useMemoFirebase(() => {
+  const formConfigRef = useMemo(() => {
     if (!firestore || !businessId) return null;
     return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
   }, [firestore, businessId]);

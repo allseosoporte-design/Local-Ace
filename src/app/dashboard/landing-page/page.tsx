@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { EditorLandingForm } from "@/components/editor-landing-form";
 import { EditorLandingPreview, type LandingPageData, type HeaderConfig, type FooterConfig } from "@/components/editor-landing-preview";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,7 @@ import { EditorSections } from "@/components/editor-sections";
 import { EditorTestimonials } from "@/components/editor-testimonials";
 import { EditorSeo } from "@/components/editor-seo";
 import { FormEditor, type FormConfigData } from "@/components/dashboard/landing/FormEditor";
-import { useUser, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
+import { useUser, useFirestore, useDoc } from "@/firebase";
 import { Loader2, Save } from "lucide-react";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ShareLandingPage } from "@/components/dashboard/landing/share-landing-page";
@@ -116,12 +116,12 @@ export default function LandingPageBuilder() {
     logoAlignment: 'left'
   };
 
-  const landingConfigRef = useMemoFirebase(() => {
+  const landingConfigRef = useMemo(() => {
     if (!firestore || !user) return null;
     return doc(firestore, `businesses/${user.uid}/landingPages`, 'config');
   }, [firestore, user]);
 
-  const formConfigRef = useMemoFirebase(() => {
+  const formConfigRef = useMemo(() => {
     if (!firestore || !user) return null;
     return doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
   }, [firestore, user]);

@@ -35,7 +35,7 @@ import {
   User,
   Loader2,
 } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { PlanPaymentSettings } from '@/types/payment-settings';
 import { PaymentOptionsDisplay } from './payment-options-display';
@@ -126,7 +126,7 @@ export function CartCheckoutModal() {
     return null;
   }, [state.items]);
 
-  const settingsDocRef = useMemoFirebase(() => {
+  const settingsDocRef = useMemo(() => {
     if (!firestore || !businessId || !isOpen) return null;
     return doc(firestore, 'paymentSettings', businessId);
   }, [firestore, businessId, isOpen]);

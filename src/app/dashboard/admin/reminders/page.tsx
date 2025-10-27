@@ -60,7 +60,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, orderBy, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { getIdTokenResult } from 'firebase/auth';
@@ -138,17 +138,17 @@ export default function RemindersPage() {
     checkAdmin();
   }, [user, isUserLoading]);
 
-  const rulesQuery = useMemoFirebase(() => {
+  const rulesQuery = useMemo(() => {
     if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return query(collection(firestore, 'reminderRules'), orderBy('name'));
   }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
-  const templatesQuery = useMemoFirebase(() => {
+  const templatesQuery = useMemo(() => {
     if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return query(collection(firestore, 'reminderTemplates'), orderBy('name'));
   }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
-  const logsQuery = useMemoFirebase(() => {
+  const logsQuery = useMemo(() => {
     if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
     return query(collection(firestore, 'reminderLogs'), orderBy('sentAt', 'desc'));
   }, [firestore, isSuperAdmin, isCheckingAdmin]);

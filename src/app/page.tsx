@@ -5,7 +5,7 @@ import { useMemo, useEffect, useState, useRef } from 'react';
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { HomeNav } from '@/components/home-nav';
 import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
@@ -71,12 +71,12 @@ export default function Home() {
     };
   }, []);
 
-  const landingPageRef = useMemoFirebase(() => {
+  const landingPageRef = useMemo(() => {
     if (!firestore) return null;
     return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/landingPages`, 'config');
   }, [firestore]);
 
-  const formConfigRef = useMemoFirebase(() => {
+  const formConfigRef = useMemo(() => {
     if (!firestore) return null;
     return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/landingPages`, 'form');
   }, [firestore]);

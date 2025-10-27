@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { HomeNav } from '@/components/home-nav';
-import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import type { Product } from '@/types/product';
 import type { CatalogHeaderConfigData } from '@/types/catalog';
@@ -69,13 +69,13 @@ export default function CatalogPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const headerConfigRef = useMemoFirebase(() => {
+  const headerConfigRef = useMemo(() => {
     if (!firestore) return null;
     // Assuming the super admin's catalog config is what's public.
     return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/catalogConfig/header`);
   }, [firestore]);
 
-  const productsQuery = useMemoFirebase(() => {
+  const productsQuery = useMemo(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'products'),

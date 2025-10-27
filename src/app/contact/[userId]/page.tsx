@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -14,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc } from '@/firebase';
 import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { Loader2, CheckCircle } from 'lucide-react';
 import type { FormField } from '@/types/contact-form';
@@ -51,7 +52,7 @@ export default function PublicContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const formConfigRef = useMemoFirebase(() => {
+  const formConfigRef = useMemo(() => {
     if (!firestore || !userId) return null;
     return doc(firestore, `businesses/${userId}/contactForms`, 'main_form');
   }, [firestore, userId]);

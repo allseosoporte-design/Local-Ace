@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -17,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { uploadImage } from '@/ai/flows/upload-image';
 import { updatePassword, updateProfile } from 'firebase/auth';
@@ -44,7 +44,7 @@ export default function AdminProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  const superAdminRef = useMemoFirebase(() => {
+  const superAdminRef = useMemo(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'superAdmins', user.uid);
   }, [firestore, user]);

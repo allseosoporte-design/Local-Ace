@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Loader2, Eye } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useUser } from '@/firebase';
 import {
   collection,
   query,
@@ -110,7 +110,7 @@ export default function AuditPage() {
     checkAdmin();
   }, [user, isUserLoading]);
 
-  const auditQuery = useMemoFirebase(() => {
+  const auditQuery = useMemo(() => {
     if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
 
     let q = query(collection(firestore, 'globalAuditLogs'), orderBy('timestamp', 'desc'));
