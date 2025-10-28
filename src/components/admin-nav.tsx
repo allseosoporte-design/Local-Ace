@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Users, CreditCard, User, Settings, Wallet, BellRing, MessageSquare, ShieldCheck, Wrench, Database, Archive } from "lucide-react";
+import { Users, CreditCard, User, Settings, Wallet, BellRing, MessageSquare, ShieldCheck, Wrench, Database, Archive, BarChart3 } from "lucide-react";
 import { EditorLandingIcon } from "./icons/editor-landing";
 import { PaymentIcon } from "./icons/payment";
 
@@ -40,6 +40,11 @@ const links = [
     href: "/dashboard/admin/support",
     label: "Soporte",
     icon: <MessageSquare />,
+  },
+  {
+    href: "/dashboard/admin/chatbot-analytics",
+    label: "Analytics del Chatbot",
+    icon: <BarChart3 />,
   },
   {
     href: "/dashboard/admin/audit",
