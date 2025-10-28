@@ -462,7 +462,8 @@
   "firestore": {
     "/products/{productId}": {
       "schema": "Product",
-      "description": "Stores all products for all businesses. Security rules will enforce that a business can only access its own products."
+      "description": "Stores all products for all businesses. Security rules will enforce that a business can only access its own products.",
+      "access": ["public-read", "owner-write", "superadmin-read", "superadmin-write"]
     },
     "/users/{userId}": {
       "schema": "UserProfile",
@@ -476,7 +477,7 @@
     "/businesses/{businessId}/catalogConfig/header": {
       "schema": "CatalogHeaderConfig",
       "description": "Stores the configuration for the catalog header of a business.",
-      "access": ["owner-read", "owner-write", "public-read"]
+      "access": ["public-read", "owner-read", "owner-write"]
     },
     "/businesses/{businessId}/contactForms/{formId}": {
       "description": "Stores the configuration for a business's contact form.",
@@ -526,10 +527,7 @@
         "$ref": "#/entities/PaymentSettings"
       },
       "description": "Stores payment settings for a user. The settings for the super admin (ID: DzH9Kc6eYqOih5Y705ebM0SzfZf2) are public-read for the catalog, while all other user settings are private.",
-      "access": [
-        "public-read",
-        "owner-write"
-      ]
+      "access": ["public-read", "owner-write"]
     }
   }
 }
