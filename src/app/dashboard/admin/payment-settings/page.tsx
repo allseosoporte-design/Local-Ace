@@ -53,6 +53,8 @@ const initialPlanSettings: PlanPaymentSettings = {
     },
     stripe: { enabled: false, publicKey: '', secretKey: '' },
     mercadoPago: { enabled: false, accessToken: '', publicKey: '', mode: 'production', instructions: '' },
+    paypal: { enabled: false, clientId: '', clientSecret: '', mode: 'sandbox' },
+    wompi: { enabled: false, publicKey: '', privateKey: '', mode: 'sandbox' },
     cashOnDelivery: false,
 };
 
