@@ -32,6 +32,7 @@ import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { useFirestore, useUser } from "@/firebase";
 import { cn } from "@/lib/utils";
+import type { ColumnDef } from "@tanstack/react-table";
 
 export type Review = {
   id: string;
@@ -44,7 +45,7 @@ export type Review = {
   status: "Pending" | "Responded";
 };
 
-const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
+const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -225,7 +226,7 @@ const ActionsCell = function Actions({ row }: { row: { original: Review } }) {
   );
 };
 
-export const columns = [
+export const columns: ColumnDef<Review>[] = [
   {
     accessorKey: "name",
     header: "Cliente",
@@ -233,14 +234,14 @@ export const columns = [
   {
     accessorKey: "review",
     header: "Reseña",
-    cell: ({ row }: { row: { original: Review } }) => (
+    cell: ({ row }) => (
       <p className="text-muted-foreground max-w-xs truncate">{row.original.review}</p>
     ),
   },
   {
     accessorKey: "createdAt",
     header: "Fecha",
-     cell: ({ row }: { row: { original: Review } }) => {
+     cell: ({ row }) => {
       const { createdAt } = row.original;
       if (createdAt && createdAt.toDate) {
         return format(createdAt.toDate(), 'dd/MM/yyyy HH:mm');
@@ -251,7 +252,7 @@ export const columns = [
   {
     accessorKey: "rating",
     header: "Calificación",
-    cell: ({ row }: { row: { original: Review } }) => (
+    cell: ({ row }) => (
       <div className="flex items-center">
         <Badge variant={
           row.original.rating >= 4 ? 'default' :
@@ -265,7 +266,7 @@ export const columns = [
   {
     accessorKey: "status",
     header: "Estado",
-    cell: ({ row }: { row: { original: Review } }) => {
+    cell: ({ row }) => {
       const status = row.original.status || "Pending";
       const statusMap = { Pending: "Pendiente", Responded: "Respondido" }
       return <Badge variant={status === "Pending" ? "outline" : "default"}>{statusMap[status]}</Badge>;
