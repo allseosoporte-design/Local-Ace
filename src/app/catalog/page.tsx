@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { HomeNav } from '@/components/home-nav';
 import { useFirestore, useCollection, useDoc } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, increment } from 'firebase/firestore';
 import type { Product } from '@/types/product';
 import type { CatalogHeaderConfigData } from '@/types/catalog';
 import { Loader2 } from 'lucide-react';
@@ -23,9 +23,14 @@ import { CartButton } from '@/components/cart/cart-button';
 import { CartCheckoutModal } from '@/components/cart/cart-checkout-modal';
 import { CatalogHeader } from '@/components/catalog/catalog-header';
 import { StarRatingDisplay } from '@/components/catalog/star-rating-display';
+import { useToast } from '@/hooks/use-toast';
 
 
 function ProductCard({ product, onProductSelect }: { product: Product, onProductSelect: (product: Product) => void }) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -34,35 +39,76 @@ function ProductCard({ product, onProductSelect }: { product: Product, onProduct
       maximumFractionDigits: 0,
     }).format(amount);
   };
+  
+  const handleRatingSubmit = async (newRating: number) => {
+    if (!firestore || !product || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+        const productRef = doc(firestore, 'products', product.id);
+
+        const currentTotalRating = (product.rating || 0) * (product.ratingCount || 0);
+        const newRatingCount = (product.ratingCount || 0) + 1;
+        const newAverageRating = (currentTotalRating + newRating) / newRatingCount;
+
+        await updateDoc(productRef, {
+            rating: newAverageRating,
+            ratingCount: increment(1)
+        });
+        
+        toast({
+            title: '¡Gracias por tu valoración!',
+            description: `Has valorado "${product.name}" con ${newRating} estrellas.`,
+        });
+
+    } catch (error) {
+        console.error("Error submitting rating:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo enviar tu valoración."
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
 
   return (
     <Card 
-        className="w-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:transform hover:-translate-y-1 cursor-pointer flex flex-col"
-        onClick={() => onProductSelect(product)}
+        className="w-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:transform hover:-translate-y-1 flex flex-col"
     >
-      <CardHeader className="p-0">
-        <div className="relative aspect-[4/3] w-full">
-          <Image
-            src={product.imageUrls?.[0] || 'https://placehold.co/400x300'}
-            alt={product.name}
-            fill
-            className="object-cover"
-          />
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 flex-grow">
-        <CardTitle className="text-lg font-semibold leading-tight h-12">
-          {product.name}
-        </CardTitle>
-        {product.rating !== undefined && product.rating > 0 && (
-          <StarRatingDisplay rating={product.rating} ratingCount={product.ratingCount} className="mt-2" />
-        )}
-        <p className="text-2xl font-bold text-primary mt-2">
-          {formatCurrency(product.price)}
-        </p>
-      </CardContent>
-      <CardFooter className="p-4 pt-0 mt-auto">
-        <Button className="w-full">Ver Producto</Button>
+      <div className="cursor-pointer" onClick={() => onProductSelect(product)}>
+        <CardHeader className="p-0">
+            <div className="relative aspect-[4/3] w-full">
+            <Image
+                src={product.imageUrls?.[0] || 'https://placehold.co/400x300'}
+                alt={product.name}
+                fill
+                className="object-cover"
+            />
+            </div>
+        </CardHeader>
+        <CardContent className="p-4 flex-grow">
+            <CardTitle className="text-lg font-semibold leading-tight h-12">
+            {product.name}
+            </CardTitle>
+            
+            <p className="text-2xl font-bold text-primary mt-2">
+            {formatCurrency(product.price)}
+            </p>
+        </CardContent>
+      </div>
+       <div className="px-4 pb-2">
+         <StarRatingDisplay 
+            productId={product.id}
+            rating={product.rating || 0} 
+            ratingCount={product.ratingCount}
+            onRatingSubmit={handleRatingSubmit}
+            isSubmitting={isSubmitting}
+        />
+       </div>
+      <CardFooter className="p-4 pt-2 mt-auto">
+        <Button className="w-full" onClick={() => onProductSelect(product)}>Ver Producto</Button>
       </CardFooter>
     </Card>
   );
@@ -75,7 +121,6 @@ export default function CatalogPage() {
 
   const headerConfigRef = useMemo(() => {
     if (!firestore) return null;
-    // Assuming the super admin's catalog config is what's public.
     return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/catalogConfig/header`);
   }, [firestore]);
 
