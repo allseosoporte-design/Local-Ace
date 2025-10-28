@@ -527,11 +527,9 @@
       },
       "description": "Stores payment settings for a user. The settings for the super admin (ID: DzH9Kc6eYqOih5Y705ebM0SzfZf2) are public-read for the catalog, while all other user settings are private.",
       "access": [
-        "public-read-if-superadmin-or-owner-read",
+        "public-read",
         "owner-write"
       ]
     }
   }
 }
-
-    
