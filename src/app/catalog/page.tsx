@@ -22,6 +22,7 @@ import { ProductViewModal } from '@/components/catalog/product-view-modal';
 import { CartButton } from '@/components/cart/cart-button';
 import { CartCheckoutModal } from '@/components/cart/cart-checkout-modal';
 import { CatalogHeader } from '@/components/catalog/catalog-header';
+import { StarRatingDisplay } from '@/components/catalog/star-rating-display';
 
 
 function ProductCard({ product, onProductSelect }: { product: Product, onProductSelect: (product: Product) => void }) {
@@ -36,7 +37,7 @@ function ProductCard({ product, onProductSelect }: { product: Product, onProduct
 
   return (
     <Card 
-        className="w-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:transform hover:-translate-y-1 cursor-pointer"
+        className="w-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:transform hover:-translate-y-1 cursor-pointer flex flex-col"
         onClick={() => onProductSelect(product)}
     >
       <CardHeader className="p-0">
@@ -49,15 +50,18 @@ function ProductCard({ product, onProductSelect }: { product: Product, onProduct
           />
         </div>
       </CardHeader>
-      <CardContent className="p-4">
-        <CardTitle className="text-lg font-semibold leading-tight truncate h-12">
+      <CardContent className="p-4 flex-grow">
+        <CardTitle className="text-lg font-semibold leading-tight h-12">
           {product.name}
         </CardTitle>
+        {product.rating !== undefined && product.rating > 0 && (
+          <StarRatingDisplay rating={product.rating} ratingCount={product.ratingCount} className="mt-2" />
+        )}
         <p className="text-2xl font-bold text-primary mt-2">
           {formatCurrency(product.price)}
         </p>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 mt-auto">
         <Button className="w-full">Ver Producto</Button>
       </CardFooter>
     </Card>

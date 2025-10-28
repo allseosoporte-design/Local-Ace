@@ -42,6 +42,8 @@ const productSchema = z.object({
   category: z.string().min(1, 'La categoría es requerida.'),
   stock: z.coerce.number().int().nonnegative('El stock no puede ser negativo.'),
   imageUrls: z.array(z.string().url()).min(1, 'Se requiere al menos una imagen.'),
+  rating: z.coerce.number().min(0).max(5).optional(),
+  ratingCount: z.coerce.number().int().nonnegative().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -76,6 +78,8 @@ export function ProductModal({
       category: '',
       stock: 0,
       imageUrls: [],
+      rating: 0,
+      ratingCount: 0,
     },
   });
   
@@ -89,6 +93,8 @@ export function ProductModal({
       form.reset({
         ...product,
         imageUrls: product.imageUrls || [],
+        rating: product.rating || 0,
+        ratingCount: product.ratingCount || 0,
       });
       setSelectedImageIndex(0);
     } else {
@@ -99,6 +105,8 @@ export function ProductModal({
         category: '',
         stock: 0,
         imageUrls: [],
+        rating: 0,
+        ratingCount: 0,
       });
        setSelectedImageIndex(0);
     }
@@ -315,6 +323,34 @@ export function ProductModal({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Stock</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                   <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="rating"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Valoración (0-5)</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.1" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="ratingCount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nº de Valoraciones</FormLabel>
                           <FormControl>
                             <Input type="number" {...field} />
                           </FormControl>
