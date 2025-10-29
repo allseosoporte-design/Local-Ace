@@ -1,110 +1,94 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the user is a super admin
     function isSuperAdmin() {
-      // Allow if the user has the 'isSuperAdmin' custom claim OR if their email is the specific super admin email.
       return request.auth.token.isSuperAdmin == true || request.auth.token.email == 'allseosoporte@gmail.com';
     }
 
-    // Businesses Collection
     match /businesses/{businessId} {
-      // Allow public read for landing page purposes
       allow read: if true;
-      // Only the business owner or a super admin can write/update their own document.
       allow write: if request.auth.uid == businessId || isSuperAdmin();
 
-      // Contact Forms Subcollection - CORRECTED RULE
-      match /contactForms/{formId} {
-        // Anyone can read the form configuration to display it publicly.
+      match /catalogConfig/{document=**} {
         allow read: if true;
-        // Only the business owner can edit the form configuration.
+        allow write: if request.auth.uid == businessId || isSuperAdmin();
+      }
+
+      match /contactForm/{document=**} {
+        allow read: if true;
         allow write: if request.auth.uid == businessId;
       }
       
-      // Contact Submissions Subcollection - ADDED RULE
       match /contactSubmissions/{submissionId} {
-        // Anyone can create a submission (send the form).
         allow create: if true;
-        // Only the business owner can read or delete their submissions.
         allow read, delete: if request.auth.uid == businessId;
       }
 
-      // Landing Pages Subcollection
-      match /landingPages/{pageId} {
-        // Allow public read access for anyone to view the published landing page.
+      match /contactForms/{formId} {
         allow read: if true;
-        // Only the business owner can create/update their landing page.
+        allow write: if request.auth.uid == businessId;
+      }
+
+      match /landingPages/{pageId} {
+        allow read: if true;
         allow write: if request.auth.uid == businessId;
       }
     }
     
-    // Global Audit Logs: Only Super Admins can read or write.
     match /globalAuditLogs/{logId} {
       allow read, write: if isSuperAdmin();
     }
     
-    // Backups: Only Super Admins can manage backups.
     match /backups/{backupId} {
       allow read, write, delete: if isSuperAdmin();
     }
 
-    // Users Collection: Maps user UID to their businessId.
     match /users/{userId} {
-      // A user can read their own profile to find their businessId.
       allow read: if request.auth.uid == userId;
-      // User profiles are created during registration, so allow create.
       allow create: if request.auth.uid == userId;
     }
+    
+    match /chatbot/{document=**} {
+      allow read, write: if isSuperAdmin();
+    }
 
-    // Internal Feedback Collection (Now a root collection)
+    // Internal Feedback Collection - SIMPLIFICADO
     match /internalFeedback/{feedbackId} {
-      // Allow public creation for the review funnel.
       allow create: if true;
-      // Only the business owner (matched via businessId field) or a super admin can read/delete.
-      allow read, delete: if resource.data.businessId == request.auth.uid || isSuperAdmin();
+      allow get: if resource.data.businessId == request.auth.uid || isSuperAdmin();
+      allow list: if request.auth != null;
+      allow delete: if resource.data.businessId == request.auth.uid || isSuperAdmin();
     }
     
-    // Products Collection
     match /products/{productId} {
-        // Public can read products for the main catalog
-        // Business owner can read their own products.
-        // Super Admin can read all products.
-        allow read: if resource.data.businessId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' || request.auth.uid == resource.data.businessId || isSuperAdmin();
-        // Business owner or Super Admin can create, update, delete.
-        allow write: if request.auth.uid == request.resource.data.businessId || isSuperAdmin();
+      allow read: if resource.data.businessId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' || request.auth.uid == resource.data.businessId || isSuperAdmin();
+      allow write: if request.auth.uid == request.resource.data.businessId || isSuperAdmin();
     }
 
-    // Subscription Plans: Public can read, only super admins can modify.
     match /subscriptionPlans/{planId} {
       allow read: if true;
       allow write: if isSuperAdmin();
     }
 
-    // Pending Payments: Only Super Admins can manage.
     match /pendingPayments/{paymentId} {
-        allow read, write: if isSuperAdmin();
+      allow read, write: if isSuperAdmin();
     }
     
-    // Subscriptions: Users can read their own, Super Admins can read all.
     match /subscriptions/{subscriptionId} {
-        allow read: if request.auth.uid == resource.data.empresaId || isSuperAdmin();
-        allow write: if isSuperAdmin(); // Or some specific logic for creation
+      allow read: if request.auth.uid == resource.data.empresaId || isSuperAdmin();
+      allow write: if isSuperAdmin();
     }
 
-    // Support Tickets: Super Admins have full access.
     match /supportTickets/{ticketId} {
-        allow read, write: if isSuperAdmin();
-        allow create: if true; // Allow anyone to create a ticket
+      allow read, write: if isSuperAdmin();
+      allow create: if true;
     }
     
-    // Payment Settings
     match /paymentSettings/{userId} {
-      // Allow read if it's the super admin's settings (for public catalog) OR if the user is reading their own settings.
       allow read: if userId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' || request.auth.uid == userId;
-      // A user can manage their own payment settings. Super admin can manage any.
       allow write: if request.auth.uid == userId || isSuperAdmin();
     }
   }
