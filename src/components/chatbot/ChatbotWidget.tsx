@@ -375,6 +375,50 @@ export default function ChatbotWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const findResponse = (userInput: string): string => {
+    const inputLower = userInput.toLowerCase().trim();
+    let bestMatch = { score: 0, answer: 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?' };
+
+    if (!config || !config.faqs) {
+        return bestMatch.answer;
+    }
+
+    for (const faq of config.faqs) {
+        let currentScore = 0;
+        const questionLower = faq.question.toLowerCase();
+
+        // Exact match of question
+        if (questionLower === inputLower) {
+            currentScore = 100;
+        }
+
+        // All keywords are in the input
+        const keywordsLower = faq.keywords.map(k => k.toLowerCase());
+        const matchedKeywords = keywordsLower.filter(kw => inputLower.includes(kw));
+        if (matchedKeywords.length > 0) {
+            currentScore += matchedKeywords.length * 10; // 10 points per keyword
+        }
+        
+        // Some words from input match words in question
+        const inputWords = inputLower.split(/\s+/);
+        const questionWords = questionLower.split(/\s+/);
+        const commonWords = inputWords.filter(word => questionWords.includes(word));
+        currentScore += commonWords.length;
+
+
+        if (currentScore > bestMatch.score) {
+            bestMatch = { score: currentScore, answer: faq.answer };
+        }
+    }
+
+    // Only return a match if the score is above a certain threshold
+    if (bestMatch.score > 5) {
+        return bestMatch.answer;
+    }
+    
+    return bestMatch.answer;
+  };
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !config) return;
 
@@ -403,25 +447,6 @@ export default function ChatbotWidget() {
     }, 1000);
   };
 
-  const findResponse = (question: string): string => {
-    const lowerQuestion = question.toLowerCase();
-
-    for (const faq of config.faqs) {
-      const hasKeyword = faq.keywords.some(keyword => 
-        lowerQuestion.includes(keyword.toLowerCase())
-      );
-      
-      const lowerFaqQuestion = faq.question.toLowerCase();
-      const questionMatch = lowerQuestion.includes(lowerFaqQuestion) || lowerFaqQuestion.includes(lowerQuestion);
-
-      if (hasKeyword || questionMatch) {
-        return faq.answer;
-      }
-    }
-    
-    // Default fallback response
-    return 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?';
-  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
