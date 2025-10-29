@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -43,6 +44,7 @@ const mockConversations: Conversation[] = [
 
 export default function ChatbotNotificationsPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +65,10 @@ export default function ChatbotNotificationsPage() {
       title: 'Conversación resuelta',
       description: 'La notificación ha sido marcada como resuelta y archivada.',
     });
+  };
+
+  const handleViewConversation = (conversationId: string) => {
+    router.push(`/dashboard/admin/chatbot-analytics#${conversationId}`);
   };
 
   const handleRefresh = () => {
@@ -161,7 +167,7 @@ export default function ChatbotNotificationsPage() {
                                     <TableCell className="text-muted-foreground truncate max-w-sm">{conv.lastMessage}</TableCell>
                                     <TableCell>{formatDistanceToNow(conv.startedAt, { addSuffix: true, locale: es })}</TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="sm" className="mr-2">
+                                        <Button variant="ghost" size="sm" className="mr-2" onClick={() => handleViewConversation(conv.id)}>
                                             <Eye className="h-4 w-4 mr-1" /> Ver
                                         </Button>
                                         <Button variant="outline" size="sm" onClick={() => handleResolve(conv.id)}>
