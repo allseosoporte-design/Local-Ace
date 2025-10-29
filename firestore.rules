@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -5,6 +6,11 @@ service cloud.firestore {
 
     function isSuperAdmin() {
       return request.auth.token.isSuperAdmin == true || request.auth.token.email == 'allseosoporte@gmail.com';
+    }
+
+    match /chatbot/{document=**} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
     }
 
     match /businesses/{businessId} {
@@ -43,11 +49,6 @@ service cloud.firestore {
     
     match /backups/{backupId} {
       allow read, write, delete: if isSuperAdmin();
-    }
-    
-    match /chatbot/{document=**} {
-      allow read: if true;
-      allow write: if isSuperAdmin();
     }
 
     match /users/{userId} {
