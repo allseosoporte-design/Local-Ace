@@ -37,6 +37,7 @@ import {
   Cpu,
   Save,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const FAQItem = ({ faq, onUpdate, onDelete }: any) => (
   <div className="p-4 border rounded-lg bg-background space-y-4">
@@ -66,11 +67,17 @@ const FAQItem = ({ faq, onUpdate, onDelete }: any) => (
 );
 
 export default function ChatbotConfigPage() {
+  const { toast } = useToast();
   const [faqs, setFaqs] = useState([
     {
       question: '¿Cuáles son los métodos de pago?',
       answer: 'Aceptamos tarjetas de crédito, PayPal y transferencias.',
       keywords: ['pago', 'tarjeta', 'paypal'],
+    },
+     {
+      question: '¿Que puede ayudarme tu aplicación con mi negocios de computadores?',
+      answer: 'Aumentar la Interacción: Con herramientas para publicaciones y un formulario de contacto, mantendrás una comunicación fluida con tus clientes.\n\nEn resumen, te damos las herramientas para que vendas más, te veas más profesional en internet y gestiones tu presencia online de forma sencilla.',
+      keywords: ['ayuda', 'aplicación', 'negocio', 'computadores'],
     },
   ]);
 
@@ -90,6 +97,14 @@ export default function ChatbotConfigPage() {
   const deleteFaq = (index: number) => {
     setFaqs(faqs.filter((_, i) => i !== index));
   };
+  
+  const handleSaveConfiguration = () => {
+    // Aquí iría la lógica para guardar en Firestore
+    toast({
+        title: '¡Guardado!',
+        description: 'La configuración del chatbot se ha guardado correctamente.'
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -102,7 +117,7 @@ export default function ChatbotConfigPage() {
             Define el comportamiento, apariencia y respuestas de tu chatbot.
           </p>
         </div>
-        <Button size="lg">
+        <Button size="lg" onClick={handleSaveConfiguration}>
           <Save className="mr-2 h-4 w-4" />
           Guardar Configuración
         </Button>
