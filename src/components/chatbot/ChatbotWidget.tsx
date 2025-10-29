@@ -30,6 +30,7 @@ const mockConfig = {
     faqs: [
         { question: '¿Qué es Local Leap?', answer: 'Local Leap es una plataforma para potenciar negocios locales en línea.', keywords: ['local leap', 'que es'] },
         { question: 'Precios', answer: 'Ofrecemos planes flexibles que se adaptan a tus necesidades. Visita nuestra sección de planes para más detalles.', keywords: ['precio', 'costo', 'planes'] },
+        { question: '¿Cuáles son los métodos de pago?', answer: 'Aceptamos pagos con Nequi, Daviplata, Bancolombia, y también pago contra entrega.', keywords: ['pago', 'métodos', 'pagar', 'nequi', 'daviplata', 'bancolombia'] },
     ],
     aiConfig: {
         enabled: true,
