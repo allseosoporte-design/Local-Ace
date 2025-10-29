@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Query,
   onSnapshot,
@@ -41,10 +41,9 @@ export interface InternalQuery extends Query<DocumentData> {
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
  * Handles nullable references/queries.
- * 
  *
  * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
- * use useMemo to memoize it per React guidence.  Also make sure that it's dependencies are stable
+ * use useMemo to memoize it per React guidence. Also make sure that it's dependencies are stable
  * references
  *  
  * @template T Optional type for document data. Defaults to any.
@@ -63,6 +62,7 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    // If the query is not ready, set a non-loading, empty state.
     if (!targetRefOrQuery) {
       setData(null);
       setIsLoading(false);
@@ -70,18 +70,20 @@ export function useCollection<T = any>(
       return;
     }
 
+    // Immediately set loading state and clear previous data/errors.
+    // This prevents displaying stale data from a previous query.
     setIsLoading(true);
     setData(null);
     setError(null);
 
-    // Directly use targetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
       targetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
-        const results: ResultItemType[] = [];
-        for (const doc of snapshot.docs) {
-          results.push({ ...(doc.data() as T), id: doc.id });
-        }
+        const results: ResultItemType[] = snapshot.docs.map(doc => ({
+            ...(doc.data() as T),
+            id: doc.id
+        }));
+        
         setData(results);
         setError(null);
         setIsLoading(false);
@@ -107,9 +109,12 @@ export function useCollection<T = any>(
       }
     );
 
-    return () => unsubscribe();
-  }, [targetRefOrQuery]); // Re-run if the target query/reference changes.
+    // Cleanup function is crucial to prevent memory leaks and race conditions.
+    // It runs when the component unmounts or before the effect re-runs.
+    return () => {
+      unsubscribe();
+    };
+  }, [targetRefOrQuery]); // Re-run only if the target query/reference object changes.
 
   return { data, isLoading, error };
 }
-

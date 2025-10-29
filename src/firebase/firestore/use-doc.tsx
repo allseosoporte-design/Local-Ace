@@ -48,7 +48,7 @@ export function useDoc<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // If the ref is null/undefined, reset to initial state and do nothing.
+    // If the ref is null/undefined, set to a non-loading, empty state.
     if (!docRef) {
       setData(null);
       setError(null);
@@ -56,22 +56,28 @@ export function useDoc<T = any>(
       return;
     }
 
+    // Immediately set loading state and clear previous data/errors.
+    // This prevents stale data from being shown during a ref change.
     setIsLoading(true);
     setData(null);
     setError(null);
     
+    // onSnapshot returns an unsubscribe function.
     const unsubscribe = onSnapshot(
       docRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
-          setData(null); // Document does not exist.
+          // Explicitly handle the case where the document does not exist.
+          setData(null); 
         }
+        // Success, so clear any previous errors and set loading to false.
         setError(null);
         setIsLoading(false);
       },
       (error: FirestoreError) => {
+        // Handle Firestore errors (e.g., permissions).
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: docRef.path,
@@ -81,16 +87,18 @@ export function useDoc<T = any>(
         setData(null);
         setIsLoading(false);
         
+        // Globally emit the permission error for other parts of the app to react.
         errorEmitter.emit('permission-error', contextualError);
       }
     );
 
-    // Cleanup function for this effect.
+    // This cleanup function is critical.
+    // React runs this when the component unmounts or before re-running the effect.
+    // This prevents memory leaks and race conditions.
     return () => {
       unsubscribe();
     };
-  }, [docRef]); // Re-run only if the document reference itself changes.
+  }, [docRef]); // The effect re-runs ONLY if the docRef object reference changes.
 
   return { data, isLoading, error };
 }
-
