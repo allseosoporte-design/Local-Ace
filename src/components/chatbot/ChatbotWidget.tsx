@@ -382,29 +382,37 @@ export default function ChatbotWidget() {
     if (!config || !config.faqs) {
         return bestMatch.answer;
     }
+    
+    const inputWords = new Set(inputLower.split(/\s+/).filter(word => word.length > 2));
 
     for (const faq of config.faqs) {
         let currentScore = 0;
         const questionLower = faq.question.toLowerCase();
 
-        // Exact match of question
+        //  Exact match gives highest score
         if (questionLower === inputLower) {
             currentScore = 100;
-        }
+        } else {
+            // Check for keyword matches
+            const keywordsLower = faq.keywords.map(k => k.toLowerCase());
+            let keywordMatches = 0;
+            inputWords.forEach(word => {
+                if (keywordsLower.includes(word)) {
+                    keywordMatches++;
+                }
+            });
+            currentScore += keywordMatches * 20; // High score for keywords
 
-        // All keywords are in the input
-        const keywordsLower = faq.keywords.map(k => k.toLowerCase());
-        const matchedKeywords = keywordsLower.filter(kw => inputLower.includes(kw));
-        if (matchedKeywords.length > 0) {
-            currentScore += matchedKeywords.length * 10; // 10 points per keyword
+            // Check for word overlap in the question itself
+            const questionWords = new Set(questionLower.split(/\s+/));
+            let overlapMatches = 0;
+            inputWords.forEach(word => {
+                if(questionWords.has(word)) {
+                    overlapMatches++;
+                }
+            });
+            currentScore += overlapMatches * 5; // Lower score for general overlap
         }
-        
-        // Some words from input match words in question
-        const inputWords = inputLower.split(/\s+/);
-        const questionWords = questionLower.split(/\s+/);
-        const commonWords = inputWords.filter(word => questionWords.includes(word));
-        currentScore += commonWords.length;
-
 
         if (currentScore > bestMatch.score) {
             bestMatch = { score: currentScore, answer: faq.answer };
@@ -412,7 +420,7 @@ export default function ChatbotWidget() {
     }
 
     // Only return a match if the score is above a certain threshold
-    if (bestMatch.score > 5) {
+    if (bestMatch.score > 10) {
         return bestMatch.answer;
     }
     
