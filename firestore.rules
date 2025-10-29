@@ -44,9 +44,10 @@ service cloud.firestore {
     match /backups/{backupId} {
       allow read, write, delete: if isSuperAdmin();
     }
-
+    
     match /chatbot/{document=**} {
-      allow read, write: if isSuperAdmin();
+      allow read: if true;
+      allow write: if isSuperAdmin();
     }
 
     match /users/{userId} {
