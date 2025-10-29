@@ -31,6 +31,11 @@ const mockConfig = {
         { question: '¿Qué es Local Leap?', answer: 'Local Leap es una plataforma para potenciar negocios locales en línea.', keywords: ['local leap', 'que es'] },
         { question: 'Precios', answer: 'Ofrecemos planes flexibles que se adaptan a tus necesidades. Visita nuestra sección de planes para más detalles.', keywords: ['precio', 'costo', 'planes'] },
         { question: '¿Cuáles son los métodos de pago?', answer: 'Aceptamos pagos con Nequi, Daviplata, Bancolombia, y también pago contra entrega.', keywords: ['pago', 'métodos', 'pagar', 'nequi', 'daviplata', 'bancolombia'] },
+        {
+          question: '¿Qué puede ayudarme tu aplicación con mi negocio de computadores?',
+          answer: '¡Hola! Gracias por tu interés. Nuestra aplicación "Local Leap" es perfecta para un negocio de computadores. Podemos ayudarte a:\n\n1.  **Crear un Catálogo Digital Profesional**: Podrás mostrar todos tus computadores, componentes y accesorios en línea, con fotos de alta calidad, precios y descripciones detalladas para que tus clientes puedan ver todo lo que ofreces.\n2.  **Mejorar tu Reputación Online**: Con nuestro sistema de gestión de reseñas, podrás conseguir más valoraciones positivas en Google, lo que genera más confianza y atrae a más clientes a tu tienda.\n3.  **Tener tu Propia Página Web**: Te ayudamos a construir una landing page moderna y atractiva para tu negocio, optimizada para que te encuentren fácilmente en búsquedas locales como "tienda de computadores cerca de mí".\n4.  **Aumentar la Interacción**: Con herramientas para publicaciones y un formulario de contacto, mantendrás una comunicación fluida con tus clientes.\n\nEn resumen, te damos las herramientas para que vendas más, te veas más profesional en internet y gestiones tu presencia online de forma sencilla.',
+          keywords: ['ayuda', 'aplicación', 'negocio', 'computadores'],
+        },
     ],
     aiConfig: {
         enabled: true,
