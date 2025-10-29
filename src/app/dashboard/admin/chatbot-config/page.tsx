@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -36,10 +37,15 @@ import {
   HelpCircle,
   Cpu,
   Save,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useDoc } from '@/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { ChatbotConfig, FAQ } from '@/types/chatbot';
+import { v4 as uuidv4 } from 'uuid';
 
-const FAQItem = ({ faq, onUpdate, onDelete }: any) => (
+const FAQItem = ({ faq, onUpdate, onDelete }: { faq: FAQ, onUpdate: (updatedFaq: FAQ) => void, onDelete: () => void }) => (
   <div className="p-4 border rounded-lg bg-background space-y-4">
     <Input
       placeholder="Pregunta"
@@ -55,7 +61,7 @@ const FAQItem = ({ faq, onUpdate, onDelete }: any) => (
       placeholder="Palabras clave (separadas por coma)"
       value={faq.keywords.join(', ')}
       onChange={(e) =>
-        onUpdate({ ...faq, keywords: e.target.value.split(', ') })
+        onUpdate({ ...faq, keywords: e.target.value.split(',').map(k => k.trim()) })
       }
     />
     <div className="flex justify-end">
@@ -66,44 +72,107 @@ const FAQItem = ({ faq, onUpdate, onDelete }: any) => (
   </div>
 );
 
+const defaultConfig: ChatbotConfig = {
+    enabled: true,
+    position: 'bottom-right',
+    botName: 'Asistente Virtual',
+    primaryColor: '#4285F4',
+    welcomeMessage: '¡Hola! ¿Cómo puedo ayudarte hoy?',
+    placeholderText: 'Escribe tu mensaje aquí...',
+    showOnLoad: false,
+    showDelay: 2,
+    faqs: [
+        {
+          id: uuidv4(),
+          question: '¿Cuáles son los métodos de pago?',
+          answer: 'Aceptamos tarjetas de crédito, PayPal y transferencias.',
+          keywords: ['pago', 'tarjeta', 'paypal'],
+        },
+        {
+          id: uuidv4(),
+          question: '¿Qué puede ayudarme tu aplicación con mi negocio de computadores?',
+          answer: 'Aumentar la Interacción: Con herramientas para publicaciones y un formulario de contacto, mantendrás una comunicación fluida con tus clientes.\n\nEn resumen, te damos las herramientas para que vendas más, te veas más profesional en internet y gestiones tu presencia online de forma sencilla.',
+          keywords: ['ayuda', 'aplicación', 'negocio', 'computadores'],
+        },
+    ],
+    aiEnabled: true,
+    systemPrompt: 'Eres un asistente amigable y profesional para el SaaS Local Leap.',
+    temperature: 0.7,
+    maxTokens: 256,
+}
+
 export default function ChatbotConfigPage() {
   const { toast } = useToast();
-  const [faqs, setFaqs] = useState([
-    {
-      question: '¿Cuáles son los métodos de pago?',
-      answer: 'Aceptamos tarjetas de crédito, PayPal y transferencias.',
-      keywords: ['pago', 'tarjeta', 'paypal'],
-    },
-     {
-      question: '¿Que puede ayudarme tu aplicación con mi negocios de computadores?',
-      answer: 'Aumentar la Interacción: Con herramientas para publicaciones y un formulario de contacto, mantendrás una comunicación fluida con tus clientes.\n\nEn resumen, te damos las herramientas para que vendas más, te veas más profesional en internet y gestiones tu presencia online de forma sencilla.',
-      keywords: ['ayuda', 'aplicación', 'negocio', 'computadores'],
-    },
-  ]);
+  const firestore = useFirestore();
+  
+  const [config, setConfig] = useState<ChatbotConfig>(defaultConfig);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const addFaq = () => {
-    setFaqs([
-      ...faqs,
-      { question: '', answer: '', keywords: [] },
-    ]);
+  const configDocRef = useMemo(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'chatbot/config');
+  }, [firestore]);
+
+  const { data: loadedConfig, isLoading: isLoadingConfig } = useDoc<ChatbotConfig>(configDocRef);
+
+  useEffect(() => {
+    if (loadedConfig) {
+      setConfig(prev => ({...prev, ...loadedConfig}));
+    }
+  }, [loadedConfig]);
+
+
+  const handleConfigChange = (field: keyof ChatbotConfig, value: any) => {
+    setConfig(prev => ({ ...prev, [field]: value }));
   };
 
-  const updateFaq = (index: number, updatedFaq: any) => {
-    const newFaqs = [...faqs];
+  const addFaq = () => {
+    const newFaq: FAQ = { 
+        id: uuidv4(),
+        question: 'Nueva Pregunta', 
+        answer: 'Nueva Respuesta', 
+        keywords: [] 
+    };
+    handleConfigChange('faqs', [...config.faqs, newFaq]);
+  };
+
+  const updateFaq = (index: number, updatedFaq: FAQ) => {
+    const newFaqs = [...config.faqs];
     newFaqs[index] = updatedFaq;
-    setFaqs(newFaqs);
+    handleConfigChange('faqs', newFaqs);
   };
 
   const deleteFaq = (index: number) => {
-    setFaqs(faqs.filter((_, i) => i !== index));
+    handleConfigChange('faqs', config.faqs.filter((_, i) => i !== index));
   };
   
-  const handleSaveConfiguration = () => {
-    // Aquí iría la lógica para guardar en Firestore
-    toast({
-        title: '¡Guardado!',
-        description: 'La configuración del chatbot se ha guardado correctamente.'
-    });
+  const handleSaveConfiguration = async () => {
+    if (!configDocRef) return;
+    setIsSaving(true);
+    try {
+        await setDoc(configDocRef, { ...config, updatedAt: serverTimestamp() }, { merge: true });
+        toast({
+            title: '¡Guardado!',
+            description: 'La configuración del chatbot se ha guardado correctamente.'
+        });
+    } catch (error) {
+        console.error("Error saving chatbot config:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error al Guardar',
+            description: 'No se pudo guardar la configuración del chatbot.'
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  }
+
+  if (isLoadingConfig) {
+    return (
+        <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
   }
 
   return (
@@ -117,8 +186,8 @@ export default function ChatbotConfigPage() {
             Define el comportamiento, apariencia y respuestas de tu chatbot.
           </p>
         </div>
-        <Button size="lg" onClick={handleSaveConfiguration}>
-          <Save className="mr-2 h-4 w-4" />
+        <Button size="lg" onClick={handleSaveConfiguration} disabled={isSaving}>
+          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Guardar Configuración
         </Button>
       </div>
@@ -152,11 +221,18 @@ export default function ChatbotConfigPage() {
                 <Label htmlFor="chatbot-enabled" className="font-semibold">
                   Activar Chatbot en el sitio
                 </Label>
-                <Switch id="chatbot-enabled" defaultChecked />
+                <Switch 
+                  id="chatbot-enabled" 
+                  checked={config.enabled}
+                  onCheckedChange={(val) => handleConfigChange('enabled', val)}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Posición del Widget</Label>
-                <Select defaultValue="bottom-right">
+                <Select 
+                  value={config.position}
+                  onValueChange={(val: 'bottom-right' | 'bottom-left') => handleConfigChange('position', val)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -179,20 +255,34 @@ export default function ChatbotConfigPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nombre del Bot</Label>
-                  <Input defaultValue="Asistente Virtual" />
+                  <Input 
+                    value={config.botName}
+                    onChange={(e) => handleConfigChange('botName', e.target.value)}
+                  />
                 </div>
                  <div className="space-y-2">
                   <Label>Color Primario</Label>
-                  <Input type="color" defaultValue="#4285F4" className='p-1 h-10'/>
+                  <Input 
+                    type="color" 
+                    value={config.primaryColor} 
+                    onChange={(e) => handleConfigChange('primaryColor', e.target.value)}
+                    className='p-1 h-10'
+                  />
                 </div>
               </div>
                <div className="space-y-2">
                   <Label>Mensaje de Bienvenida</Label>
-                  <Input defaultValue="¡Hola! ¿Cómo puedo ayudarte hoy?" />
+                  <Input 
+                    value={config.welcomeMessage}
+                    onChange={(e) => handleConfigChange('welcomeMessage', e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Texto del Placeholder</Label>
-                  <Input defaultValue="Escribe tu mensaje aquí..." />
+                  <Input 
+                    value={config.placeholderText}
+                    onChange={(e) => handleConfigChange('placeholderText', e.target.value)}
+                  />
                 </div>
             </CardContent>
           </Card>
@@ -204,11 +294,19 @@ export default function ChatbotConfigPage() {
                  <CardContent className="space-y-6">
                     <div className="flex items-center justify-between rounded-lg border p-4">
                         <Label htmlFor="show-on-load" className="font-semibold">Mostrar automáticamente al cargar la página</Label>
-                        <Switch id="show-on-load" />
+                        <Switch 
+                          id="show-on-load" 
+                          checked={config.showOnLoad}
+                          onCheckedChange={(val) => handleConfigChange('showOnLoad', val)}
+                        />
                     </div>
                      <div className="space-y-2">
                         <Label>Retraso para mostrar (segundos)</Label>
-                        <Input type="number" defaultValue={2} />
+                        <Input 
+                          type="number" 
+                          value={config.showDelay}
+                          onChange={(e) => handleConfigChange('showDelay', Number(e.target.value))}
+                        />
                     </div>
                  </CardContent>
             </Card>
@@ -225,11 +323,11 @@ export default function ChatbotConfigPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {faqs.map((faq, index) => (
+              {config.faqs.map((faq, index) => (
                 <FAQItem
-                  key={index}
+                  key={faq.id}
                   faq={faq}
-                  onUpdate={(updatedFaq: any) => updateFaq(index, updatedFaq)}
+                  onUpdate={(updatedFaq) => updateFaq(index, updatedFaq)}
                   onDelete={() => deleteFaq(index)}
                 />
               ))}
@@ -243,20 +341,36 @@ export default function ChatbotConfigPage() {
                  <CardContent className="space-y-6">
                      <div className="flex items-center justify-between rounded-lg border p-4">
                         <Label htmlFor="ai-enabled" className="font-semibold">Habilitar respuestas con IA</Label>
-                        <Switch id="ai-enabled" defaultChecked />
+                        <Switch 
+                          id="ai-enabled" 
+                          checked={config.aiEnabled}
+                          onCheckedChange={(val) => handleConfigChange('aiEnabled', val)}
+                        />
                     </div>
                      <div className="space-y-2">
                         <Label>Instrucción del Sistema (System Prompt)</Label>
-                        <Textarea placeholder="Eres un asistente amigable y profesional..." />
+                        <Textarea 
+                          placeholder="Eres un asistente amigable y profesional..." 
+                          value={config.systemPrompt}
+                          onChange={(e) => handleConfigChange('systemPrompt', e.target.value)}
+                        />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Temperatura: 0.7</Label>
-                            <Slider defaultValue={[0.7]} min={0} max={1} step={0.1} />
+                            <Label>Temperatura: {config.temperature}</Label>
+                            <Slider 
+                              value={[config.temperature]} 
+                              min={0} max={1} step={0.1}
+                              onValueChange={([val]) => handleConfigChange('temperature', val)}
+                             />
                         </div>
                         <div className="space-y-2">
                             <Label>Máximo de Tokens</Label>
-                            <Input type="number" defaultValue={256} />
+                            <Input 
+                              type="number" 
+                              value={config.maxTokens}
+                              onChange={(e) => handleConfigChange('maxTokens', Number(e.target.value))}
+                            />
                         </div>
                     </div>
                  </CardContent>
