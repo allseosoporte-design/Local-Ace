@@ -44,11 +44,6 @@ service cloud.firestore {
     match /backups/{backupId} {
       allow read, write, delete: if isSuperAdmin();
     }
-    
-    match /chatbot/{document=**} {
-      allow read: if true;
-      allow write: if isSuperAdmin();
-    }
 
     match /users/{userId} {
       allow read: if request.auth.uid == userId;
@@ -90,6 +85,11 @@ service cloud.firestore {
     match /paymentSettings/{userId} {
       allow read: if userId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' || request.auth.uid == userId;
       allow write: if request.auth.uid == userId || isSuperAdmin();
+    }
+    
+    match /chatbot/{document=**} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
     }
   }
 }
