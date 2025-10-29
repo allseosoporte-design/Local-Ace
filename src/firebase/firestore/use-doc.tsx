@@ -98,7 +98,7 @@ export function useDoc<T = any>(
     return () => {
       unsubscribe();
     };
-  }, [docRef]); // The effect re-runs ONLY if the docRef object reference changes.
+  }, [docRef?.path]); // The effect re-runs ONLY if the docRef's path string changes.
 
   return { data, isLoading, error };
 }

@@ -9,6 +9,7 @@ import {
   FirestoreError,
   QuerySnapshot,
   CollectionReference,
+  queryEqual,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -114,7 +115,10 @@ export function useCollection<T = any>(
     return () => {
       unsubscribe();
     };
-  }, [targetRefOrQuery]); // Re-run only if the target query/reference object changes.
+    // By serializing the query object to a stable string, we ensure the effect only
+    // re-runs when the query's logical value changes, not just its object reference.
+  }, [JSON.stringify(targetRefOrQuery)]);
 
   return { data, isLoading, error };
 }
+
