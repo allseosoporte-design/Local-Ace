@@ -377,51 +377,55 @@ export default function ChatbotWidget() {
 
   const findResponse = (userInput: string): string => {
     const inputLower = userInput.toLowerCase().trim();
-    let bestMatch = { score: 0, answer: 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?' };
-
+    
     if (!config || !config.faqs) {
-        return bestMatch.answer;
+        return 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?';
     }
+
+    let bestMatch = { score: 0, faq: config.faqs[0] };
 
     for (const faq of config.faqs) {
         let currentScore = 0;
         const questionLower = faq.question.toLowerCase();
 
-        // Coincidencia exacta = máxima prioridad
+        // 1. Coincidencia exacta = retorno inmediato
         if (questionLower === inputLower) {
             return faq.answer;
         }
 
-        // Buscar keywords en el input del usuario
+        // 2. Buscar keywords completas en el input (prioridad alta)
         for (const keyword of faq.keywords) {
             const keywordLower = keyword.toLowerCase();
             if (inputLower.includes(keywordLower)) {
-                currentScore += 30;
+                currentScore += 50;
             }
         }
 
-        // Buscar si la pregunta del FAQ está contenida en el input
-        if (inputLower.includes(questionLower) || questionLower.includes(inputLower)) {
-            currentScore += 20;
-        }
-
-        // Coincidencia de palabras individuales
-        const inputWords = inputLower.split(/\s+/).filter(word => word.length > 2);
-        const questionWords = questionLower.split(/\s+/).filter(word => word.length > 2);
+        // 3. Buscar palabras de keywords individualmente
+        const keywordWords = faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2);
+        const inputWords = inputLower.split(/\s+/).filter(w => w.length > 2);
         
         for (const word of inputWords) {
+            if (keywordWords.includes(word)) {
+                currentScore += 10;
+            }
+        }
+
+        // 4. Coincidencia en la pregunta
+        const questionWords = questionLower.split(/\s+/).filter(w => w.length > 2);
+        for (const word of inputWords) {
             if (questionWords.includes(word)) {
-                currentScore += 3;
+                currentScore += 5;
             }
         }
 
         if (currentScore > bestMatch.score) {
-            bestMatch = { score: currentScore, answer: faq.answer };
+            bestMatch = { score: currentScore, faq };
         }
     }
 
-    // Retornar respuesta solo si hay coincidencia relevante
-    return bestMatch.score >= 15 ? bestMatch.answer : 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?';
+    // Retornar la mejor respuesta si supera el umbral
+    return bestMatch.score >= 10 ? bestMatch.faq.answer : 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?';
   };
 
   const handleSendMessage = async () => {

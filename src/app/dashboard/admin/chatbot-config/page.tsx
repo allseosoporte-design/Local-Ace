@@ -404,8 +404,8 @@ export default function ChatbotConfigPage() {
   const { data: loadedConfig, isLoading: isLoadingConfig, error } = useDoc<ChatbotConfig>(configDocRef);
 
   useEffect(() => {
-    // If data is loaded from Firestore, set it.
     if (loadedConfig) {
+      // If data is loaded from Firestore, set it, ensuring defaults for any missing fields.
       setConfig(prev => ({...defaultConfig, ...prev, ...loadedConfig}));
     } else if (!isLoadingConfig && !error) {
       // If no data is loaded and there's no error, it means the document doesn't exist.
@@ -414,6 +414,7 @@ export default function ChatbotConfigPage() {
         if (configDocRef) {
           try {
             await setDoc(configDocRef, defaultConfig);
+            setConfig(defaultConfig); // Ensure local state also has the default config
             toast({
               title: "Configuración inicial creada",
               description: "Se han guardado las 50 FAQs por defecto en la base de datos."
