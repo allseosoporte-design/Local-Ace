@@ -24,6 +24,7 @@ const buildGeminiPrompt = (history: { text: string, sender: 'user' | 'bot' }[], 
 };
 
 export async function POST(request: NextRequest) {
+  console.log('=== CHATBOT API CALLED ==='); // Debug log added
   try {
     const body = await request.json();
     const { history, question, systemPrompt, temperature, maxTokens } = body;
@@ -32,9 +33,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+    // Correctly check for both possible API key names
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error('Chatbot API error: GOOGLE_GENAI_API_KEY is not set.');
+      console.error('Chatbot API error: GOOGLE_GENAI_API_KEY or GEMINI_API_KEY is not set.');
       return NextResponse.json({ error: 'Server configuration error: Missing API Key' }, { status: 500 });
     }
     
