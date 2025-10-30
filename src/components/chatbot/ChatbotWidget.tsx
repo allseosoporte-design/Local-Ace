@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -388,37 +389,37 @@ export default function ChatbotWidget() {
       faq: null,
     };
 
+    // Palabras comunes a ignorar
+    const stopWords = new Set(['que', 'es', 'el', 'la', 'de', 'en', 'y', 'a', 'un', 'una', 'para', 'con', 'por', 'mi', 'tu', 'su', 'como', 'ahora', 'tiene', 'tienes', 'hay']);
+
     for (const faq of config.faqs) {
       let currentScore = 0;
       const questionLower = faq.question.toLowerCase();
 
-      // Prioridad máxima: Coincidencia exacta
+      // Coincidencia exacta
       if (questionLower === inputLower) {
         return faq.answer;
       }
 
-      // Prioridad alta: Coincidencia de frases clave completas
+      // Coincidencia de frases clave completas (keywords multi-palabra)
       for (const keyword of faq.keywords) {
-        if (inputLower.includes(keyword.toLowerCase())) {
-          currentScore += 50;
+        const keywordLower = keyword.toLowerCase();
+        if (keywordLower.includes(' ') && inputLower.includes(keywordLower)) {
+          currentScore += 100; // Mucho peso para frases exactas
         }
       }
       
-      const inputWords = new Set(inputLower.split(/\s+/).filter(w => w.length > 2));
-      const keywordWords = new Set(faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2));
-      const questionWords = new Set(questionLower.split(/\s+/).filter(w => w.length > 2));
+      // Filtrar palabras significativas del input
+      const inputWords = inputLower.split(/\s+/)
+        .filter(w => w.length > 2 && !stopWords.has(w));
+      
+      if (inputWords.length === 0) continue; // Skip si solo hay stopwords
 
-      // Prioridad media: Coincidencia de palabras individuales de las keywords
-      for (const word of inputWords) {
-        if (keywordWords.has(word)) {
-          currentScore += 10;
-        }
-      }
-
-      // Prioridad baja: Coincidencia de palabras en el texto de la pregunta
-      for (const word of inputWords) {
-        if (questionWords.has(word)) {
-          currentScore += 5;
+      // Keywords de una sola palabra
+      for (const keyword of faq.keywords) {
+        const keywordLower = keyword.toLowerCase();
+        if (!keywordLower.includes(' ') && inputWords.includes(keywordLower)) {
+          currentScore += 40;
         }
       }
 
@@ -427,10 +428,9 @@ export default function ChatbotWidget() {
       }
     }
     
-    // El umbral de 30 asegura que solo se devuelva una respuesta si hay una coincidencia relevante.
-    return bestMatch.score >= 30 ? bestMatch.faq!.answer : null;
+    // Threshold más alto: solo responde si hay una coincidencia clara
+    return bestMatch.score >= 80 ? bestMatch.faq!.answer : null;
   };
-
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !config) return;
@@ -448,7 +448,7 @@ export default function ChatbotWidget() {
     setInputValue('');
     setIsTyping(true);
     
-    let botResponseText: string | null = findResponse(currentInput);
+    const botResponseText = findResponse(currentInput);
 
     if (botResponseText) {
       // FAQ encontrada, mostrar la respuesta
