@@ -386,27 +386,32 @@ export default function ChatbotWidget() {
       faq: null,
     };
 
+    // Palabras comunes a ignorar
     const stopWords = new Set(['que', 'es', 'el', 'la', 'de', 'en', 'y', 'a', 'un', 'una', 'para', 'con', 'por', 'mi', 'tu', 'su', 'como', 'ahora', 'tiene', 'tienes', 'hay']);
 
     for (const faq of config.faqs) {
       let currentScore = 0;
       const questionLower = faq.question.toLowerCase();
 
+      // Coincidencia exacta
       if (questionLower === inputLower) {
         return faq.answer;
       }
 
+      // Coincidencia de frases clave completas (keywords multi-palabra)
       for (const keyword of faq.keywords) {
         const keywordLower = keyword.toLowerCase();
         if (keywordLower.includes(' ') && inputLower.includes(keywordLower)) {
-          currentScore += 100; 
+          currentScore += 100; // Mucho peso para frases exactas
         }
       }
       
+      // Filtrar palabras significativas del input
       const inputWords = inputLower.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
       
-      if (inputWords.length === 0) continue;
+      if (inputWords.length === 0) continue; // Skip si solo hay stopwords
 
+      // Keywords de una sola palabra
       for (const keyword of faq.keywords) {
         const keywordLower = keyword.toLowerCase();
         if (!keywordLower.includes(' ') && inputWords.includes(keywordLower)) {
@@ -419,6 +424,7 @@ export default function ChatbotWidget() {
       }
     }
     
+    // Threshold más alto: solo responde si hay una coincidencia clara
     return bestMatch.score >= 80 ? bestMatch.faq!.answer : null;
   };
   
@@ -438,24 +444,26 @@ export default function ChatbotWidget() {
     setInputValue('');
     setIsTyping(true);
     
-    let botResponseText: string | null = findResponse(currentInput);
+    const faqResponse = findResponse(currentInput);
     
-    if (botResponseText) {
+    if (faqResponse) {
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: botResponseText,
+        text: faqResponse,
         sender: 'bot',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, botMessage]);
-      setIsTyping(false);
+      setTimeout(() => {
+        setMessages(prev => [...prev, botMessage]);
+        setIsTyping(false);
+      }, 500); // Simular un pequeño retraso
     } else if (config.aiEnabled) {
       try {
         const response = await fetch('/api/chatbot', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            history: newMessages.map(m => ({ text: m.text, role: m.sender })),
+            history: newMessages.map(m => ({ text: m.text, sender: m.sender })),
             question: currentInput,
             systemPrompt: config.systemPrompt,
             temperature: config.temperature,
