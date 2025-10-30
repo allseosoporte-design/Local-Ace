@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ChatbotConfig, FAQ } from '@/types/chatbot';
-import { generateChatbotResponse } from '@/ai/flows/generate-chatbot-response';
 
 
 interface Message {
@@ -448,29 +447,43 @@ export default function ChatbotWidget() {
     setInputValue('');
     setIsTyping(true);
     
-    const botResponseText = findResponse(currentInput);
+    const faqResponse = findResponse(currentInput);
 
-    if (botResponseText) {
+    if (faqResponse) {
       // FAQ encontrada, mostrar la respuesta
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: botResponseText,
+        text: faqResponse,
         sender: 'bot',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMessage]);
       setIsTyping(false);
     } else if (config.aiEnabled) {
-      // No se encontró FAQ, llamar a la IA
+      // No se encontró FAQ, llamar a la IA a través de la API route
       try {
         const historyForAI = newMessages.map(m => ({ text: m.text, sender: m.sender as 'user' | 'bot' }));
-        const aiResult = await generateChatbotResponse({
-            history: historyForAI,
-            question: currentInput,
-            systemPrompt: config.systemPrompt,
-            temperature: config.temperature,
-            maxTokens: config.maxTokens,
+        
+        const response = await fetch('/api/chatbot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                history: historyForAI,
+                question: currentInput,
+                systemPrompt: config.systemPrompt,
+                temperature: config.temperature,
+                maxTokens: config.maxTokens,
+            }),
         });
+
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+
+        const aiResult = await response.json();
+
         const botMessage: Message = {
             id: (Date.now() + 1).toString(),
             text: aiResult.answer,
@@ -644,5 +657,3 @@ export default function ChatbotWidget() {
     </>
   );
 }
-
-    

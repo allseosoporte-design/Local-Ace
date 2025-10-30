@@ -1,4 +1,4 @@
-'use server';
+
 /**
  * @fileOverview An AI flow to generate a chatbot response when no FAQ matches.
  *
@@ -68,7 +68,7 @@ const generateChatbotResponseFlow = ai.defineFlow(
   },
   async (input) => {
     const {output} = await prompt(input, {
-        model: ai.model('googleai/gemini-2.5-flash'),
+        model: 'googleai/gemini-2.5-flash',
         config: {
           temperature: input.temperature,
           maxOutputTokens: input.maxTokens,
