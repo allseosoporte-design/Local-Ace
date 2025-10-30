@@ -10,7 +10,6 @@ import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ChatbotConfig, FAQ } from '@/types/chatbot';
 
-
 interface Message {
   id: string;
   text: string;
@@ -28,7 +27,7 @@ const mockConfig: ChatbotConfig = {
     showOnLoad: false,
     showDelay: 2,
     faqs: [
-    {
+        {
       id: 'faq-1',
       question: '¿Qué es Local Leap?',
       answer: 'Local Leap es una plataforma SaaS (Software como Servicio) diseñada para ayudar a los dueños de negocios locales a optimizar su presencia online, especialmente en Google My Business (GMB). Te damos las herramientas para gestionar reseñas, crear publicaciones, construir una landing page y mucho más.',
@@ -338,14 +337,15 @@ const mockConfig: ChatbotConfig = {
 export default function ChatbotWidget() {
   const firestore = useFirestore();
   const configDocRef = doc(firestore, 'chatbot/config');
-  const { data: loadedConfig, isLoading: isLoadingConfig } = useDoc<ChatbotConfig>(configDocRef);
+  const { data: loadedConfig, isLoading: isLoadingConfig } =
+    useDoc<ChatbotConfig>(configDocRef);
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const config = loadedConfig || mockConfig;
 
   useEffect(() => {
@@ -363,12 +363,14 @@ export default function ChatbotWidget() {
 
   useEffect(() => {
     if (config?.welcomeMessage && messages.length === 0) {
-        setMessages([{
-            id: '1',
-            text: config.welcomeMessage,
-            sender: 'bot',
-            timestamp: new Date()
-        }]);
+      setMessages([
+        {
+          id: '1',
+          text: config.welcomeMessage,
+          sender: 'bot',
+          timestamp: new Date(),
+        },
+      ]);
     }
   }, [config, messages.length]);
 
@@ -428,7 +430,7 @@ export default function ChatbotWidget() {
     
     // Threshold más alto: solo responde si hay una coincidencia clara
     return bestMatch.score >= 80 ? bestMatch.faq!.answer : null;
-  };
+  };  
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !config) return;
@@ -437,7 +439,7 @@ export default function ChatbotWidget() {
       id: Date.now().toString(),
       text: inputValue,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     const newMessages = [...messages, userMessage];
@@ -445,7 +447,7 @@ export default function ChatbotWidget() {
     const currentInput = inputValue;
     setInputValue('');
     setIsTyping(true);
-    
+
     const faqResponse = findResponse(currentInput);
 
     if (faqResponse) {
@@ -454,14 +456,17 @@ export default function ChatbotWidget() {
         id: (Date.now() + 1).toString(),
         text: faqResponse,
         sender: 'bot',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, botMessage]);
+      setMessages((prev) => [...prev, botMessage]);
       setIsTyping(false);
     } else if (config.aiEnabled) {
-      // No se encontró FAQ, llamar a la IA a través de la API route
+      // No se encontró FAQ, llamar a la IA
       try {
-        const historyForAI = newMessages.map(m => ({ text: m.text, sender: m.sender as 'user' | 'bot' }));
+        const historyForAI = newMessages.map((m) => ({
+          text: m.text,
+          sender: m.sender,
+        }));
         
         const response = await fetch('/api/chatbot', {
             method: 'POST',
@@ -484,34 +489,34 @@ export default function ChatbotWidget() {
         const aiResult = await response.json();
 
         const botMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            text: aiResult.answer,
-            sender: 'bot',
-            timestamp: new Date()
+          id: (Date.now() + 1).toString(),
+          text: aiResult.answer,
+          sender: 'bot',
+          timestamp: new Date(),
         };
-        setMessages(prev => [...prev, botMessage]);
+        setMessages((prev) => [...prev, botMessage]);
       } catch (error) {
-        console.error("AI response generation failed:", error);
+        console.error('AI response generation failed:', error);
         const errorMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            text: 'Lo siento, estoy teniendo problemas para conectarme en este momento. Por favor, intenta de nuevo más tarde.',
-            sender: 'bot',
-            timestamp: new Date()
+          id: (Date.now() + 1).toString(),
+          text: 'Lo siento, estoy teniendo problemas para conectarme en este momento. Por favor, intenta de nuevo más tarde.',
+          sender: 'bot',
+          timestamp: new Date(),
         };
-        setMessages(prev => [...prev, errorMessage]);
+        setMessages((prev) => [...prev, errorMessage]);
       } finally {
         setIsTyping(false);
       }
     } else {
-        // IA deshabilitada y no hay FAQ
-        const defaultMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            text: 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?',
-            sender: 'bot',
-            timestamp: new Date()
-        };
-        setMessages(prev => [...prev, defaultMessage]);
-        setIsTyping(false);
+      // IA deshabilitada y no hay FAQ
+      const defaultMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?',
+        sender: 'bot',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, defaultMessage]);
+      setIsTyping(false);
     }
   };
 
@@ -523,7 +528,7 @@ export default function ChatbotWidget() {
   };
 
   if (isLoadingConfig) {
-      return null;
+    return null;
   }
 
   if (!config || !config.enabled) return null;
@@ -595,7 +600,9 @@ export default function ChatbotWidget() {
                   <div
                     key={message.id}
                     className={`flex ${
-                      message.sender === 'user' ? 'justify-end' : 'justify-start'
+                      message.sender === 'user'
+                        ? 'justify-end'
+                        : 'justify-start'
                     }`}
                   >
                     <div
@@ -610,11 +617,13 @@ export default function ChatbotWidget() {
                           : {}
                       }
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                      <p className="text-sm whitespace-pre-wrap">
+                        {message.text}
+                      </p>
                       <p className="text-xs opacity-70 mt-1 text-right">
                         {message.timestamp.toLocaleTimeString('es-ES', {
                           hour: '2-digit',
-                          minute: '2-digit'
+                          minute: '2-digit',
                         })}
                       </p>
                     </div>
