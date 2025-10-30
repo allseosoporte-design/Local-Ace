@@ -399,7 +399,7 @@ export default function ChatbotWidget() {
         for (const keyword of faq.keywords) {
             const keywordLower = keyword.toLowerCase();
             if (inputLower.includes(keywordLower)) {
-                currentScore += 50;
+                currentScore += 30; // Aumentar la puntuación para coincidencias de palabras clave completas
             }
         }
 
@@ -426,8 +426,8 @@ export default function ChatbotWidget() {
         }
     }
 
-    // Retornar la mejor respuesta si supera el umbral
-    return bestMatch.score >= 10 ? bestMatch.faq!.answer : null;
+    // Retornar la mejor respuesta solo si supera el umbral
+    return bestMatch.score >= 30 ? (bestMatch.faq?.answer || null) : null;
   };
 
   const handleSendMessage = async () => {
@@ -440,14 +440,15 @@ export default function ChatbotWidget() {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
     const currentInput = inputValue;
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInputValue('');
     setIsTyping(true);
 
     const faqResponse = findResponse(currentInput);
 
-    if (faqResponse !== null) {
+    if (faqResponse) {
         const botMessage: Message = {
             id: (Date.now() + 1).toString(),
             text: faqResponse,
@@ -458,7 +459,7 @@ export default function ChatbotWidget() {
         setIsTyping(false);
     } else if (config.aiEnabled) {
       try {
-        const historyForAI = messages.map(m => ({ text: m.text, sender: m.sender }));
+        const historyForAI = newMessages.map(m => ({ text: m.text, sender: m.sender as 'user' | 'bot' }));
         const aiResult = await generateChatbotResponse({
             history: historyForAI,
             question: currentInput,
