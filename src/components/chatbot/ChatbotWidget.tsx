@@ -337,17 +337,16 @@ const mockConfig: ChatbotConfig = {
 export default function ChatbotWidget() {
   const firestore = useFirestore();
   const configDocRef = doc(firestore, 'chatbot/config');
-  const { data: loadedConfig, isLoading: isLoadingConfig } =
-    useDoc<ChatbotConfig>(configDocRef);
-
+  const { data: loadedConfig, isLoading: isLoadingConfig } = useDoc<ChatbotConfig>(configDocRef);
+  
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  
   const config = loadedConfig || mockConfig;
-
+  
   useEffect(() => {
     if (config?.showOnLoad && !isOpen) {
       const timer = setTimeout(() => {
@@ -356,28 +355,26 @@ export default function ChatbotWidget() {
       return () => clearTimeout(timer);
     }
   }, [config, isOpen]);
-
+  
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
+  
   useEffect(() => {
     if (config?.welcomeMessage && messages.length === 0) {
-      setMessages([
-        {
-          id: '1',
-          text: config.welcomeMessage,
-          sender: 'bot',
-          timestamp: new Date(),
-        },
-      ]);
+      setMessages([{ 
+        id: '1', 
+        text: config.welcomeMessage, 
+        sender: 'bot', 
+        timestamp: new Date() 
+      }]);
     }
   }, [config, messages.length]);
-
+  
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
+  
   const findResponse = (userInput: string): string | null => {
     const inputLower = userInput.toLowerCase().trim();
     if (!config || !config.faqs) {
@@ -389,33 +386,27 @@ export default function ChatbotWidget() {
       faq: null,
     };
 
-    // Palabras comunes a ignorar
     const stopWords = new Set(['que', 'es', 'el', 'la', 'de', 'en', 'y', 'a', 'un', 'una', 'para', 'con', 'por', 'mi', 'tu', 'su', 'como', 'ahora', 'tiene', 'tienes', 'hay']);
 
     for (const faq of config.faqs) {
       let currentScore = 0;
       const questionLower = faq.question.toLowerCase();
 
-      // Coincidencia exacta
       if (questionLower === inputLower) {
         return faq.answer;
       }
 
-      // Coincidencia de frases clave completas (keywords multi-palabra)
       for (const keyword of faq.keywords) {
         const keywordLower = keyword.toLowerCase();
         if (keywordLower.includes(' ') && inputLower.includes(keywordLower)) {
-          currentScore += 100; // Mucho peso para frases exactas
+          currentScore += 100; 
         }
       }
       
-      // Filtrar palabras significativas del input
-      const inputWords = inputLower.split(/\s+/)
-        .filter(w => w.length > 2 && !stopWords.has(w));
+      const inputWords = inputLower.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
       
-      if (inputWords.length === 0) continue; // Skip si solo hay stopwords
+      if (inputWords.length === 0) continue;
 
-      // Keywords de una sola palabra
       for (const keyword of faq.keywords) {
         const keywordLower = keyword.toLowerCase();
         if (!keywordLower.includes(' ') && inputWords.includes(keywordLower)) {
@@ -428,10 +419,9 @@ export default function ChatbotWidget() {
       }
     }
     
-    // Threshold más alto: solo responde si hay una coincidencia clara
     return bestMatch.score >= 80 ? bestMatch.faq!.answer : null;
-  };  
-
+  };
+  
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !config) return;
 
@@ -439,100 +429,90 @@ export default function ChatbotWidget() {
       id: Date.now().toString(),
       text: inputValue,
       sender: 'user',
-      timestamp: new Date(),
+      timestamp: new Date()
     };
-
+    
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     const currentInput = inputValue;
     setInputValue('');
     setIsTyping(true);
-
-    const faqResponse = findResponse(currentInput);
-
-    if (faqResponse) {
-      // FAQ encontrada, mostrar la respuesta
+    
+    let botResponseText: string | null = findResponse(currentInput);
+    
+    if (botResponseText) {
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: faqResponse,
+        text: botResponseText,
         sender: 'bot',
-        timestamp: new Date(),
+        timestamp: new Date()
       };
-      setMessages((prev) => [...prev, botMessage]);
+      setMessages(prev => [...prev, botMessage]);
       setIsTyping(false);
     } else if (config.aiEnabled) {
-      // No se encontró FAQ, llamar a la IA
       try {
-        const historyForAI = newMessages.map((m) => ({
-          text: m.text,
-          sender: m.sender,
-        }));
-        
         const response = await fetch('/api/chatbot', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                history: historyForAI,
-                question: currentInput,
-                systemPrompt: config.systemPrompt,
-                temperature: config.temperature,
-                maxTokens: config.maxTokens,
-            }),
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            history: newMessages.map(m => ({ text: m.text, role: m.sender })),
+            question: currentInput,
+            systemPrompt: config.systemPrompt,
+            temperature: config.temperature,
+            maxTokens: config.maxTokens,
+          })
         });
 
         if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
+          throw new Error(`API request failed with status ${response.status}`);
         }
-
-        const aiResult = await response.json();
-
+        
+        const result = await response.json();
+        
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
-          text: aiResult.answer,
+          text: result.answer,
           sender: 'bot',
-          timestamp: new Date(),
+          timestamp: new Date()
         };
-        setMessages((prev) => [...prev, botMessage]);
+        setMessages(prev => [...prev, botMessage]);
       } catch (error) {
-        console.error('AI response generation failed:', error);
+        console.error("AI response generation failed:", error);
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           text: 'Lo siento, estoy teniendo problemas para conectarme en este momento. Por favor, intenta de nuevo más tarde.',
           sender: 'bot',
-          timestamp: new Date(),
+          timestamp: new Date()
         };
-        setMessages((prev) => [...prev, errorMessage]);
+        setMessages(prev => [...prev, errorMessage]);
       } finally {
         setIsTyping(false);
       }
     } else {
-      // IA deshabilitada y no hay FAQ
       const defaultMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?',
         sender: 'bot',
-        timestamp: new Date(),
+        timestamp: new Date()
       };
-      setMessages((prev) => [...prev, defaultMessage]);
+      setMessages(prev => [...prev, defaultMessage]);
       setIsTyping(false);
     }
   };
-
+  
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
-
+  
   if (isLoadingConfig) {
     return null;
   }
-
+  
   if (!config || !config.enabled) return null;
-
+  
   return (
     <>
       <AnimatePresence>
@@ -558,7 +538,7 @@ export default function ChatbotWidget() {
           </motion.div>
         )}
       </AnimatePresence>
-
+      
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -593,16 +573,14 @@ export default function ChatbotWidget() {
                 <X className="w-5 h-5" />
               </Button>
             </div>
-
+            
             <ScrollArea className="flex-1 p-4 bg-gray-50">
               <div className="space-y-4">
                 {messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${
-                      message.sender === 'user'
-                        ? 'justify-end'
-                        : 'justify-start'
+                      message.sender === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
                     <div
@@ -617,13 +595,11 @@ export default function ChatbotWidget() {
                           : {}
                       }
                     >
-                      <p className="text-sm whitespace-pre-wrap">
-                        {message.text}
-                      </p>
+                      <p className="text-sm whitespace-pre-wrap">{message.text}</p>
                       <p className="text-xs opacity-70 mt-1 text-right">
                         {message.timestamp.toLocaleTimeString('es-ES', {
                           hour: '2-digit',
-                          minute: '2-digit',
+                          minute: '2-digit'
                         })}
                       </p>
                     </div>
@@ -639,7 +615,7 @@ export default function ChatbotWidget() {
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
-
+            
             <div className="p-4 border-t bg-white">
               <div className="flex gap-2">
                 <Input
