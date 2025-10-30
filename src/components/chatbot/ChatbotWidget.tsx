@@ -392,43 +392,45 @@ export default function ChatbotWidget() {
       let currentScore = 0;
       const questionLower = faq.question.toLowerCase();
 
-      // Highest priority: exact match
+      // Prioridad máxima: Coincidencia exacta
       if (questionLower === inputLower) {
         return faq.answer;
       }
 
-      // High priority: full keyword phrase match
+      // Prioridad alta: Coincidencia de frases clave completas
       for (const keyword of faq.keywords) {
         if (inputLower.includes(keyword.toLowerCase())) {
-          currentScore += 30;
+          currentScore += 50;
         }
       }
       
-      // Medium priority: individual word match from keywords
-      const keywordWords = new Set(faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2));
       const inputWords = new Set(inputLower.split(/\s+/).filter(w => w.length > 2));
+      const keywordWords = new Set(faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2));
+      const questionWords = new Set(questionLower.split(/\s+/).filter(w => w.length > 2));
 
+      // Prioridad media: Coincidencia de palabras individuales de las keywords
       for (const word of inputWords) {
-          if (keywordWords.has(word)) {
-              currentScore += 10;
-          }
+        if (keywordWords.has(word)) {
+          currentScore += 10;
+        }
       }
 
-      // Low priority: word match in question
-       for (const word of inputWords) {
-          if (questionLower.includes(word)) {
-              currentScore += 5;
-          }
+      // Prioridad baja: Coincidencia de palabras en el texto de la pregunta
+      for (const word of inputWords) {
+        if (questionWords.has(word)) {
+          currentScore += 5;
+        }
       }
-
 
       if (currentScore > bestMatch.score) {
         bestMatch = { score: currentScore, faq };
       }
     }
-
+    
+    // El umbral de 30 asegura que solo se devuelva una respuesta si hay una coincidencia relevante.
     return bestMatch.score >= 30 ? bestMatch.faq!.answer : null;
   };
+
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !config) return;
@@ -445,19 +447,21 @@ export default function ChatbotWidget() {
     const currentInput = inputValue;
     setInputValue('');
     setIsTyping(true);
+    
+    let botResponseText: string | null = findResponse(currentInput);
 
-    const faqResponse = findResponse(currentInput);
-
-    if (faqResponse) {
-        const botMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            text: faqResponse,
-            sender: 'bot',
-            timestamp: new Date()
-        };
-        setMessages(prev => [...prev, botMessage]);
-        setIsTyping(false);
+    if (botResponseText) {
+      // FAQ encontrada, mostrar la respuesta
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: botResponseText,
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, botMessage]);
+      setIsTyping(false);
     } else if (config.aiEnabled) {
+      // No se encontró FAQ, llamar a la IA
       try {
         const historyForAI = newMessages.map(m => ({ text: m.text, sender: m.sender as 'user' | 'bot' }));
         const aiResult = await generateChatbotResponse({
@@ -487,6 +491,7 @@ export default function ChatbotWidget() {
         setIsTyping(false);
       }
     } else {
+        // IA deshabilitada y no hay FAQ
         const defaultMessage: Message = {
             id: (Date.now() + 1).toString(),
             text: 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?',
@@ -497,7 +502,6 @@ export default function ChatbotWidget() {
         setIsTyping(false);
     }
   };
-
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
