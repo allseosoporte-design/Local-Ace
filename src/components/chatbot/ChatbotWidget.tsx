@@ -384,48 +384,50 @@ export default function ChatbotWidget() {
         return null;
     }
 
-    let bestMatch = { score: 0, answer: null as string | null };
+    let bestMatch = { score: 0, faq: null as FAQ | null };
 
     for (const faq of config.faqs) {
         let currentScore = 0;
         const questionLower = faq.question.toLowerCase();
 
-        // 1. Exact match = highest priority
+        // 1. Coincidencia exacta = retorno inmediato
         if (questionLower === inputLower) {
             return faq.answer;
         }
 
-        // 2. Full keyword phrase match (high score)
+        // 2. Buscar keywords completas en el input (prioridad alta)
         for (const keyword of faq.keywords) {
-            if (inputLower.includes(keyword.toLowerCase())) {
+            const keywordLower = keyword.toLowerCase();
+            if (inputLower.includes(keywordLower)) {
                 currentScore += 50;
             }
         }
 
-        const inputWords = new Set(inputLower.split(/\s+/).filter(word => word.length > 2));
-
-        // 3. Individual words from keywords match (medium score)
+        // 3. Buscar palabras de keywords individualmente
         const keywordWords = new Set(faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2));
-        for (const word of inputWords) {
+        const inputWords = new Set(inputLower.split(/\s+/).filter(w => w.length > 2));
+        
+        inputWords.forEach(word => {
             if (keywordWords.has(word)) {
                 currentScore += 10;
             }
-        }
+        });
 
-        // 4. Individual words from question match (lower score)
-        const questionWords = new Set(questionLower.split(/\s+/).filter(word => word.length > 2));
-        for (const word of inputWords) {
+        // 4. Coincidencia en la pregunta
+        const questionWords = new Set(questionLower.split(/\s+/).filter(w => w.length > 2));
+        inputWords.forEach(word => {
             if (questionWords.has(word)) {
                 currentScore += 5;
             }
-        }
+        });
 
         if (currentScore > bestMatch.score) {
-            bestMatch = { score: currentScore, answer: faq.answer };
+            bestMatch = { score: currentScore, faq };
         }
     }
 
-    return bestMatch.score >= 10 ? bestMatch.answer : null;
+    // Retornar la mejor respuesta si supera el umbral
+    return bestMatch.score >= 10 ? bestMatch.faq!.answer : null;
   };
 
   const handleSendMessage = async () => {
