@@ -7,3 +7,4 @@ import '@/ai/flows/generate-review-response.ts';
 import '@/ai/flows/summarize-competitor-reviews.ts';
 import '@/ai/flows/suggest-gmb-keywords.ts';
 import '@/ai/flows/upload-image.ts';
+import '@/ai/flows/generate-chatbot-response.ts';

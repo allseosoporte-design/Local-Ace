@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ChatbotConfig, FAQ } from '@/types/chatbot';
+import { generateChatbotResponse } from '@/ai/flows/generate-chatbot-response';
+
 
 interface Message {
   id: string;
@@ -342,7 +344,7 @@ export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const config = loadedConfig || mockConfig;
@@ -375,57 +377,55 @@ export default function ChatbotWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const findResponse = (userInput: string): string => {
+  const findResponse = (userInput: string): string | null => {
     const inputLower = userInput.toLowerCase().trim();
     
     if (!config || !config.faqs) {
-        return 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?';
+        return null;
     }
 
-    let bestMatch = { score: 0, faq: config.faqs[0] };
+    let bestMatch = { score: 0, answer: null as string | null };
 
     for (const faq of config.faqs) {
         let currentScore = 0;
         const questionLower = faq.question.toLowerCase();
 
-        // 1. Coincidencia exacta = retorno inmediato
+        // 1. Exact match = highest priority
         if (questionLower === inputLower) {
             return faq.answer;
         }
 
-        // 2. Buscar keywords completas en el input (prioridad alta)
+        // 2. Full keyword phrase match (high score)
         for (const keyword of faq.keywords) {
-            const keywordLower = keyword.toLowerCase();
-            if (inputLower.includes(keywordLower)) {
+            if (inputLower.includes(keyword.toLowerCase())) {
                 currentScore += 50;
             }
         }
 
-        // 3. Buscar palabras de keywords individualmente
-        const keywordWords = faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2);
-        const inputWords = inputLower.split(/\s+/).filter(w => w.length > 2);
-        
+        const inputWords = new Set(inputLower.split(/\s+/).filter(word => word.length > 2));
+
+        // 3. Individual words from keywords match (medium score)
+        const keywordWords = new Set(faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2));
         for (const word of inputWords) {
-            if (keywordWords.includes(word)) {
+            if (keywordWords.has(word)) {
                 currentScore += 10;
             }
         }
 
-        // 4. Coincidencia en la pregunta
-        const questionWords = questionLower.split(/\s+/).filter(w => w.length > 2);
+        // 4. Individual words from question match (lower score)
+        const questionWords = new Set(questionLower.split(/\s+/).filter(word => word.length > 2));
         for (const word of inputWords) {
-            if (questionWords.includes(word)) {
+            if (questionWords.has(word)) {
                 currentScore += 5;
             }
         }
 
         if (currentScore > bestMatch.score) {
-            bestMatch = { score: currentScore, faq };
+            bestMatch = { score: currentScore, answer: faq.answer };
         }
     }
 
-    // Retornar la mejor respuesta si supera el umbral
-    return bestMatch.score >= 10 ? bestMatch.faq.answer : 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?';
+    return bestMatch.score >= 10 ? bestMatch.answer : null;
   };
 
   const handleSendMessage = async () => {
@@ -439,21 +439,40 @@ export default function ChatbotWidget() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
-    setIsLoading(true);
+    setIsTyping(true);
 
-    // Simulate API call and bot response
-    setTimeout(() => {
-        const response = findResponse(inputValue);
-        const botMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            text: response,
-            sender: 'bot',
-            timestamp: new Date()
-        };
-        setMessages(prev => [...prev, botMessage]);
-        setIsLoading(false);
-    }, 1000);
+    let botResponseText: string | null = findResponse(currentInput);
+
+    if (botResponseText === null && config.aiEnabled) {
+      try {
+        const historyForAI = messages.map(m => ({ text: m.text, sender: m.sender }));
+        const aiResult = await generateChatbotResponse({
+            history: historyForAI,
+            question: currentInput,
+            systemPrompt: config.systemPrompt,
+            temperature: config.temperature,
+            maxTokens: config.maxTokens,
+        });
+        botResponseText = aiResult.answer;
+      } catch (error) {
+        console.error("AI response generation failed:", error);
+        botResponseText = 'Lo siento, estoy teniendo problemas para conectarme en este momento. Por favor, intenta de nuevo más tarde.';
+      }
+    } else if (botResponseText === null) {
+      botResponseText = 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?';
+    }
+    
+    const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: botResponseText,
+        sender: 'bot',
+        timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, botMessage]);
+    setIsTyping(false);
   };
 
 
@@ -465,14 +484,13 @@ export default function ChatbotWidget() {
   };
 
   if (isLoadingConfig) {
-      return null; // Or a loading spinner if you prefer
+      return null;
   }
 
   if (!config || !config.enabled) return null;
 
   return (
     <>
-      {/* Botón flotante */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
@@ -497,7 +515,6 @@ export default function ChatbotWidget() {
         )}
       </AnimatePresence>
 
-      {/* Ventana del chat */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -510,7 +527,6 @@ export default function ChatbotWidget() {
                 : 'bottom-6 left-6'
             } z-50 w-96 h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border`}
           >
-            {/* Header */}
             <div
               className="p-4 flex items-center justify-between text-white"
               style={{ backgroundColor: config.primaryColor }}
@@ -534,7 +550,6 @@ export default function ChatbotWidget() {
               </Button>
             </div>
 
-            {/* Messages */}
             <ScrollArea className="flex-1 p-4 bg-gray-50">
               <div className="space-y-4">
                 {messages.map((message) => (
@@ -566,7 +581,7 @@ export default function ChatbotWidget() {
                     </div>
                   </div>
                 ))}
-                {isLoading && (
+                {isTyping && (
                   <div className="flex justify-start">
                     <div className="bg-white rounded-lg p-3 border">
                       <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
@@ -577,7 +592,6 @@ export default function ChatbotWidget() {
               </div>
             </ScrollArea>
 
-            {/* Input */}
             <div className="p-4 border-t bg-white">
               <div className="flex gap-2">
                 <Input
@@ -585,12 +599,12 @@ export default function ChatbotWidget() {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder={config.placeholderText}
-                  disabled={isLoading}
+                  disabled={isTyping}
                   className="flex-1"
                 />
                 <Button
                   onClick={handleSendMessage}
-                  disabled={isLoading || !inputValue.trim()}
+                  disabled={isTyping || !inputValue.trim()}
                   style={{ backgroundColor: config.primaryColor }}
                 >
                   <Send className="w-4 h-4" />
