@@ -404,22 +404,22 @@ export default function ChatbotWidget() {
         }
 
         // 3. Buscar palabras de keywords individualmente
-        const keywordWords = new Set(faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2));
-        const inputWords = new Set(inputLower.split(/\s+/).filter(w => w.length > 2));
+        const keywordWords = faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2);
+        const inputWords = inputLower.split(/\s+/).filter(w => w.length > 2);
         
-        inputWords.forEach(word => {
-            if (keywordWords.has(word)) {
+        for (const word of inputWords) {
+            if (keywordWords.includes(word)) {
                 currentScore += 10;
             }
-        });
+        }
 
         // 4. Coincidencia en la pregunta
-        const questionWords = new Set(questionLower.split(/\s+/).filter(w => w.length > 2));
-        inputWords.forEach(word => {
-            if (questionWords.has(word)) {
+        const questionWords = questionLower.split(/\s+/).filter(w => w.length > 2);
+        for (const word of inputWords) {
+            if (questionWords.includes(word)) {
                 currentScore += 5;
             }
-        });
+        }
 
         if (currentScore > bestMatch.score) {
             bestMatch = { score: currentScore, faq };
