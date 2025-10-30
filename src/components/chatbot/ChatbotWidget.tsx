@@ -384,7 +384,7 @@ export default function ChatbotWidget() {
         return null;
     }
 
-    let bestMatch = { score: 0, faq: null as FAQ | null };
+    let bestMatch: { score: number, faq: FAQ | null } = { score: 0, faq: null };
 
     for (const faq of config.faqs) {
         let currentScore = 0;
@@ -445,9 +445,18 @@ export default function ChatbotWidget() {
     setInputValue('');
     setIsTyping(true);
 
-    let botResponseText: string | null = findResponse(currentInput);
+    const faqResponse = findResponse(currentInput);
 
-    if (botResponseText === null && config.aiEnabled) {
+    if (faqResponse !== null) {
+        const botMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: faqResponse,
+            sender: 'bot',
+            timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botMessage]);
+        setIsTyping(false);
+    } else if (config.aiEnabled) {
       try {
         const historyForAI = messages.map(m => ({ text: m.text, sender: m.sender }));
         const aiResult = await generateChatbotResponse({
@@ -457,24 +466,35 @@ export default function ChatbotWidget() {
             temperature: config.temperature,
             maxTokens: config.maxTokens,
         });
-        botResponseText = aiResult.answer;
+        const botMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: aiResult.answer,
+            sender: 'bot',
+            timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botMessage]);
       } catch (error) {
         console.error("AI response generation failed:", error);
-        botResponseText = 'Lo siento, estoy teniendo problemas para conectarme en este momento. Por favor, intenta de nuevo más tarde.';
+        const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: 'Lo siento, estoy teniendo problemas para conectarme en este momento. Por favor, intenta de nuevo más tarde.',
+            sender: 'bot',
+            timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsTyping(false);
       }
-    } else if (botResponseText === null) {
-      botResponseText = 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?';
+    } else {
+        const defaultMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: 'Lo siento, no tengo información sobre eso. ¿Puedo ayudarte con algo más?',
+            sender: 'bot',
+            timestamp: new Date()
+        };
+        setMessages(prev => [...prev, defaultMessage]);
+        setIsTyping(false);
     }
-    
-    const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: botResponseText,
-        sender: 'bot',
-        timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, botMessage]);
-    setIsTyping(false);
   };
 
 
