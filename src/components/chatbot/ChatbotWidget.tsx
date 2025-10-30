@@ -379,55 +379,55 @@ export default function ChatbotWidget() {
 
   const findResponse = (userInput: string): string | null => {
     const inputLower = userInput.toLowerCase().trim();
-    
     if (!config || !config.faqs) {
-        return null;
+      return null;
     }
 
-    let bestMatch: { score: number, faq: FAQ | null } = { score: 0, faq: null };
+    let bestMatch: { score: number; faq: FAQ | null } = {
+      score: 0,
+      faq: null,
+    };
 
     for (const faq of config.faqs) {
-        let currentScore = 0;
-        const questionLower = faq.question.toLowerCase();
+      let currentScore = 0;
+      const questionLower = faq.question.toLowerCase();
 
-        // 1. Coincidencia exacta = retorno inmediato
-        if (questionLower === inputLower) {
-            return faq.answer;
-        }
+      // Highest priority: exact match
+      if (questionLower === inputLower) {
+        return faq.answer;
+      }
 
-        // 2. Buscar keywords completas en el input (prioridad alta)
-        for (const keyword of faq.keywords) {
-            const keywordLower = keyword.toLowerCase();
-            if (inputLower.includes(keywordLower)) {
-                currentScore += 30; // Aumentar la puntuación para coincidencias de palabras clave completas
-            }
+      // High priority: full keyword phrase match
+      for (const keyword of faq.keywords) {
+        if (inputLower.includes(keyword.toLowerCase())) {
+          currentScore += 30;
         }
+      }
+      
+      // Medium priority: individual word match from keywords
+      const keywordWords = new Set(faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2));
+      const inputWords = new Set(inputLower.split(/\s+/).filter(w => w.length > 2));
 
-        // 3. Buscar palabras de keywords individualmente
-        const keywordWords = faq.keywords.flatMap(k => k.toLowerCase().split(/\s+/)).filter(w => w.length > 2);
-        const inputWords = inputLower.split(/\s+/).filter(w => w.length > 2);
-        
-        for (const word of inputWords) {
-            if (keywordWords.includes(word)) {
-                currentScore += 10;
-            }
-        }
+      for (const word of inputWords) {
+          if (keywordWords.has(word)) {
+              currentScore += 10;
+          }
+      }
 
-        // 4. Coincidencia en la pregunta
-        const questionWords = questionLower.split(/\s+/).filter(w => w.length > 2);
-        for (const word of inputWords) {
-            if (questionWords.includes(word)) {
-                currentScore += 5;
-            }
-        }
+      // Low priority: word match in question
+       for (const word of inputWords) {
+          if (questionLower.includes(word)) {
+              currentScore += 5;
+          }
+      }
 
-        if (currentScore > bestMatch.score) {
-            bestMatch = { score: currentScore, faq };
-        }
+
+      if (currentScore > bestMatch.score) {
+        bestMatch = { score: currentScore, faq };
+      }
     }
 
-    // Retornar la mejor respuesta solo si supera el umbral
-    return bestMatch.score >= 30 ? (bestMatch.faq?.answer || null) : null;
+    return bestMatch.score >= 30 ? bestMatch.faq!.answer : null;
   };
 
   const handleSendMessage = async () => {
@@ -440,9 +440,9 @@ export default function ChatbotWidget() {
       timestamp: new Date()
     };
 
-    const currentInput = inputValue;
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
+    const currentInput = inputValue;
     setInputValue('');
     setIsTyping(true);
 
