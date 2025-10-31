@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -387,7 +388,32 @@ const defaultConfig: ChatbotConfig = {
     systemPrompt: 'Eres un asistente amigable y profesional para el SaaS Local Leap.',
     temperature: 0.7,
     maxTokens: 150,
+    apiIntegrations: {
+        openRouter: { enabled: true, apiKey: '', status: 'connected' },
+        huggingFace: { enabled: false, apiKey: '', modelEndpoint: '', status: 'error' },
+        deepInfra: { enabled: true, apiKey: '', status: 'untested' },
+        gemini: { enabled: true, apiKey: '', rateLimit: 60, status: 'untested' }
+    }
 }
+
+const ApiStatusIndicator = ({ status }: { status: 'connected' | 'error' | 'untested' | undefined }) => {
+    const statusConfig = {
+        connected: { text: 'Conectado', color: 'bg-green-500' },
+        error: { text: 'Error de Conexión', color: 'bg-red-500' },
+        untested: { text: 'Sin probar', color: 'bg-gray-400' }
+    };
+
+    const currentStatus = status || 'untested';
+    const { text, color } = statusConfig[currentStatus];
+
+    return (
+        <div className="flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 rounded-full ${color}`}></span>
+            <span className="text-sm text-muted-foreground">{text}</span>
+        </div>
+    );
+};
+
 
 export default function ChatbotConfigPage() {
   const { toast } = useToast();
@@ -405,16 +431,22 @@ export default function ChatbotConfigPage() {
 
   useEffect(() => {
     if (loadedConfig) {
-      // If data is loaded from Firestore, set it, ensuring defaults for any missing fields.
-      setConfig(prev => ({...defaultConfig, ...prev, ...loadedConfig}));
+      // Deep merge to ensure new fields are included
+      setConfig(prev => ({
+        ...defaultConfig,
+        ...prev,
+        ...loadedConfig,
+        apiIntegrations: {
+          ...defaultConfig.apiIntegrations!,
+          ...(loadedConfig.apiIntegrations || {})
+        }
+      }));
     } else if (!isLoadingConfig && !error) {
-      // If no data is loaded and there's no error, it means the document doesn't exist.
-      // We "seed" the database with our default configuration.
       const seedDatabase = async () => {
         if (configDocRef) {
           try {
             await setDoc(configDocRef, defaultConfig);
-            setConfig(defaultConfig); // Ensure local state also has the default config
+            setConfig(defaultConfig);
             toast({
               title: "Configuración inicial creada",
               description: "Se han guardado las 50 FAQs por defecto en la base de datos."
@@ -437,6 +469,19 @@ export default function ChatbotConfigPage() {
   const handleConfigChange = (field: keyof ChatbotConfig, value: any) => {
     setConfig(prev => ({ ...prev, [field]: value }));
   };
+
+  const handleApiIntegrationChange = (api: keyof NonNullable<ChatbotConfig['apiIntegrations']>, field: string, value: any) => {
+      setConfig(prev => ({
+          ...prev,
+          apiIntegrations: {
+              ...prev.apiIntegrations!,
+              [api]: {
+                  ...prev.apiIntegrations![api],
+                  [field]: value
+              }
+          }
+      }))
+  }
 
   const addFaq = () => {
     const newFaq: FAQ = { 
@@ -686,6 +731,115 @@ export default function ChatbotConfigPage() {
                         </div>
                     </div>
                  </CardContent>
+            </Card>
+
+            <Card className="mt-6">
+                <CardHeader>
+                    <CardTitle>Integración APIS de Modelos de Lenguaje</CardTitle>
+                    <CardDescription>Conecta tu chatbot a diferentes proveedores de modelos de lenguaje externos para expandir sus capacidades.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* OpenRouter */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <Image src="/op.png" alt="OpenRouter Logo" width={20} height={20}/>
+                                  OpenRouter
+                                </CardTitle>
+                                <Switch checked={config.apiIntegrations?.openRouter.enabled} onCheckedChange={(val) => handleApiIntegrationChange('openRouter', 'enabled', val)} />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label htmlFor="openrouter-key">Clave API</Label>
+                                <Input id="openrouter-key" type="password" placeholder="sk-or-..." value={config.apiIntegrations?.openRouter.apiKey} onChange={(e) => handleApiIntegrationChange('openRouter', 'apiKey', e.target.value)} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Button variant="outline" size="sm">Probar Conexión</Button>
+                                <ApiStatusIndicator status={config.apiIntegrations?.openRouter.status}/>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                     {/* Hugging Face */}
+                    <Card>
+                        <CardHeader>
+                             <div className="flex items-center justify-between">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <Image src="/hf.png" alt="Hugging Face Logo" width={20} height={20}/>
+                                  Hugging Face
+                                </CardTitle>
+                                <Switch checked={config.apiIntegrations?.huggingFace.enabled} onCheckedChange={(val) => handleApiIntegrationChange('huggingFace', 'enabled', val)}/>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label htmlFor="hf-key">Clave API</Label>
+                                <Input id="hf-key" type="password" placeholder="hf_..." value={config.apiIntegrations?.huggingFace.apiKey} onChange={(e) => handleApiIntegrationChange('huggingFace', 'apiKey', e.target.value)}/>
+                            </div>
+                            <div>
+                                <Label htmlFor="hf-endpoint">Endpoint del Modelo</Label>
+                                <Input id="hf-endpoint" placeholder="https://..." value={config.apiIntegrations?.huggingFace.modelEndpoint} onChange={(e) => handleApiIntegrationChange('huggingFace', 'modelEndpoint', e.target.value)}/>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Button variant="outline" size="sm">Probar Conexión</Button>
+                                <ApiStatusIndicator status={config.apiIntegrations?.huggingFace.status}/>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                     {/* DeepInfra */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                   <Image src="/di.png" alt="DeepInfra Logo" width={20} height={20}/>
+                                   DeepInfra
+                                </CardTitle>
+                                <Switch checked={config.apiIntegrations?.deepInfra.enabled} onCheckedChange={(val) => handleApiIntegrationChange('deepInfra', 'enabled', val)}/>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label htmlFor="di-key">Clave API</Label>
+                                <Input id="di-key" type="password" placeholder="deepinfra-..." value={config.apiIntegrations?.deepInfra.apiKey} onChange={(e) => handleApiIntegrationChange('deepInfra', 'apiKey', e.target.value)}/>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Button variant="outline" size="sm">Probar Conexión</Button>
+                                <ApiStatusIndicator status={config.apiIntegrations?.deepInfra.status}/>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Gemini */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <Image src="/gemini.png" alt="Gemini Logo" width={20} height={20}/>
+                                  Gemini API
+                                </CardTitle>
+                                <Switch checked={config.apiIntegrations?.gemini.enabled} onCheckedChange={(val) => handleApiIntegrationChange('gemini', 'enabled', val)}/>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label htmlFor="gemini-key">Clave API</Label>
+                                <Input id="gemini-key" type="password" placeholder="AIza..." value={config.apiIntegrations?.gemini.apiKey} onChange={(e) => handleApiIntegrationChange('gemini', 'apiKey', e.target.value)} />
+                            </div>
+                            <div>
+                                <Label htmlFor="gemini-limit">Límite de Tasa (RPM)</Label>
+                                <Input id="gemini-limit" type="number" value={config.apiIntegrations?.gemini.rateLimit} onChange={(e) => handleApiIntegrationChange('gemini', 'rateLimit', Number(e.target.value))}/>
+                            </div>
+                             <div className="flex items-center justify-between">
+                                <Button variant="outline" size="sm">Probar Conexión</Button>
+                                <ApiStatusIndicator status={config.apiIntegrations?.gemini.status}/>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                </CardContent>
             </Card>
         </TabsContent>
       </Tabs>
