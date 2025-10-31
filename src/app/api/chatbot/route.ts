@@ -6,6 +6,7 @@ import type { ChatbotConfig } from '@/types/chatbot';
 
 // Initialize Firebase Admin SDK
 // This ensures we can securely access Firestore from the server.
+/*
 if (!getApps().length) {
   // IMPORTANT: In a real production environment, use environment variables
   // for service account credentials, not a hardcoded path.
@@ -25,6 +26,7 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
+*/
 
 // This function formats the conversation history for the Gemini API
 const buildGeminiPrompt = (history: { text: string, sender: 'user' | 'bot' }[], newQuestion: string, systemPrompt: string) => {
@@ -60,6 +62,10 @@ export async function POST(request: NextRequest) {
     const { history, question } = body;
 
     // 1. Fetch Chatbot Configuration from Firestore
+    // For now, we will use mock data since firestore is commented out.
+    // In a real scenario, you would uncomment the firestore initialization
+    // and fetch the config like this:
+    /*
     const configDocRef = db.collection('chatbot').doc('config');
     const configDoc = await configDocRef.get();
 
@@ -68,6 +74,18 @@ export async function POST(request: NextRequest) {
     }
 
     const config = configDoc.data() as ChatbotConfig;
+    */
+    
+    // Using mock config to avoid firestore dependency for now
+    const config: Partial<ChatbotConfig> = {
+        aiEnabled: true,
+        apiIntegrations: {
+            gemini: { enabled: true, apiKey: process.env.GEMINI_API_KEY || '' }
+        },
+        systemPrompt: 'Eres un asistente amigable y profesional para el SaaS Local Leap.',
+        temperature: 0.7,
+        maxTokens: 150
+    }
     
     if (!config.aiEnabled || !config.apiIntegrations?.gemini.enabled) {
       return NextResponse.json({ answer: "Lo siento, la función de IA está desactivada actualmente." });
@@ -79,17 +97,17 @@ export async function POST(request: NextRequest) {
     const maxTokens = config.maxTokens;
 
     if (!apiKey) {
-      console.error('Chatbot API error: Gemini API Key is not configured in Firestore.');
+      console.error('Chatbot API error: Gemini API Key is not configured.');
       return NextResponse.json({ error: 'Server configuration error: Missing API Key' }, { status: 500 });
     }
     
-    const geminiPrompt = buildGeminiPrompt(history, question, systemPrompt);
+    const geminiPrompt = buildGeminiPrompt(history, question, systemPrompt || 'You are a helpful assistant.');
 
     const geminiRequest = {
         ...geminiPrompt,
-        generation_config: {
+        generationConfig: { // Corrected from generation_config
             temperature: temperature ?? 0.7,
-            max_output_tokens: maxTokens ?? 150,
+            maxOutputTokens: maxTokens ?? 150,
         },
     };
     
