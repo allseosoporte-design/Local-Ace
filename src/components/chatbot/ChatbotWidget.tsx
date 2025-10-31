@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ChatbotConfig, FAQ } from '@/types/chatbot';
-import { generateAIResponse } from '@/actions/chatbot-actions';
+import { callGeminiAPI } from '@/lib/chatbot-client';
 
 
 interface Message {
@@ -461,7 +461,8 @@ export default function ChatbotWidget() {
       }, 500); // Simular un pequeño retraso
     } else if (config.aiEnabled) {
       try {
-        const result = await generateAIResponse(
+        
+        const result = await callGeminiAPI(
             newMessages.map(m => ({ text: m.text, sender: m.sender })),
             currentInput,
             config.systemPrompt,
