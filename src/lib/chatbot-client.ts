@@ -1,3 +1,4 @@
+
 type Message = {
   text: string;
   sender: 'user' | 'bot';
@@ -17,29 +18,45 @@ export async function callGeminiAPI(
     
     const apiKey = 'AIzaSyAevyZmfR9IzY4A_OoEN0frE535rC3FcXA'; // Tu API key del .env
     
-    const contents = history.map(msg => ({
-      role: msg.sender === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.text }],
-    }));
+    // Construir contenido - gemini-pro requiere formato específico
+    const contents = [];
+    
+    // Agregar system prompt como primer mensaje del usuario
+    contents.push({
+      role: 'user',
+      parts: [{ text: systemPrompt }],
+    });
+    
+    contents.push({
+      role: 'model',
+      parts: [{ text: 'Entendido. Estoy listo para ayudar.' }],
+    });
+    
+    // Agregar historial quitando el primer mensaje de bienvenida del bot
+    if (history.length > 1) {
+        history.slice(1).forEach(msg => {
+          contents.push({
+            role: msg.sender === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.text }],
+          });
+        });
+    }
 
+    // Agregar pregunta actual
     contents.push({
       role: 'user',
       parts: [{ text: question }],
     });
 
     const geminiRequest = {
-      system_instruction: {
-        role: "system",
-        parts: [{ text: systemPrompt }]
-      },
       contents: contents,
-      generation_config: {
+      generationConfig: { // Corregido de generation_config a generationConfig
         temperature,
-        max_output_tokens: maxTokens,
+        maxOutputTokens: maxTokens,
       },
     };
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 
     const response = await fetch(geminiUrl, {
       method: 'POST',
