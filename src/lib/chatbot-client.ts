@@ -12,16 +12,12 @@ export async function callGeminiAPI(
   maxTokens: number = 150
 ): Promise<{ answer: string }> {
   try {
-    // Llamar directamente a Gemini desde el cliente
-    // Nota: En producción deberías usar una API route o Server Action
-    // Por ahora usamos fetch directo para que funcione en Firebase Studio
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyAevyZmfR9IzY4A_OoEN0frE535rC3FcXA';
     
-    const apiKey = 'AIzaSyAevyZmfR9IzY4A_OoEN0frE535rC3FcXA'; // Tu API key del .env
-    
-    // Construir contenido - gemini-pro requiere formato específico
+    // Construir contenido - gemini-pro requiere un formato de historial de chat específico.
     const contents = [];
     
-    // Agregar system prompt como primer mensaje del usuario
+    // Simular el system prompt como el primer par de mensajes en el historial.
     contents.push({
       role: 'user',
       parts: [{ text: systemPrompt }],
@@ -32,17 +28,17 @@ export async function callGeminiAPI(
       parts: [{ text: 'Entendido. Estoy listo para ayudar.' }],
     });
     
-    // Agregar historial quitando el primer mensaje de bienvenida del bot
+    // Agregar el historial real de la conversación, omitiendo el mensaje de bienvenida inicial del bot.
     if (history.length > 1) {
         history.slice(1).forEach(msg => {
-          contents.push({
-            role: msg.sender === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.text }],
-          });
+            contents.push({
+                role: msg.sender === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.text }],
+            });
         });
     }
 
-    // Agregar pregunta actual
+    // Agregar la pregunta actual del usuario.
     contents.push({
       role: 'user',
       parts: [{ text: question }],
@@ -50,7 +46,7 @@ export async function callGeminiAPI(
 
     const geminiRequest = {
       contents: contents,
-      generationConfig: { // Corregido de generation_config a generationConfig
+      generationConfig: {
         temperature,
         maxOutputTokens: maxTokens,
       },
@@ -78,9 +74,9 @@ export async function callGeminiAPI(
 
     return { answer };
   } catch (error) {
-    console.error('Error calling Gemini:', error);
+    console.error('Error in callGeminiAPI:', error);
     return { 
-      answer: 'Lo siento, tuve un problema al procesar tu pregunta. Por favor, intenta de nuevo.' 
+      answer: 'Lo siento, estoy teniendo problemas para conectarme en este momento. Por favor, intenta de nuevo más tarde.' 
     };
   }
 }
