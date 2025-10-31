@@ -1,3 +1,4 @@
+'use client';
 
 type Message = {
   text: string;
@@ -12,12 +13,12 @@ export async function callGeminiAPI(
   maxTokens: number = 150
 ): Promise<{ answer: string }> {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyAevyZmfR9IzY4A_OoEN0frE535rC3FcXA';
+    const apiKey = 'AIzaSyAevvZmf09IzY4A_DoEN0'; // API key
     
-    // Construir contenido - gemini-pro requiere un formato de historial de chat específico.
+    // Construir contenido - gemini-pro requiere formato específico
     const contents = [];
     
-    // Simular el system prompt como el primer par de mensajes en el historial.
+    // Agregar system prompt como primer mensaje del usuario
     contents.push({
       role: 'user',
       parts: [{ text: systemPrompt }],
@@ -28,17 +29,17 @@ export async function callGeminiAPI(
       parts: [{ text: 'Entendido. Estoy listo para ayudar.' }],
     });
     
-    // Agregar el historial real de la conversación, omitiendo el mensaje de bienvenida inicial del bot.
-    if (history.length > 1) {
-        history.slice(1).forEach(msg => {
-            contents.push({
-                role: msg.sender === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.text }],
-            });
+    // Agregar historial, omitiendo el mensaje de bienvenida inicial del bot
+    if(history.length > 1) {
+      history.slice(1).forEach(msg => {
+        contents.push({
+          role: msg.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.text }],
         });
+      });
     }
 
-    // Agregar la pregunta actual del usuario.
+    // Agregar pregunta actual
     contents.push({
       role: 'user',
       parts: [{ text: question }],
@@ -52,12 +53,13 @@ export async function callGeminiAPI(
       },
     };
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent`;
 
     const response = await fetch(geminiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify(geminiRequest),
     });
@@ -74,7 +76,7 @@ export async function callGeminiAPI(
 
     return { answer };
   } catch (error) {
-    console.error('Error in callGeminiAPI:', error);
+    console.error('Error calling Gemini:', error);
     return { 
       answer: 'Lo siento, estoy teniendo problemas para conectarme en este momento. Por favor, intenta de nuevo más tarde.' 
     };

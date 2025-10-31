@@ -461,9 +461,8 @@ export default function ChatbotWidget() {
       }, 500); // Simular un pequeño retraso
     } else if (config.aiEnabled) {
       try {
-        
         const result = await callGeminiAPI(
-            newMessages.map(m => ({ text: m.text, sender: m.sender })),
+            newMessages,
             currentInput,
             config.systemPrompt,
             config.temperature,
