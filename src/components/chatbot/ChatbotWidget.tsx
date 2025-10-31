@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -9,8 +10,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ChatbotConfig, FAQ } from '@/types/chatbot';
-import { callGeminiAPI } from '@/lib/chatbot-client';
-
 
 interface Message {
   id: string;
@@ -334,6 +333,12 @@ const mockConfig: ChatbotConfig = {
     systemPrompt: 'Eres un asistente amigable y profesional para el SaaS Local Leap.',
     temperature: 0.7,
     maxTokens: 150,
+    apiIntegrations: {
+        openRouter: { enabled: true, apiKey: '', status: 'connected' },
+        huggingFace: { enabled: false, apiKey: '', modelEndpoint: '', status: 'error' },
+        deepInfra: { enabled: true, apiKey: '', status: 'untested' },
+        gemini: { enabled: true, apiKey: '', rateLimit: 60, status: 'untested' }
+    }
 }
 
 export default function ChatbotWidget() {
@@ -461,13 +466,20 @@ export default function ChatbotWidget() {
       }, 500); // Simular un pequeño retraso
     } else if (config.aiEnabled) {
       try {
-        const result = await callGeminiAPI(
-            newMessages,
-            currentInput,
-            config.systemPrompt,
-            config.temperature,
-            config.maxTokens
-        );
+        const response = await fetch('/api/chatbot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            history: newMessages.map(m => ({ text: m.text, sender: m.sender})), 
+            question: currentInput 
+          }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`API call failed with status: ${response.status}`);
+        }
+
+        const result = await response.json();
         
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),

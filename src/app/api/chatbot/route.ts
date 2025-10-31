@@ -1,42 +1,85 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import type { ChatbotConfig } from '@/types/chatbot';
+
+// Initialize Firebase Admin SDK
+// This ensures we can securely access Firestore from the server.
+if (!getApps().length) {
+  // IMPORTANT: In a real production environment, use environment variables
+  // for service account credentials, not a hardcoded path.
+  // const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
+  // initializeApp({ credential: cert(serviceAccount) });
+  
+  // For Firebase Studio simplicity, we might allow a fallback if not configured
+  try {
+     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
+     initializeApp({ credential: cert(serviceAccount) });
+  } catch (e) {
+    console.warn(
+      'Could not initialize Firebase Admin. Chatbot API may not work. ' +
+      'Ensure FIREBASE_SERVICE_ACCOUNT_KEY is set in your environment.'
+    );
+  }
+}
+
+const db = getFirestore();
 
 // This function formats the conversation history for the Gemini API
 const buildGeminiPrompt = (history: { text: string, sender: 'user' | 'bot' }[], newQuestion: string, systemPrompt: string) => {
-  const contents = history.map(message => ({
-    role: message.sender === 'user' ? 'user' : 'model',
-    parts: [{ text: message.text }],
-  }));
+  const contents = [];
+  
+  // Simulate system prompt for models that don't support it directly
+  if (systemPrompt) {
+    contents.push({ role: 'user', parts: [{ text: systemPrompt }]});
+    contents.push({ role: 'model', parts: [{ text: "Entendido. Estoy listo para ayudar." }]});
+  }
+  
+  // Add history, skipping the initial bot welcome message
+  history.slice(1).forEach(msg => {
+    contents.push({
+      role: msg.sender === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.text }],
+    });
+  });
 
-  // Add the new user question to the history
+  // Add the new user question
   contents.push({
     role: 'user',
     parts: [{ text: newQuestion }],
   });
   
-  return {
-    system_instruction: {
-        role: "system",
-        parts: [{ text: systemPrompt }]
-    },
-    contents: contents,
-  };
+  return { contents };
 };
 
 export async function POST(request: NextRequest) {
-  console.log('=== CHATBOT API CALLED ==='); // Debug log added
+  console.log('=== CHATBOT API CALLED ===');
   try {
     const body = await request.json();
-    const { history, question, systemPrompt, temperature, maxTokens } = body;
+    const { history, question } = body;
 
-    if (!question || !systemPrompt) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    // 1. Fetch Chatbot Configuration from Firestore
+    const configDocRef = db.collection('chatbot').doc('config');
+    const configDoc = await configDocRef.get();
+
+    if (!configDoc.exists) {
+      throw new Error('Chatbot configuration not found in Firestore.');
     }
 
-    // Correctly check for both possible API key names
-    const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY;
+    const config = configDoc.data() as ChatbotConfig;
+    
+    if (!config.aiEnabled || !config.apiIntegrations?.gemini.enabled) {
+      return NextResponse.json({ answer: "Lo siento, la función de IA está desactivada actualmente." });
+    }
+
+    const apiKey = config.apiIntegrations.gemini.apiKey;
+    const systemPrompt = config.systemPrompt;
+    const temperature = config.temperature;
+    const maxTokens = config.maxTokens;
+
     if (!apiKey) {
-      console.error('Chatbot API error: GOOGLE_GENAI_API_KEY or GEMINI_API_KEY is not set.');
+      console.error('Chatbot API error: Gemini API Key is not configured in Firestore.');
       return NextResponse.json({ error: 'Server configuration error: Missing API Key' }, { status: 500 });
     }
     
@@ -50,12 +93,13 @@ export async function POST(request: NextRequest) {
         },
     };
     
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent`;
 
     const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify(geminiRequest),
     });
@@ -68,7 +112,6 @@ export async function POST(request: NextRequest) {
     
     const geminiResult = await geminiResponse.json();
     
-    // Extract the text from the response
     const answer = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || 'Lo siento, no pude generar una respuesta.';
 
     return NextResponse.json({ answer });
