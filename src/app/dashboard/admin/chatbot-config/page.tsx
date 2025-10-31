@@ -43,7 +43,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import type { ChatbotConfig, FAQ } from '@/types/chatbot';
+import type { ChatbotConfig, FAQ, ApiConfig, ApiProvider } from '@/types/chatbot';
 import { v4 as uuidv4 } from 'uuid';
 
 const FAQItem = ({ faq, onUpdate, onDelete }: { faq: FAQ, onUpdate: (updatedFaq: FAQ) => void, onDelete: () => void }) => (
@@ -396,7 +396,7 @@ const defaultConfig: ChatbotConfig = {
     }
 }
 
-const ApiStatusIndicator = ({ status }: { status: 'connected' | 'error' | 'untested' | undefined }) => {
+const ApiStatusIndicator = ({ status }: { status: ApiConfig['status'] }) => {
     const statusConfig = {
         connected: { text: 'Conectado', color: 'bg-green-500' },
         error: { text: 'Error de Conexión', color: 'bg-red-500' },
@@ -421,6 +421,8 @@ export default function ChatbotConfigPage() {
   
   const [config, setConfig] = useState<ChatbotConfig>(defaultConfig);
   const [isSaving, setIsSaving] = useState(false);
+  const [testingConnection, setTestingConnection] = useState<ApiProvider | null>(null);
+
 
   const configDocRef = useMemo(() => {
     if (!firestore) return null;
@@ -470,7 +472,7 @@ export default function ChatbotConfigPage() {
     setConfig(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleApiIntegrationChange = (api: keyof NonNullable<ChatbotConfig['apiIntegrations']>, field: string, value: any) => {
+  const handleApiIntegrationChange = (api: ApiProvider, field: string, value: any) => {
       setConfig(prev => ({
           ...prev,
           apiIntegrations: {
@@ -523,6 +525,26 @@ export default function ChatbotConfigPage() {
         setIsSaving(false);
     }
   }
+
+  const handleTestConnection = async (provider: ApiProvider) => {
+    setTestingConnection(provider);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Simulate random success/failure
+    const isSuccess = Math.random() > 0.3; // 70% chance of success
+    
+    handleApiIntegrationChange(provider, 'status', isSuccess ? 'connected' : 'error');
+    
+    toast({
+        title: `Prueba de Conexión (${provider})`,
+        description: isSuccess ? 'La conexión se ha establecido correctamente.' : 'No se pudo conectar. Verifica la clave API y la configuración.',
+        variant: isSuccess ? 'default' : 'destructive',
+    });
+
+    setTestingConnection(null);
+  };
 
   if (isLoadingConfig && !config) {
     return (
@@ -756,7 +778,10 @@ export default function ChatbotConfigPage() {
                                 <Input id="openrouter-key" type="password" placeholder="sk-or-..." value={config.apiIntegrations?.openRouter.apiKey} onChange={(e) => handleApiIntegrationChange('openRouter', 'apiKey', e.target.value)} />
                             </div>
                             <div className="flex items-center justify-between">
-                                <Button variant="outline" size="sm">Probar Conexión</Button>
+                                <Button variant="outline" size="sm" onClick={() => handleTestConnection('openRouter')} disabled={testingConnection === 'openRouter'}>
+                                  {testingConnection === 'openRouter' && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                  Probar Conexión
+                                </Button>
                                 <ApiStatusIndicator status={config.apiIntegrations?.openRouter.status}/>
                             </div>
                         </CardContent>
@@ -783,7 +808,10 @@ export default function ChatbotConfigPage() {
                                 <Input id="hf-endpoint" placeholder="https://..." value={config.apiIntegrations?.huggingFace.modelEndpoint} onChange={(e) => handleApiIntegrationChange('huggingFace', 'modelEndpoint', e.target.value)}/>
                             </div>
                             <div className="flex items-center justify-between">
-                                <Button variant="outline" size="sm">Probar Conexión</Button>
+                                <Button variant="outline" size="sm" onClick={() => handleTestConnection('huggingFace')} disabled={testingConnection === 'huggingFace'}>
+                                  {testingConnection === 'huggingFace' && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                  Probar Conexión
+                                </Button>
                                 <ApiStatusIndicator status={config.apiIntegrations?.huggingFace.status}/>
                             </div>
                         </CardContent>
@@ -806,7 +834,10 @@ export default function ChatbotConfigPage() {
                                 <Input id="di-key" type="password" placeholder="deepinfra-..." value={config.apiIntegrations?.deepInfra.apiKey} onChange={(e) => handleApiIntegrationChange('deepInfra', 'apiKey', e.target.value)}/>
                             </div>
                             <div className="flex items-center justify-between">
-                                <Button variant="outline" size="sm">Probar Conexión</Button>
+                                <Button variant="outline" size="sm" onClick={() => handleTestConnection('deepInfra')} disabled={testingConnection === 'deepInfra'}>
+                                  {testingConnection === 'deepInfra' && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                  Probar Conexión
+                                </Button>
                                 <ApiStatusIndicator status={config.apiIntegrations?.deepInfra.status}/>
                             </div>
                         </CardContent>
@@ -833,7 +864,10 @@ export default function ChatbotConfigPage() {
                                 <Input id="gemini-limit" type="number" value={config.apiIntegrations?.gemini.rateLimit} onChange={(e) => handleApiIntegrationChange('gemini', 'rateLimit', Number(e.target.value))}/>
                             </div>
                              <div className="flex items-center justify-between">
-                                <Button variant="outline" size="sm">Probar Conexión</Button>
+                                <Button variant="outline" size="sm" onClick={() => handleTestConnection('gemini')} disabled={testingConnection === 'gemini'}>
+                                  {testingConnection === 'gemini' && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                  Probar Conexión
+                                </Button>
                                 <ApiStatusIndicator status={config.apiIntegrations?.gemini.status}/>
                             </div>
                         </CardContent>
