@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { ChatbotConfig, FAQ } from '@/types/chatbot';
+import { generateChatbotResponse } from '@/ai/flows/generate-chatbot-response';
 
 interface Message {
   id: string;
@@ -466,20 +467,13 @@ export default function ChatbotWidget() {
       }, 500); // Simular un pequeño retraso
     } else if (config.aiEnabled) {
       try {
-        const response = await fetch('/api/chatbot', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            history: newMessages.map(m => ({ text: m.text, sender: m.sender})), 
-            question: currentInput 
-          }),
+        const result = await generateChatbotResponse({
+            history: newMessages.map(m => ({ text: m.text, sender: m.sender })),
+            question: currentInput,
+            systemPrompt: config.systemPrompt || 'You are a helpful assistant.',
+            temperature: config.temperature,
+            maxTokens: config.maxTokens
         });
-
-        if (!response.ok) {
-            throw new Error(`API call failed with status: ${response.status}`);
-        }
-
-        const result = await response.json();
         
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
