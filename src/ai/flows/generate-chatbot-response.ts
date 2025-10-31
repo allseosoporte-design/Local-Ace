@@ -9,6 +9,25 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { getSubscriptionPlans } from '@/services/subscription-service';
+
+// Define the tool for Genkit to use
+const getSubscriptionPlansTool = ai.defineTool(
+  {
+    name: 'getSubscriptionPlans',
+    description: 'Retrieves the available subscription plans from the database.',
+    outputSchema: z.array(z.object({
+        name: z.string(),
+        price: z.number(),
+        billingPeriod: z.string(),
+        features: z.array(z.string()),
+    }))
+  },
+  async () => {
+    return await getSubscriptionPlans();
+  }
+);
+
 
 const MessageSchema = z.object({
     text: z.string(),
@@ -43,7 +62,13 @@ export async function generateChatbotResponse(
     name: 'chatbotPrompt',
     input: { schema: GenerateChatbotResponseInputSchema },
     output: { schema: GenerateChatbotResponseOutputSchema },
-    system: input.systemPrompt,
+    tools: [getSubscriptionPlansTool], // Make the tool available to the AI
+    system: `${input.systemPrompt}
+    
+    IMPORTANT: If the user asks about subscription plans, pricing, costs, or features of the plans, you MUST use the 'getSubscriptionPlans' tool to fetch the current data before answering.
+    If the tool returns an empty list, inform the user that there are currently no plans defined and they should check back later.
+    Base your answer ONLY on the information provided by the tool.
+    `,
     prompt: `Conversation History:
     ${historyPrompt}
     
