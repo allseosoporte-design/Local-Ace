@@ -68,9 +68,10 @@ service cloud.firestore {
       allow write: if request.auth.uid == request.resource.data.businessId || isSuperAdmin();
     }
 
+    // CORRECTED RULE FOR PUBLIC ACCESS
     match /subscriptionPlans/{planId} {
-      allow read, list: if true;
-      allow write: if isSuperAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if isSuperAdmin();
     }
 
     match /pendingPayments/{paymentId} {
