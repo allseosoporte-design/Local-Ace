@@ -8,6 +8,9 @@ import Link from 'next/link';
 import { Star, Facebook, Twitter, Instagram, Linkedin, Youtube, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 import { InteractiveReviewForm } from './interactive-review-form';
+import type { SubscriptionPlan } from '@/types/subscription-plan';
+import { PublicPlanCard } from './public-plan-card';
+
 
 export interface NavLink {
   id: string;
@@ -119,8 +122,9 @@ export interface LandingPageData {
 interface EditorLandingPreviewProps {
   data: LandingPageData;
   formConfig?: FormConfigData;
-  businessId?: string; // Add businessId to props
+  businessId?: string;
   isPreview?: boolean;
+  plans?: SubscriptionPlan[];
 }
 
 const SocialIcon = ({ network, color }: { network: string; color: string }) => {
@@ -136,7 +140,7 @@ const SocialIcon = ({ network, color }: { network: string; color: string }) => {
 }
 
 
-export function EditorLandingPreview({ data, formConfig, businessId, isPreview }: EditorLandingPreviewProps) {
+export function EditorLandingPreview({ data, formConfig, businessId, isPreview, plans }: EditorLandingPreviewProps) {
   
   const alignmentClasses = {
     left: 'justify-start',
@@ -218,6 +222,21 @@ export function EditorLandingPreview({ data, formConfig, businessId, isPreview }
                     </div>
                 )}
             </section>
+
+            {/* Subscription Plans Section */}
+            {plans && plans.length > 0 && (
+                <section id="plans" className="py-12 px-6 bg-muted/30">
+                    <div className="container mx-auto">
+                        <h2 className="text-3xl font-bold text-center mb-2" style={{color: data.textColor}}>Nuestros Planes</h2>
+                        <p className="text-xl text-center text-muted-foreground mb-12" style={{color: data.textColor, opacity: 0.8}}>Elige el plan que mejor se adapte a tu negocio.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                            {plans.map(plan => (
+                                <PublicPlanCard key={plan.id} plan={plan} />
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {data.sections.map((section) => (
             <section key={section.id} style={{ backgroundColor: section.backgroundColor, color: section.textColor, borderTop: `4px solid ${section.sectionColor}` }} className="py-12 px-6">
