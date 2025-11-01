@@ -69,7 +69,7 @@ service cloud.firestore {
     }
 
     match /subscriptionPlans/{planId} {
-      allow read: if true;
+      allow read, list: if true;
       allow write: if isSuperAdmin();
     }
 
