@@ -8,9 +8,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { PlusCircle, BarChart, CheckCircle, Star, Loader2 } from 'lucide-react';
-import { collection, query, doc, writeBatch, deleteDoc } from 'firebase/firestore';
+import { collection, query, doc, writeBatch, deleteDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useUser } from '@/firebase';
-import { PlanModal } from '@/components/plan-modal';
+import { PlanModal, type PlanFormData } from '@/components/plan-modal';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { PlanCard } from '@/components/plan-card';
 import { useToast } from '@/hooks/use-toast';
@@ -117,6 +117,28 @@ export default function SubscriptionPlansPage() {
     }
   };
   
+  const handleSave = async (data: PlanFormData) => {
+    if (!firestore) return;
+    try {
+      if (editingPlan) {
+        const planRef = doc(firestore, 'subscriptionPlans', editingPlan.id);
+        await updateDoc(planRef, { ...data, updatedAt: serverTimestamp() });
+        toast({ title: 'Plan actualizado', description: 'Los cambios han sido guardados.' });
+      } else {
+        await addDoc(collection(firestore, 'subscriptionPlans'), {
+          ...data,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        toast({ title: 'Plan creado', description: 'El nuevo plan ha sido añadido.' });
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+       console.error(error);
+       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el plan.' });
+    }
+  };
+
   const handleReorder = async (plan: SubscriptionPlan, direction: 'up' | 'down') => {
     if (!plans || !firestore) return;
     const sortedPlans = [...plans].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -226,6 +248,7 @@ export default function SubscriptionPlansPage() {
       <PlanModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
+        onSave={handleSave}
         plan={editingPlan}
         planCount={allPlans?.length || 0}
       />

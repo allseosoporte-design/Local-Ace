@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -33,9 +34,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
-import { useFirestore } from '@/firebase';
-import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
 import { X, PlusCircle } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
@@ -51,18 +49,17 @@ const planSchema = z.object({
   isPopular: z.boolean().default(false),
 });
 
-type PlanFormData = z.infer<typeof planSchema>;
+export type PlanFormData = z.infer<typeof planSchema>;
 
 interface PlanModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave: (data: PlanFormData) => void;
   plan: SubscriptionPlan | null;
   planCount: number;
 }
 
-export function PlanModal({ isOpen, onClose, plan, planCount }: PlanModalProps) {
-  const firestore = useFirestore();
-  const { toast } = useToast();
+export function PlanModal({ isOpen, onClose, onSave, plan, planCount }: PlanModalProps) {
   const form = useForm<PlanFormData>({
     resolver: zodResolver(planSchema),
     defaultValues: {
@@ -106,28 +103,6 @@ export function PlanModal({ isOpen, onClose, plan, planCount }: PlanModalProps) 
     }
   }, [plan, isOpen, form, planCount]);
 
-  const onSubmit = async (data: PlanFormData) => {
-    if (!firestore) return;
-    try {
-      if (plan) {
-        const planRef = doc(firestore, 'subscriptionPlans', plan.id);
-        await setDoc(planRef, { ...data, updatedAt: serverTimestamp() }, { merge: true });
-        toast({ title: 'Plan actualizado', description: 'Los cambios han sido guardados.' });
-      } else {
-        await addDoc(collection(firestore, 'subscriptionPlans'), {
-          ...data,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-        toast({ title: 'Plan creado', description: 'El nuevo plan ha sido añadido.' });
-      }
-      onClose();
-    } catch (error) {
-       console.error(error);
-       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el plan.' });
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl">
@@ -138,7 +113,7 @@ export function PlanModal({ isOpen, onClose, plan, planCount }: PlanModalProps) 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(onSave)}>
             <ScrollArea className="h-[60vh] pr-6">
               <div className="space-y-4 py-4">
                   <FormField control={form.control} name="name" render={({ field }) => (
