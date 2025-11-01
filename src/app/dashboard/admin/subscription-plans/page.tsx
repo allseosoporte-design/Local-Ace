@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -176,73 +177,75 @@ export default function SubscriptionPlansPage() {
   const showLoading = isUserLoading || isCheckingAdmin || (plansQuery !== null && isLoadingPlans);
 
   return (
-    <div className="space-y-6">
-       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Gestión de Planes de Suscripción</h1>
-          <p className="text-muted-foreground">
-            Administra los planes que se muestran en la página principal.
-          </p>
-        </div>
-        <Button onClick={handleCreate} disabled={!isSuperAdmin}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Crear Plan
-        </Button>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Planes</CardTitle>
-            <BarChart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{showLoading ? '...' : metrics.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Planes Activos</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{showLoading ? '...' : metrics.active}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Planes Populares</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{showLoading ? '...' : metrics.popular}</div>
-          </CardContent>
-        </Card>
-        <div className="flex items-center justify-center rounded-lg border bg-card text-card-foreground shadow-sm p-4">
-           <div className="flex items-center space-x-2">
-              <Switch id="show-inactive" checked={showInactive} onCheckedChange={setShowInactive} />
-              <Label htmlFor="show-inactive">Mostrar planes inactivos</Label>
-            </div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {showLoading && Array.from({length: 4}).map((_, i) => <Card key={i} className="h-[450px] flex flex-col"><CardHeader><Skeleton className="h-5 w-2/4" /><Skeleton className="h-4 w-full mt-2" /></CardHeader><CardContent className="flex-grow"><Skeleton className="h-8 w-1/3 mb-4" /><Skeleton className="h-px w-full" /><div className="space-y-2 mt-4"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/4" /></div></CardContent><CardFooter><Skeleton className="h-10 w-full" /></CardFooter></Card>)}
-        {!showLoading && isSuperAdmin && plans?.map((plan) => (
-          <PlanCard 
-            key={plan.id} 
-            plan={plan} 
-            onEdit={handleEdit} 
-            onDelete={handleDeleteConfirmation} 
-            onReorder={handleReorder}
-          />
-        ))}
-      </div>
-       {!showLoading && (!isSuperAdmin || plans?.length === 0) && (
-          <div className="col-span-full text-center py-12 text-muted-foreground">
-            <p>No se encontraron planes o no tienes permisos para verlos.</p>
+    <>
+      <div className="space-y-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Gestión de Planes de Suscripción</h1>
+            <p className="text-muted-foreground">
+              Administra los planes que se muestran en la página principal.
+            </p>
           </div>
-        )}
+          <Button onClick={handleCreate} disabled={!isSuperAdmin}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Crear Plan
+          </Button>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total de Planes</CardTitle>
+              <BarChart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{showLoading ? '...' : metrics.total}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Planes Activos</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{showLoading ? '...' : metrics.active}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Planes Populares</CardTitle>
+              <Star className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{showLoading ? '...' : metrics.popular}</div>
+            </CardContent>
+          </Card>
+          <div className="flex items-center justify-center rounded-lg border bg-card text-card-foreground shadow-sm p-4">
+            <div className="flex items-center space-x-2">
+                <Switch id="show-inactive" checked={showInactive} onCheckedChange={setShowInactive} />
+                <Label htmlFor="show-inactive">Mostrar planes inactivos</Label>
+              </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {showLoading && Array.from({length: 4}).map((_, i) => <Card key={i} className="h-[450px] flex flex-col"><CardHeader><Skeleton className="h-5 w-2/4" /><Skeleton className="h-4 w-full mt-2" /></CardHeader><CardContent className="flex-grow"><Skeleton className="h-8 w-1/3 mb-4" /><Skeleton className="h-px w-full" /><div className="space-y-2 mt-4"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/4" /></div></CardContent><CardFooter><Skeleton className="h-10 w-full" /></CardFooter></Card>)}
+          {!showLoading && isSuperAdmin && plans?.map((plan) => (
+            <PlanCard 
+              key={plan.id} 
+              plan={plan} 
+              onEdit={handleEdit} 
+              onDelete={handleDeleteConfirmation} 
+              onReorder={handleReorder}
+            />
+          ))}
+        </div>
+        {!showLoading && (!isSuperAdmin || plans?.length === 0) && (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              <p>No se encontraron planes o no tienes permisos para verlos.</p>
+            </div>
+          )}
+      </div>
 
       <PlanModal 
         isOpen={isModalOpen} 
@@ -266,6 +269,8 @@ export default function SubscriptionPlansPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
+
+    
