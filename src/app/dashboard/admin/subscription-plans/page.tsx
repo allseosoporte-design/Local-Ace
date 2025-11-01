@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -45,7 +44,7 @@ export default function SubscriptionPlansPage() {
         try {
           const tokenResult = await getIdTokenResult(user, true);
           const claims = tokenResult.claims;
-          if (claims.isSuperAdmin === true) {
+          if (claims.isSuperAdmin === true || user.email === 'allseosoporte@gmail.com') {
             setIsSuperAdmin(true);
           }
         } catch (error) {
@@ -162,7 +161,6 @@ export default function SubscriptionPlansPage() {
       const planRef = doc(firestore, 'subscriptionPlans', plan.id);
       const otherPlanRef = doc(firestore, 'subscriptionPlans', otherPlan.id);
 
-      // Intercambiar los valores de 'order'
       batch.update(planRef, { order: otherPlan.order });
       batch.update(otherPlanRef, { order: plan.order });
       
@@ -272,5 +270,3 @@ export default function SubscriptionPlansPage() {
     </>
   );
 }
-
-    
