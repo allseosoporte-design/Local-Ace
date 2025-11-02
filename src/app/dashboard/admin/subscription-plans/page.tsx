@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { PlusCircle, BarChart, CheckCircle, Star, Loader2 } from 'lucide-react';
-import { collection, query, doc, writeBatch, deleteDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, doc, writeBatch, deleteDoc, addDoc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { PlanModal, type PlanFormData } from '@/components/plan-modal';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
@@ -62,7 +62,7 @@ export default function SubscriptionPlansPage() {
 
   const plansQuery = useMemo(() => {
     if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
-    return collection(firestore, 'subscriptionPlans');
+    return query(collection(firestore, 'subscriptionPlans'), orderBy('order'));
   }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
   const { data: allPlans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);

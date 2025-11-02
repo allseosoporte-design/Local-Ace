@@ -176,7 +176,7 @@ export function EditorLandingPreview({ data, formConfig, businessId, isPreview, 
                     )}
                    </div>
                     <div className="flex-grow flex items-center" style={{ gap: `${data.navigation.spacing}px`, justifyContent: alignmentClasses[data.navigation.logoAlignment] === 'justify-center' ? 'center' : 'flex-end' }}>
-                        {[...data.navigation.links].sort((a, b) => a.order - b.order).map(link => (
+                        {[...(data.navigation.links || [])].sort((a, b) => a.order - b.order).map(link => (
                             <Link key={link.id} href={link.url} target={link.newTab ? '_blank' : '_self'} rel={link.newTab ? 'noopener noreferrer' : ''}>
                                 <span 
                                   className="hover:opacity-75 transition-opacity"
