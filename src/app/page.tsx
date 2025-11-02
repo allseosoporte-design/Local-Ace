@@ -5,7 +5,7 @@ import { EditorLandingPreview, type LandingPageData } from '@/components/editor-
 import { HomeNav } from '@/components/home-nav';
 import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 import { useDoc, useFirestore, useCollection } from '@/firebase';
-import { doc, collection, query, where, orderBy } from 'firebase/firestore';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
@@ -107,18 +107,24 @@ export default function Home() {
     return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/landingPages`, 'form');
   }, [firestore]);
 
+  // Query simplificada - solo orderBy sin where
   const plansQuery = useMemo(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'subscriptionPlans'),
-      where('isActive', '==', true),
       orderBy('order', 'asc')
     );
   }, [firestore]);
 
   const { data: landingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingPageRef);
   const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
-  const { data: plans, isLoading: arePlansLoading } = useCollection<SubscriptionPlan>(plansQuery);
+  const { data: allPlans, isLoading: arePlansLoading } = useCollection<SubscriptionPlan>(plansQuery);
+
+  // Filtrar planes activos en memoria
+  const plans = useMemo(() => {
+    if (!allPlans) return [];
+    return allPlans.filter(plan => plan.isActive === true);
+  }, [allPlans]);
 
   const isLoading = isLandingLoading || isFormLoading || arePlansLoading;
 
@@ -151,7 +157,7 @@ export default function Home() {
           data={displayData} 
           formConfig={formConfig || undefined}
           businessId={SUPER_ADMIN_BUSINESS_ID}
-          plans={plans || []}
+          plans={plans}
         />
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">
