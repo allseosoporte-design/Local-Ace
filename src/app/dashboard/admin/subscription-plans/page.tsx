@@ -60,10 +60,11 @@ export default function SubscriptionPlansPage() {
     checkAdmin();
   }, [user, isUserLoading]);
 
+  // Query simplificada - se ejecuta siempre que firestore esté disponible
   const plansQuery = useMemo(() => {
-    if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
-    return query(collection(firestore, 'subscriptionPlans'), orderBy('order'));
-  }, [firestore, isSuperAdmin, isCheckingAdmin]);
+    if (!firestore) return null;
+    return query(collection(firestore, 'subscriptionPlans'), orderBy('order', 'asc'));
+  }, [firestore]);
 
   const { data: allPlans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
 
@@ -75,7 +76,6 @@ export default function SubscriptionPlansPage() {
     }
     return filteredPlans.sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [allPlans, showInactive]);
-
 
   const metrics = useMemo(() => {
     if (!allPlans) return { total: 0, active: 0, popular: 0 };
@@ -172,7 +172,7 @@ export default function SubscriptionPlansPage() {
     }
   };
 
-  const showLoading = isUserLoading || isCheckingAdmin || (plansQuery !== null && isLoadingPlans);
+  const showLoading = isUserLoading || isCheckingAdmin || isLoadingPlans;
 
   return (
     <>
