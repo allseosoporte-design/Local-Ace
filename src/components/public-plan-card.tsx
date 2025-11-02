@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -12,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, List } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -44,18 +43,12 @@ export function PublicPlanCard({ plan }: PublicPlanCardProps) {
         </div>
         <Separator />
         <ul className="space-y-3 text-sm text-muted-foreground">
-        {plan.features.slice(0, 5).map((feature, index) => (
+        {plan.features.map((feature, index) => (
             <li key={index} className="flex items-start">
                 <CheckCircle className="h-4 w-4 mr-2 mt-1 shrink-0 text-green-500" />
                 <span>{feature}</span>
             </li>
         ))}
-        {plan.features.length > 5 && (
-             <li className="flex items-center text-xs">
-                <List className="h-3 w-3 mr-2" />
-                <span>y {plan.features.length - 5} más...</span>
-            </li>
-        )}
         </ul>
       </CardContent>
       <CardFooter>
