@@ -76,18 +76,12 @@ export function PlanCard({ plan, onEdit, onDelete, onReorder }: PlanCardProps) {
         </div>
         <Separator />
         <ul className="space-y-2 text-sm text-muted-foreground">
-        {plan.features.slice(0, 3).map((feature, index) => (
+        {plan.features.map((feature, index) => (
             <li key={index} className="flex items-start">
                 <CheckCircle className="h-4 w-4 mr-2 mt-1 shrink-0 text-green-500" />
                 <span>{feature}</span>
             </li>
         ))}
-        {plan.features.length > 3 && (
-             <li className="flex items-center">
-                <List className="h-4 w-4 mr-2" />
-                <span>y {plan.features.length - 3} más...</span>
-            </li>
-        )}
         </ul>
         <div className="text-xs text-muted-foreground pt-2">
             <span className="font-semibold mr-2">Orden de visualización:</span> 
