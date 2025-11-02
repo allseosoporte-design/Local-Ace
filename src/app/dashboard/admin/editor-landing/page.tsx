@@ -1,13 +1,18 @@
-
 'use client';
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { EditorLandingForm } from "@/components/editor-landing-form";
 import { EditorLandingPreview, type LandingPageData } from "@/components/editor-landing-preview";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditorSections } from "@/components/editor-sections";
 import { EditorTestimonials } from "@/components/editor-testimonials";
 import { EditorSeo } from "@/components/editor-seo";
+import { useFirestore, useDoc, useCollection } from "@/firebase";
+import { doc, collection, query, orderBy } from "firebase/firestore";
+import { SUPER_ADMIN_BUSINESS_ID } from "@/lib/constants";
+import { Loader2 } from "lucide-react";
+import type { SubscriptionPlan } from "@/types/subscription-plan";
+import type { FormConfigData } from "@/components/dashboard/landing/FormEditor";
 
 const defaultLandingData: LandingPageData = {
   title: "Moderniza tu negocio y aumenta tus ventas.",
@@ -50,46 +55,135 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
     title: "Moderniza tu negocio y aumenta tus ventas",
     description: "Descubre la revolución para tu NEGOCIO. Con nuestro menú digital interactivo, tus clientes explorarán tus platos con fotos de alta calidad y descripciones detalladas, facilitando su elección y aumentando su satisfacción.",
     keywords: ["Aumenta tus ventas", "Negocio digital", "Herramientas tecnológicas", "Éxito empresarial"],
+  },
+  navigation: {
+      enabled: true,
+      links: [],
+      backgroundColor: '#FFFFFF',
+      textColor: '#000000',
+      hoverColor: '#4169E1',
+      fontSize: '16',
+      spacing: '24',
+      shadow: true,
+      logoUrl: null,
+      logoText: "Mi Negocio",
+      logoWidth: 120,
+      logoAlignment: 'left'
+  },
+  footer: {
+      enabled: true,
+      copyrightText: `© ${new Date().getFullYear()} Tu Negocio. Todos los derechos reservados.`,
+      columns: [],
+      socialLinks: [],
+      address: '',
+      phone: '',
+      email: '',
+      backgroundColor: '#F8F9FA',
+      textColor: '#333333',
+      iconColor: '#4169E1'
   }
 };
 
-
 export default function EditorLandingPage() {
-  const [data, setData] = useState<LandingPageData>(defaultLandingData);
+  const firestore = useFirestore();
+  const [localData, setLocalData] = useState<LandingPageData>(defaultLandingData);
+
+  // Referencias a Firestore
+  const landingPageRef = useMemo(() => {
+    if (!firestore) return null;
+    return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/landingPages`, 'config');
+  }, [firestore]);
+
+  const formConfigRef = useMemo(() => {
+    if (!firestore) return null;
+    return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/landingPages`, 'form');
+  }, [firestore]);
+
+  // Query para obtener los planes de suscripción
+  const plansQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'subscriptionPlans'),
+      orderBy('order', 'asc')
+    );
+  }, [firestore]);
+
+  // Hooks para obtener datos de Firestore
+  const { data: landingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingPageRef);
+  const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
+  const { data: allPlans, isLoading: arePlansLoading } = useCollection<SubscriptionPlan>(plansQuery);
+
+  // Filtrar solo planes activos
+  const plans = useMemo(() => {
+    if (!allPlans) return [];
+    return allPlans.filter(plan => plan.isActive === true);
+  }, [allPlans]);
+
+  // Sincronizar datos de Firestore con estado local
+  useEffect(() => {
+    if (landingData) {
+      setLocalData(landingData);
+    }
+  }, [landingData]);
+
+  const isLoading = isLandingLoading || isFormLoading || arePlansLoading;
+
+  // Combinar datos por defecto con datos de Firestore
+  const displayData = useMemo(() => {
+    const finalData = { ...defaultLandingData, ...localData };
+    finalData.sections = finalData.sections || [];
+    finalData.testimonials = finalData.testimonials || [];
+    finalData.seo = { ...defaultLandingData.seo, ...(finalData.seo || {}) };
+    return finalData;
+  }, [localData]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-0">
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Editor Landing</h1>
         <p className="text-muted-foreground">
-          Edita la configuración de la página principal
+          Edita la configuración de la página principal. Los cambios se sincronizan con la Gestión de Planes.
         </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
         <div className="lg:col-span-2">
-            <Tabs defaultValue="hero">
-                <TabsList>
-                    <TabsTrigger value="hero">Hero</TabsTrigger>
-                    <TabsTrigger value="sections">Secciones</TabsTrigger>
-                    <TabsTrigger value="testimonials">Testimonios</TabsTrigger>
-                    <TabsTrigger value="seo">SEO</TabsTrigger>
-                </TabsList>
-                <TabsContent value="hero">
-                    <EditorLandingForm data={data} setData={setData} />
-                </TabsContent>
-                <TabsContent value="sections">
-                    <EditorSections data={data} setData={setData} />
-                </TabsContent>
-                <TabsContent value="testimonials">
-                    <EditorTestimonials data={data} setData={setData} />
-                </TabsContent>
-                 <TabsContent value="seo">
-                    <EditorSeo data={data} setData={setData} />
-                </TabsContent>
-            </Tabs>
+          <Tabs defaultValue="hero">
+            <TabsList>
+              <TabsTrigger value="hero">Hero</TabsTrigger>
+              <TabsTrigger value="sections">Secciones</TabsTrigger>
+              <TabsTrigger value="testimonials">Testimonios</TabsTrigger>
+              <TabsTrigger value="seo">SEO</TabsTrigger>
+            </TabsList>
+            <TabsContent value="hero">
+              <EditorLandingForm data={displayData} setData={setLocalData} />
+            </TabsContent>
+            <TabsContent value="sections">
+              <EditorSections data={displayData} setData={setLocalData} />
+            </TabsContent>
+            <TabsContent value="testimonials">
+              <EditorTestimonials data={displayData} setData={setLocalData} />
+            </TabsContent>
+            <TabsContent value="seo">
+              <EditorSeo data={displayData} setData={setLocalData} />
+            </TabsContent>
+          </Tabs>
         </div>
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
-          <EditorLandingPreview data={data} isPreview={true} />
+          <EditorLandingPreview 
+            data={displayData} 
+            formConfig={formConfig || undefined}
+            businessId={SUPER_ADMIN_BUSINESS_ID}
+            plans={plans}
+            isPreview={true} 
+          />
         </div>
       </div>
     </div>
