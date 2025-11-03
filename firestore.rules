@@ -42,7 +42,7 @@ service cloud.firestore {
       
       match /landingPages/{pageId} {
         allow read: if true;
-        allow write: if request.auth != null && request.auth.uid == businessId;
+        allow write: if request.auth != null && (request.auth.uid == businessId || isSuperAdmin());
       }
     }
     
