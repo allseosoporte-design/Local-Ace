@@ -8,22 +8,18 @@ import { EditorSections } from "@/components/editor-sections";
 import { EditorTestimonials } from "@/components/editor-testimonials";
 import { EditorSeo } from "@/components/editor-seo";
 import { useFirestore, useDoc, useCollection } from "@/firebase";
-import { doc, collection, query, orderBy } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, query, orderBy } from "firebase/firestore";
 import { SUPER_ADMIN_BUSINESS_ID } from "@/lib/constants";
-import { Loader2 } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import type { SubscriptionPlan } from "@/types/subscription-plan";
 import type { FormConfigData } from "@/components/dashboard/landing/FormEditor";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const defaultLandingData: LandingPageData = {
   title: "Moderniza tu negocio y aumenta tus ventas.",
   subtitle: "La herramienta definitiva para potenciar tu negocio gastronómico.",
-  content: `Descubre la revolución para tu NEGOCIO. ¿Tienes una cafetería, pizzería, food truck, panadería, pastelería, servicio de catering o cualquier otro negocio gastronómico? ¡Esta solución es para ti!
-
-Con nuestro menú digital interactivo, tus clientes explorarán tus platos con fotos de alta calidad y descripciones detalladas, facilitando su elección y aumentando su satisfacción.
-
-Además, nuestro sistema de gestión integral te permite controlar cada aspecto de tu negocio: desde el inventario y los pedidos hasta las mesas y el personal, todo en una sola plataforma.
-
-Optimiza tu operación, reduce costos y toma decisiones más inteligentes con datos en tiempo real. Es la solución completa para llevar tu restaurante a un nuevo nivel de eficiencia y rentabilidad.`,
+  content: `Descubre la revolución para tu NEGOCIO.`,
   heroImageUrl: "https://picsum.photos/seed/websapmax/1200/800",
   ctaText: "Comenzar",
   ctaUrl: "/register",
@@ -33,28 +29,11 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
   sections: [],
   testimonialsTitle: "Lo que opinan nuestros clientes",
   testimonialsSubtitle: "La satisfacción de nuestros usuarios impulsa lo que hacemos",
-  testimonials: [
-    {
-      id: "1",
-      authorName: "Ana López",
-      authorRole: "Dueña, Restaurante Sabor del Sol",
-      text: "¡Local Leap ha transformado mi negocio! Mis ventas han aumentado un 30% desde que implementé el menú digital.",
-      avatarUrl: "https://picsum.photos/seed/testi1/100/100",
-      rating: 5,
-    },
-    {
-      id: "2",
-      authorName: "Juan Martínez",
-      authorRole: "Gerente, Burger Hub",
-      text: "La gestión de pedidos y mesas es increíblemente intuitiva. He reducido los errores en las órdenes a casi cero.",
-      avatarUrl: "https://picsum.photos/seed/testi2/100/100",
-      rating: 5,
-    }
-  ],
+  testimonials: [],
   seo: {
-    title: "Moderniza tu negocio y aumenta tus ventas",
-    description: "Descubre la revolución para tu NEGOCIO. Con nuestro menú digital interactivo, tus clientes explorarán tus platos con fotos de alta calidad y descripciones detalladas, facilitando su elección y aumentando su satisfacción.",
-    keywords: ["Aumenta tus ventas", "Negocio digital", "Herramientas tecnológicas", "Éxito empresarial"],
+    title: "Local Leap - Potencia tu Negocio",
+    description: "La plataforma todo en uno para optimizar tu presencia en Google My Business.",
+    keywords: ["Google My Business", "SEO Local", "gestión de reseñas"],
   },
   navigation: {
       enabled: true,
@@ -66,13 +45,13 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
       spacing: '24',
       shadow: true,
       logoUrl: null,
-      logoText: "Mi Negocio",
+      logoText: "Local Leap",
       logoWidth: 120,
       logoAlignment: 'left'
   },
   footer: {
       enabled: true,
-      copyrightText: `© ${new Date().getFullYear()} Tu Negocio. Todos los derechos reservados.`,
+      copyrightText: `© ${new Date().getFullYear()} Local Leap. Todos los derechos reservados.`,
       columns: [],
       socialLinks: [],
       address: '',
@@ -84,11 +63,13 @@ Optimiza tu operación, reduce costos y toma decisiones más inteligentes con da
   }
 };
 
+
 export default function EditorLandingPage() {
   const firestore = useFirestore();
-  const [localData, setLocalData] = useState<LandingPageData>(defaultLandingData);
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+  const [localData, setLocalData] = useState<LandingPageData | null>(null);
 
-  // Referencias a Firestore
   const landingPageRef = useMemo(() => {
     if (!firestore) return null;
     return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/landingPages`, 'config');
@@ -99,7 +80,6 @@ export default function EditorLandingPage() {
     return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/landingPages`, 'form');
   }, [firestore]);
 
-  // Query para obtener los planes de suscripción
   const plansQuery = useMemo(() => {
     if (!firestore) return null;
     return query(
@@ -108,35 +88,39 @@ export default function EditorLandingPage() {
     );
   }, [firestore]);
 
-  // Hooks para obtener datos de Firestore
-  const { data: landingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingPageRef);
+  const { data: initialLandingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingPageRef);
   const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
   const { data: allPlans, isLoading: arePlansLoading } = useCollection<SubscriptionPlan>(plansQuery);
 
-  // Filtrar solo planes activos
   const plans = useMemo(() => {
     if (!allPlans) return [];
     return allPlans.filter(plan => plan.isActive === true);
   }, [allPlans]);
 
-  // Sincronizar datos de Firestore con estado local
   useEffect(() => {
-    if (landingData) {
-      setLocalData(landingData);
+    if (initialLandingData) {
+      setLocalData(initialLandingData);
+    } else if (!isLandingLoading) {
+      setLocalData(defaultLandingData);
     }
-  }, [landingData]);
+  }, [initialLandingData, isLandingLoading]);
 
-  const isLoading = isLandingLoading || isFormLoading || arePlansLoading;
+  const isLoading = isLandingLoading || isFormLoading || arePlansLoading || !localData;
 
-  // Combinar datos por defecto con datos de Firestore
-  const displayData = useMemo(() => {
-    const finalData = { ...defaultLandingData, ...localData };
-    finalData.sections = finalData.sections || [];
-    finalData.testimonials = finalData.testimonials || [];
-    finalData.seo = { ...defaultLandingData.seo, ...(finalData.seo || {}) };
-    return finalData;
-  }, [localData]);
-
+  const handleSave = async () => {
+    if (!localData || !landingPageRef) return;
+    setIsSaving(true);
+    try {
+        await setDoc(landingPageRef, { ...localData, updatedAt: serverTimestamp() }, { merge: true });
+        toast({ title: '¡Guardado!', description: 'La configuración de la página principal se ha actualizado.' });
+    } catch (error) {
+        console.error("Error saving landing page config:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la configuración.' });
+    } finally {
+        setIsSaving(false);
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -147,11 +131,17 @@ export default function EditorLandingPage() {
 
   return (
     <div className="container mx-auto p-0">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Editor Landing</h1>
-        <p className="text-muted-foreground">
-          Edita la configuración de la página principal. Los cambios se sincronizan con la Gestión de Planes.
-        </p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Editor Landing</h1>
+            <p className="text-muted-foreground">
+            Edita la configuración de la página principal.
+            </p>
+        </div>
+        <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
+            Guardar Cambios
+        </Button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
         <div className="lg:col-span-2">
@@ -163,22 +153,22 @@ export default function EditorLandingPage() {
               <TabsTrigger value="seo">SEO</TabsTrigger>
             </TabsList>
             <TabsContent value="hero">
-              <EditorLandingForm data={displayData} setData={setLocalData} />
+              <EditorLandingForm data={localData} setData={setLocalData} />
             </TabsContent>
             <TabsContent value="sections">
-              <EditorSections data={displayData} setData={setLocalData} />
+              <EditorSections data={localData} setData={setLocalData} />
             </TabsContent>
             <TabsContent value="testimonials">
-              <EditorTestimonials data={displayData} setData={setLocalData} />
+              <EditorTestimonials data={localData} setData={setLocalData} />
             </TabsContent>
             <TabsContent value="seo">
-              <EditorSeo data={displayData} setData={setLocalData} />
+              <EditorSeo data={localData} setData={setLocalData} />
             </TabsContent>
           </Tabs>
         </div>
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
           <EditorLandingPreview 
-            data={displayData} 
+            data={localData} 
             formConfig={formConfig || undefined}
             businessId={SUPER_ADMIN_BUSINESS_ID}
             plans={plans}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -148,6 +147,11 @@ export function EditorLandingPreview({ data, formConfig, businessId, isPreview, 
     right: 'justify-end'
   };
   
+  // Si no hay datos, no renderizar nada.
+  if (!data) {
+    return null;
+  }
+
   return (
     <div
       className={cn("w-full h-full", isPreview ? "p-2 scale-[0.95] origin-top transform transition-transform" : "")}
