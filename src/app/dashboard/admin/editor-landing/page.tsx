@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
@@ -141,7 +140,7 @@ export default function EditorLandingPage() {
         </div>
         <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
-            Guardar Cambios
+            Guardar Toda la Configuración
         </Button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
