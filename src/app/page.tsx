@@ -107,7 +107,7 @@ export default function Home() {
     return doc(firestore, `businesses/${SUPER_ADMIN_BUSINESS_ID}/landingPages`, 'form');
   }, [firestore]);
 
-  // Query simplificada - solo orderBy sin where
+  // Query para obtener los planes de suscripción
   const plansQuery = useMemo(() => {
     if (!firestore) return null;
     return query(
@@ -129,15 +129,13 @@ export default function Home() {
   const isLoading = isLandingLoading || isFormLoading || arePlansLoading;
 
   const displayData = useMemo(() => {
-    const finalLandingData = landingData || defaultLandingData;
-    
-    finalLandingData.sections = finalLandingData.sections || [];
-    finalLandingData.testimonials = finalLandingData.testimonials || [];
-    finalLandingData.seo = { ...defaultLandingData.seo, ...(finalLandingData.seo || {})};
-    finalLandingData.navigation = finalLandingData.navigation || defaultLandingData.navigation;
-    finalLandingData.footer = finalLandingData.footer || defaultLandingData.footer;
-
-    return finalLandingData;
+    const finalData = { ...defaultLandingData, ...landingData };
+    finalData.sections = finalData.sections || [];
+    finalData.testimonials = finalData.testimonials || [];
+    finalData.seo = { ...defaultLandingData.seo, ...(finalData.seo || {}) };
+    finalData.navigation = { ...defaultLandingData.navigation, ...(finalData.navigation || {}) };
+    finalData.footer = { ...defaultLandingData.footer, ...(finalData.footer || {}) };
+    return finalData;
   }, [landingData]);
 
   if (isLoading || !displayData) {

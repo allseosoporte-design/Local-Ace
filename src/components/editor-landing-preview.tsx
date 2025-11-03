@@ -115,8 +115,8 @@ export interface LandingPageData {
   testimonialsSubtitle: string;
   testimonials: Testimonial[];
   seo: SeoData;
-  navigation: HeaderConfig;
-  footer: FooterConfig;
+  navigation?: HeaderConfig;
+  footer?: FooterConfig;
 }
 
 interface EditorLandingPreviewProps {
@@ -150,7 +150,7 @@ export function EditorLandingPreview({ data, formConfig, businessId, isPreview, 
   
   return (
     <div
-      className={cn("w-full h-full p-2", isPreview && "scale-[0.95] origin-top transform transition-transform")}
+      className={cn("w-full h-full", isPreview ? "p-2 scale-[0.95] origin-top transform transition-transform" : "")}
     >
       {isPreview && (
         <h3 className="text-sm font-semibold text-muted-foreground mb-2 text-center">
@@ -253,7 +253,7 @@ export function EditorLandingPreview({ data, formConfig, businessId, isPreview, 
                     <div key={subsection.id} className="bg-card/80 p-6 rounded-lg shadow-md flex flex-col items-center text-center">
                         {subsection.imageUrl && (
                         <div className="relative w-24 h-24 mb-4 rounded-full overflow-hidden">
-                            <Image src={subsection.imageUrl} alt={subsection.title} fill objectFit="cover" />
+                            <Image src={subsection.imageUrl} alt={subsection.title} fill style={{objectFit: 'cover'}} />
                         </div>
                         )}
                         <h3 className="text-xl font-semibold mb-2" style={{color: section.textColor}}>{subsection.title}</h3>
@@ -279,7 +279,7 @@ export function EditorLandingPreview({ data, formConfig, businessId, isPreview, 
                     <div key={testimonial.id} className="bg-card p-6 rounded-lg shadow-md text-left flex flex-col">
                         <div className="flex items-center mb-4">
                         <div className="relative w-16 h-16 rounded-full overflow-hidden mr-4">
-                            <Image src={testimonial.avatarUrl} alt={testimonial.authorName} fill objectFit="cover" />
+                            <Image src={testimonial.avatarUrl} alt={testimonial.authorName} fill style={{objectFit: 'cover'}} />
                         </div>
                         <div>
                             <h4 className="font-bold">{testimonial.authorName}</h4>
@@ -336,7 +336,7 @@ export function EditorLandingPreview({ data, formConfig, businessId, isPreview, 
             <footer style={{ backgroundColor: data.footer.backgroundColor, color: data.footer.textColor }} className="py-8 px-6">
                 <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
                     <div className="md:col-span-1">
-                        <h3 className="text-lg font-bold mb-4">{data.navigation.logoText}</h3>
+                        <h3 className="text-lg font-bold mb-4">{data.navigation?.logoText}</h3>
                         <p className="text-sm">{data.footer.address}</p>
                         <p className="text-sm">{data.footer.phone}</p>
                         <p className="text-sm">{data.footer.email}</p>
