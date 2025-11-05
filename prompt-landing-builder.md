@@ -32,10 +32,28 @@ Implementar un componente de `Tabs` (pestañas) de ShadCN con las siguientes pes
     - **Paleta de Colores:** Tres selectores de color (`<input type="color">`) para: "Color de Fondo", "Color de Texto" y "Color del Botón".
 
 2.  **Pestaña "Navegación" (Header):**
-    - **Logo:** Opción para subir una imagen de logo y un campo de texto para el nombre del negocio si no se usa logo.
-    - **Enlaces de Navegación:** Un sistema para añadir, editar y eliminar enlaces del menú (campos para texto del enlace, URL y opción para abrir en nueva pestaña).
-    - **Estilos:** Selectores de color para el fondo, texto y color "hover" de los enlaces. Slider o campo numérico para el tamaño de fuente y espaciado.
-    - **Alineación:** Botones para alinear el logo (izquierda, centro, derecha).
+    - **Acordeón "Barra Superior (Header)":**
+        - **Habilitar/Deshabilitar:** Un interruptor (`Switch`) con la etiqueta "Habilitar Barra Superior" para controlar la visibilidad de todo el header.
+        - **Sección de Logo:**
+            - **Subida de Logo:** Un área de arrastrar y soltar o un botón "+ Subir Logo" para cargar una imagen.
+            - **Texto Alternativo:** Un campo de texto para "Texto Alternativo (si no hay logo)".
+            - **Ancho del Logo:** Un control deslizante (`Slider`) para ajustar el ancho del logo en píxeles.
+            - **Alineación:** Un grupo de botones para alinear el logo (izquierda, centro, derecha).
+        - **Sección de Enlaces de Navegación:**
+            - **Lista Repetible:** Una interfaz para gestionar una lista de enlaces.
+            - **Cada Enlace debe tener:**
+                - Un ícono de arrastre (`GripVertical`) para reordenar.
+                - Un campo de texto para el **texto del enlace** (ej. "Inicio").
+                - Un campo de texto para la **URL** del enlace.
+                - Un interruptor (`Switch`) para "Nueva Pestaña".
+                - Un campo numérico para definir el **orden**.
+                - Un botón para **eliminar** el enlace (`Trash2`).
+            - **Botón "Añadir Enlace":** Un botón para agregar un nuevo elemento a la lista de enlaces.
+        - **Sección de Estilos:**
+            - **Colores:** Selectores de color para "Color de Fondo", "Color de Texto" y "Color de Hover".
+            - **Tipografía:** Un campo numérico o slider para el "Tamaño de Fuente".
+            - **Espaciado:** Un campo numérico o slider para el "Espaciado entre enlaces".
+            - **Sombra:** Un interruptor (`Switch`) para añadir o quitar una sombra (`box-shadow`) a la barra de navegación.
 
 3.  **Pestaña "Secciones":**
     - **Interfaz de Gestión:** Un botón para "Agregar Nueva Sección".
