@@ -79,7 +79,7 @@ export default function AdminDashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[220px_1fr]">
         <Sidebar>
           <SidebarContent>
             <SidebarHeader>
