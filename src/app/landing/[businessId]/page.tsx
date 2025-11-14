@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -37,20 +36,6 @@ export default function PublicLandingPage() {
   const params = useParams();
   const businessId = params.businessId as string;
   const firestore = useFirestore();
-  const [renderKey, setRenderKey] = useState(0);
-  const isMountedRef = useRef(false);
-
-  // Forzar re-render completo al montar o cambiar businessId
-  useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-    }
-    setRenderKey(prev => prev + 1);
-    
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [businessId]);
 
   // 1. Apunta a los documentos correctos en Firestore usando el 'businessId' de la URL.
   const landingPageRef = useMemo(() => {
@@ -69,13 +54,9 @@ export default function PublicLandingPage() {
 
   // 3. Combina los datos cargados con los datos por defecto para asegurar que la página siempre tenga contenido.
   const displayData = useMemo(() => {
-    if (isLandingLoading) return null;
-
-    if (!loadedData) {
-      return null;
-    }
+    if (isLandingLoading || !loadedData) return null; // No mostrar nada si está cargando o no hay datos.
     
-    const merged: LandingPageData = {
+    return {
       ...defaultLandingData,
       ...loadedData,
       sections: loadedData.sections || [],
@@ -84,9 +65,10 @@ export default function PublicLandingPage() {
         ...defaultLandingData.seo,
         ...(loadedData.seo || {}),
         keywords: loadedData.seo?.keywords || [],
-      }
+      },
+      navigation: loadedData.navigation ? { ...defaultLandingData.navigation, ...loadedData.navigation } : defaultLandingData.navigation,
+      footer: loadedData.footer ? { ...defaultLandingData.footer, ...loadedData.footer } : defaultLandingData.footer
     };
-    return merged;
   }, [loadedData, isLandingLoading]);
 
   const isLoading = isLandingLoading || isFormLoading;
@@ -112,10 +94,9 @@ export default function PublicLandingPage() {
 
   // 4. Pasa los datos al componente 'EditorLandingPreview' que se encarga de renderizar el HTML final.
   return (
-    <div key={`landing-${businessId}-${renderKey}`} className="flex flex-col min-h-screen">
+    <div key={businessId} className="flex flex-col min-h-screen">
       <main className="flex-1">
         <EditorLandingPreview 
-          key={`preview-${businessId}-${renderKey}`}
           data={displayData} 
           formConfig={formConfig || undefined}
           businessId={businessId}

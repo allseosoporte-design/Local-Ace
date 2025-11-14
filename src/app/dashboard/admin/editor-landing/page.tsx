@@ -168,6 +168,7 @@ export default function EditorLandingPage() {
         </div>
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
           <EditorLandingPreview 
+            key={SUPER_ADMIN_BUSINESS_ID}
             data={localData} 
             formConfig={formConfig || undefined}
             businessId={SUPER_ADMIN_BUSINESS_ID}

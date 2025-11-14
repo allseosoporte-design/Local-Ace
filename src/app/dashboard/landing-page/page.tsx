@@ -89,19 +89,16 @@ export default function LandingPageBuilder() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
-  
-  // 🔧 CAMBIO IMPORTANTE: Inicializar con null para distinguir entre "no cargado" y "cargado con defaults"
   const [landingData, setLandingData] = useState<LandingPageData | null>(null);
   const [formConfig, setFormConfig] = useState<FormConfigData | null>(null);
   
-  // Crear defaultNavigation con useMemo para evitar recreaciones
   const defaultNavigation: HeaderConfig = useMemo(() => ({
     enabled: true,
     links: [
       { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
       { id: '2', text: 'Servicios', url: '#', order: 2, newTab: false },
       { id: '3', text: 'Contacto', url: user ? `/contact/${user.uid}` : '#', order: 3, newTab: false },
-      { id: '4', text: 'Catalogo', url: '/catalog', order: 4, newTab: false },
+      { id: '4', text: 'Catalogo', url: user ? `/catalog/${user.uid}` : '/catalog', order: 4, newTab: false },
       { id: '5', text: 'Blog', url: '#', order: 5, newTab: false },
     ],
     backgroundColor: '#FFFFFF',
@@ -129,18 +126,13 @@ export default function LandingPageBuilder() {
   const { data: initialLandingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingConfigRef);
   const { data: initialFormConfig, isLoading: isFormConfigLoading } = useDoc<FormConfigData>(formConfigRef);
 
-  // 🔧 CAMBIO CRÍTICO: Un solo useEffect que maneja toda la lógica de inicialización
   useEffect(() => {
-    // Solo proceder cuando ya no estamos cargando y tenemos usuario
     if (isLandingLoading || !user) return;
 
-    // Si hay datos guardados en Firestore, úsalos
     if (initialLandingData) {
-      console.log('✅ Cargando datos desde Firestore:', initialLandingData);
       setLandingData({
         ...defaultLandingData,
         ...initialLandingData,
-        // Asegurar que navigation y footer siempre tengan valores completos
         navigation: {
           ...defaultNavigation,
           ...(initialLandingData.navigation || {})
@@ -149,13 +141,10 @@ export default function LandingPageBuilder() {
           ...defaultFooter,
           ...(initialLandingData.footer || {})
         },
-        // Asegurar que arrays existan
         sections: initialLandingData.sections || [],
         testimonials: initialLandingData.testimonials || [],
       });
     } else {
-      // Si no hay datos guardados, usar defaults
-      console.log('⚠️ No hay datos en Firestore, usando defaults');
       setLandingData({
         ...defaultLandingData,
         navigation: defaultNavigation,
@@ -164,18 +153,15 @@ export default function LandingPageBuilder() {
     }
   }, [initialLandingData, isLandingLoading, user, defaultNavigation]);
 
-  // Manejar formConfig por separado
   useEffect(() => {
     if (isFormConfigLoading) return;
 
     if (initialFormConfig) {
-      console.log('✅ Cargando config de formulario desde Firestore:', initialFormConfig);
       setFormConfig({
         ...defaultFormConfig,
         ...initialFormConfig
       });
     } else {
-      console.log('⚠️ No hay config de formulario, usando defaults');
       setFormConfig(defaultFormConfig);
     }
   }, [initialFormConfig, isFormConfigLoading]);
@@ -195,32 +181,22 @@ export default function LandingPageBuilder() {
     setIsSaving(true);
     
     try {
-        console.log('💾 Guardando datos:', {
-          landingData,
-          formConfig,
-          userId: user.uid
-        });
-
-        // Guardar landing page config
         await setDoc(landingConfigRef, {
             ...landingData,
             updatedAt: serverTimestamp()
         }, { merge: true });
 
-        // Guardar form config
         await setDoc(formConfigRef, {
             ...formConfig,
             updatedAt: serverTimestamp()
         }, { merge: true });
-        
-        console.log('✅ Guardado exitoso');
         
         toast({ 
           title: '¡Guardado!', 
           description: 'Toda la configuración de la landing page ha sido actualizada.' 
         });
     } catch (error) {
-        console.error("❌ Error saving all landing page data:", error);
+        console.error("Error saving all landing page data:", error);
         toast({ 
           variant: 'destructive', 
           title: 'Error al Guardar', 
@@ -286,6 +262,7 @@ export default function LandingPageBuilder() {
 
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
           <EditorLandingPreview 
+            key={user?.uid || 'preview'}
             data={landingData} 
             formConfig={formConfig} 
             isPreview={true} 
