@@ -66,6 +66,7 @@ export default function Home() {
       <HomeNav />
       <main className="flex-1">
         <EditorLandingPreview 
+          key={SUPER_ADMIN_BUSINESS_ID}
           data={landingData} 
           formConfig={formConfig || undefined}
           businessId={SUPER_ADMIN_BUSINESS_ID}

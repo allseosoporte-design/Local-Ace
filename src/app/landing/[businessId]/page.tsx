@@ -54,7 +54,7 @@ export default function PublicLandingPage() {
 
   // 3. Combina los datos cargados con los datos por defecto para asegurar que la página siempre tenga contenido.
   const displayData = useMemo(() => {
-    if (isLandingLoading || !loadedData) return null; // No mostrar nada si está cargando o no hay datos.
+    if (!loadedData) return null; // No mostrar nada si no hay datos.
     
     return {
       ...defaultLandingData,
@@ -69,7 +69,7 @@ export default function PublicLandingPage() {
       navigation: loadedData.navigation ? { ...defaultLandingData.navigation, ...loadedData.navigation } : defaultLandingData.navigation,
       footer: loadedData.footer ? { ...defaultLandingData.footer, ...loadedData.footer } : defaultLandingData.footer
     };
-  }, [loadedData, isLandingLoading]);
+  }, [loadedData]);
 
   const isLoading = isLandingLoading || isFormLoading;
 
@@ -94,9 +94,10 @@ export default function PublicLandingPage() {
 
   // 4. Pasa los datos al componente 'EditorLandingPreview' que se encarga de renderizar el HTML final.
   return (
-    <div key={businessId} className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen">
       <main className="flex-1">
         <EditorLandingPreview 
+          key={businessId}
           data={displayData} 
           formConfig={formConfig || undefined}
           businessId={businessId}

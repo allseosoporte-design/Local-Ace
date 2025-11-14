@@ -1,8 +1,8 @@
 
 'use client';
 
-import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 import CatalogPageComponent from './[businessId]/page';
+import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 
 
 export default function CatalogPage() {
