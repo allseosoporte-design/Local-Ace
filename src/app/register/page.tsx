@@ -82,12 +82,12 @@ export default function RegisterPage() {
         // Create default landing page config for the new business
         const landingConfigRef = doc(firestore, `businesses/${user.uid}/landingPages`, 'config');
         batch.set(landingConfigRef, {
-          title: `Bienvenido a ${user.email}`,
-          subtitle: "Esta es tu nueva landing page. ¡Edítala desde tu panel!",
-          content: ``,
-          heroImageUrl: "https://picsum.photos/seed/default-hero/1200/600",
-          ctaText: "Deja tu Reseña",
-          ctaUrl: `/funnel/${user.uid}`,
+          title: "Tecnología que impulsa tu mundo",
+          subtitle: "Soluciones innovadoras para tu negocio.",
+          content: `Nos especializamos en la venta y reparación de computadores, ofreciendo un servicio de alta calidad y garantía.`,
+          heroImageUrl: "https://picsum.photos/seed/15/1200/600",
+          ctaText: "Explora nuestros productos",
+          ctaUrl: `/catalog/${user.uid}`,
           backgroundColor: "#FFFFFF",
           textColor: "#000000",
           buttonColor: "#FF4500",
