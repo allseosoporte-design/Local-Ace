@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from "react";
@@ -150,23 +151,29 @@ export default function LandingPageBuilder() {
   
   const isLoading = isUserLoading || isLandingLoading || isFormConfigLoading;
 
+  // --- FUNCIÓN DE GUARDADO ---
+  // Esta función se ejecuta cuando haces clic en "Guardar Toda la Configuración".
   const handleSaveAll = async () => {
+    // 1. Verifica que el usuario y la conexión a Firestore estén activos.
     if (!user || !firestore || !landingConfigRef || !formConfigRef) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se puede guardar. Usuario o conexión no disponible.' });
         return;
     }
     setIsSaving(true);
     try {
+        // 2. Guarda los datos principales de la landing page (títulos, secciones, etc.) en el documento 'config'.
         await setDoc(landingConfigRef, {
             ...landingData,
             updatedAt: serverTimestamp()
         }, { merge: true });
 
+        // 3. Guarda la configuración del formulario de reseñas en el documento 'form'.
         await setDoc(formConfigRef, {
             ...formConfig,
             updatedAt: serverTimestamp()
         }, { merge: true });
         
+        // 4. Muestra una notificación de éxito.
         toast({ title: '¡Guardado!', description: 'Toda la configuración de la landing page ha sido actualizada.' });
     } catch (error) {
         console.error("Error saving all landing page data:", error);

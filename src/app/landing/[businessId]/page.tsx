@@ -9,6 +9,9 @@ import { EditorLandingPreview, type LandingPageData } from '@/components/editor-
 import { Loader2 } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
 
+// --- CÓDIGO DE VISUALIZACIÓN DE LA LANDING PAGE ---
+// Este componente es responsable de mostrar la landing page pública a los visitantes.
+
 const defaultLandingData: LandingPageData = {
   title: "Bienvenido a Nuestro Espacio",
   subtitle: "Descubre nuestros productos y servicios.",
@@ -49,6 +52,7 @@ export default function PublicLandingPage() {
     };
   }, [businessId]);
 
+  // 1. Apunta a los documentos correctos en Firestore usando el 'businessId' de la URL.
   const landingPageRef = useMemo(() => {
     if (!firestore || !businessId) return null;
     return doc(firestore, `businesses/${businessId}/landingPages`, 'config');
@@ -59,9 +63,11 @@ export default function PublicLandingPage() {
     return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
   }, [firestore, businessId]);
 
+  // 2. Utiliza el hook 'useDoc' para obtener los datos de Firestore en tiempo real.
   const { data: loadedData, isLoading: isLandingLoading } = useDoc<Partial<LandingPageData>>(landingPageRef);
   const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
 
+  // 3. Combina los datos cargados con los datos por defecto para asegurar que la página siempre tenga contenido.
   const displayData = useMemo(() => {
     if (isLandingLoading) return null;
 
@@ -104,6 +110,7 @@ export default function PublicLandingPage() {
     );
   }
 
+  // 4. Pasa los datos al componente 'EditorLandingPreview' que se encarga de renderizar el HTML final.
   return (
     <div key={`landing-${businessId}-${renderKey}`} className="flex flex-col min-h-screen">
       <main className="flex-1">
