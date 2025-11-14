@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 import { DashboardNav } from "@/components/dashboard-nav";
@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import Link from 'next/link';
 import { LocalLeap } from '@/components/icons';
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu } from '@/components/ui/sidebar';
+import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 
 export default function DashboardLayout({
   children,
@@ -27,11 +28,19 @@ export default function DashboardLayout({
 
     if (!user) {
       router.replace('/login');
+      return;
     }
-  }, [isUserLoading, user, router]);
+    
+    // Si el super admin intenta acceder al dashboard de usuario, redirigirlo a su panel
+    if (user.uid === SUPER_ADMIN_BUSINESS_ID && !pathname.startsWith('/dashboard/admin')) {
+      router.replace('/dashboard/admin');
+      return;
+    }
+
+  }, [isUserLoading, user, router, pathname]);
 
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || !user || (user.uid === SUPER_ADMIN_BUSINESS_ID && !pathname.startsWith('/dashboard/admin'))) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
