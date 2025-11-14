@@ -15,7 +15,7 @@ import { ShareLandingPage } from "@/components/dashboard/landing/share-landing-p
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { EditorNavigation } from "@/components/dashboard/landing/EditorNavigation";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const defaultFooter: FooterConfig = {
     enabled: true,
@@ -93,8 +93,8 @@ export default function LandingPageBuilder() {
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const [landingData, setLandingData] = useState<LandingPageData>(defaultLandingData);
-  const [formConfig, setFormConfig] = useState<FormConfigData>(defaultFormConfig);
+  const [landingData, setLandingData] = useState<LandingPageData | null>(null);
+  const [formConfig, setFormConfig] = useState<FormConfigData | null>(null);
   
   // Helper para agregar logs de debug
   const addDebugLog = (message: string) => {
@@ -163,16 +163,10 @@ export default function LandingPageBuilder() {
     if (initialLandingData) {
       addDebugLog(`📥 Datos encontrados en Firestore`);
       addDebugLog(`   - Título: "${initialLandingData.title?.substring(0, 30)}..."`);
-      addDebugLog(`   - Sections: ${initialLandingData.sections?.length || 0}`);
-      addDebugLog(`   - Testimonials: ${initialLandingData.testimonials?.length || 0}`);
       
-      // CONSTRUIR DATOS DE FORMA LIMPIA, SIN USAR PREV
       const cleanData: LandingPageData = {
-        // Primero los defaults
         ...defaultLandingData,
-        // Luego SOLO los datos de Firestore (sin mezclar prev)
         ...initialLandingData,
-        // Asegurar estructuras anidadas
         navigation: {
           ...defaultNavigation,
           ...(initialLandingData.navigation || {})
@@ -217,7 +211,7 @@ export default function LandingPageBuilder() {
     }
   }, [initialFormConfig, isFormConfigLoading]);
   
-  const isLoading = isUserLoading || !isInitialized;
+  const isLoading = isUserLoading || !isInitialized || !landingData || !formConfig;
 
   // Función para verificar datos en Firestore directamente
   const verifyFirestoreData = async () => {
@@ -239,15 +233,15 @@ export default function LandingPageBuilder() {
         addDebugLog(`   Path que se intentó: ${landingConfigRef.path}`);
         toast({ variant: "destructive", title: "Verificación Fallida", description: "El documento no existe en la base de datos."});
       }
-    } catch (error) {
-      addDebugLog(`❌ Error al verificar: ${error}`);
+    } catch (error: any) {
+      addDebugLog(`❌ Error al verificar: ${error.message}`);
       console.error(error);
       toast({ variant: "destructive", title: "Error de Verificación", description: "No se pudo leer la base de datos."});
     }
   };
 
   const handleSaveAll = async () => {
-    if (!user || !firestore || !landingConfigRef || !formConfigRef) {
+    if (!user || !firestore || !landingConfigRef || !formConfigRef || !landingData) {
         addDebugLog('❌ No se puede guardar: faltan requisitos');
         toast({ variant: 'destructive', title: 'Error', description: 'No se puede guardar. Usuario o conexión no disponible.' });
         return;
@@ -257,40 +251,23 @@ export default function LandingPageBuilder() {
     addDebugLog('💾 Iniciando guardado...');
     
     try {
-        const dataToSave = {
-            ...landingData,
-            updatedAt: serverTimestamp()
-        };
+        const dataToSave = { ...landingData, updatedAt: serverTimestamp() };
         
         addDebugLog(`📤 Guardando en: ${landingConfigRef.path}`);
         addDebugLog(`   Título a guardar: "${landingData.title?.substring(0, 30)}..."`);
-        addDebugLog(`   Sections: ${landingData.sections?.length || 0}`);
         
-        console.log('📦 Datos completos a guardar:', dataToSave);
-
         await setDoc(landingConfigRef, dataToSave, { merge: true });
-        await setDoc(formConfigRef, {
-            ...formConfig,
-            updatedAt: serverTimestamp()
-        }, { merge: true });
+        await setDoc(formConfigRef, { ...formConfig, updatedAt: serverTimestamp() }, { merge: true });
         
         addDebugLog('✅ Guardado exitoso');
         
-        // Verificar que se guardó correctamente
         setTimeout(() => verifyFirestoreData(), 1000);
         
-        toast({ 
-          title: '¡Guardado!', 
-          description: 'Toda la configuración ha sido actualizada.' 
-        });
-    } catch (error) {
-        addDebugLog(`❌ Error al guardar: ${error}`);
+        toast({ title: '¡Guardado!', description: 'Toda la configuración ha sido actualizada.' });
+    } catch (error: any) {
+        addDebugLog(`❌ Error al guardar: ${error.message}`);
         console.error("Error completo:", error);
-        toast({ 
-          variant: 'destructive', 
-          title: 'Error al Guardar', 
-          description: 'No se pudo guardar. Revisa la consola.' 
-        });
+        toast({ variant: 'destructive', title: 'Error al Guardar', description: 'No se pudo guardar. Revisa la consola.' });
     } finally {
         setIsSaving(false);
     }
@@ -306,22 +283,17 @@ export default function LandingPageBuilder() {
 
   return (
     <div className="space-y-6">
-      {/* Panel de Debug */}
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          <div className="text-xs space-y-1">
-            <strong>Debug Info (Usuario: {user?.uid?.substring(0, 8)}...):</strong>
+      <Alert variant="default" className="bg-blue-50 border-blue-200">
+        <AlertCircle className="h-4 w-4 !text-blue-700" />
+        <AlertTitle className="text-blue-800 font-semibold">Panel de Depuración (Usuario)</AlertTitle>
+        <AlertDescription className="text-blue-700">
+          <div className="text-xs space-y-1 max-h-32 overflow-y-auto font-mono">
+            <strong>Logs (Usuario: {user?.uid?.substring(0, 8)}...):</strong>
             {debugInfo.map((log, i) => (
-              <div key={i} className="font-mono">{log}</div>
+              <div key={i}>{log}</div>
             ))}
           </div>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="mt-2"
-            onClick={verifyFirestoreData}
-          >
+          <Button size="sm" variant="outline" className="mt-2 text-blue-800 border-blue-300 hover:bg-blue-100" onClick={verifyFirestoreData}>
             Verificar Firestore
           </Button>
         </AlertDescription>
@@ -366,22 +338,21 @@ export default function LandingPageBuilder() {
                       <EditorSeo data={landingData} setData={setLandingData} />
                   </TabsContent>
                   <TabsContent value="form">
-                      <FormEditor data={formConfig} setData={setFormConfig} />
+                      <FormEditor data={formConfig!} setData={setFormConfig} />
                   </TabsContent>
               </Tabs>
           </div>
 
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
-          {landingData && formConfig && (
-            <EditorLandingPreview 
-              data={landingData} 
-              formConfig={formConfig} 
-              isPreview={true} 
-              businessId={user?.uid} 
-            />
-          )}
+          <EditorLandingPreview 
+            data={landingData} 
+            formConfig={formConfig!} 
+            isPreview={true} 
+            businessId={user?.uid} 
+          />
         </div>
       </div>
     </div>
   );
 }
+    

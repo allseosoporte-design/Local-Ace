@@ -8,15 +8,17 @@ import { EditorSections } from "@/components/editor-sections";
 import { EditorTestimonials } from "@/components/editor-testimonials";
 import { EditorSeo } from "@/components/editor-seo";
 import { useFirestore, useDoc, useCollection } from "@/firebase";
-import { doc, setDoc, serverTimestamp, collection, query, orderBy } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, query, orderBy, getDoc } from "firebase/firestore";
 import { SUPER_ADMIN_BUSINESS_ID } from "@/lib/constants";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, AlertCircle } from "lucide-react";
 import type { SubscriptionPlan } from "@/types/subscription-plan";
 import type { FormConfigData } from "@/components/dashboard/landing/FormEditor";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { AdminEditorNavigation } from "@/components/admin/landing/AdminEditorNavigation";
 import { AdminShareLandingPage } from "@/components/admin/landing/AdminShareLandingPage";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 const defaultLandingData: LandingPageData = {
   title: "Moderniza tu negocio y aumenta tus ventas.",
@@ -71,6 +73,15 @@ export default function EditorLandingPage() {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [localData, setLocalData] = useState<LandingPageData | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+
+  // Helper para agregar logs de debug
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const log = `[${timestamp}] ${message}`;
+    console.log(`[SUPER-ADMIN-EDITOR] ${log}`);
+    setDebugInfo(prev => [...prev.slice(-9), log]);
+  };
 
   const landingPageRef = useMemo(() => {
     if (!firestore) return null;
@@ -84,10 +95,7 @@ export default function EditorLandingPage() {
 
   const plansQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(
-      collection(firestore, 'subscriptionPlans'),
-      orderBy('order', 'asc')
-    );
+    return query(collection(firestore, 'subscriptionPlans'), orderBy('order', 'asc'));
   }, [firestore]);
 
   const { data: initialLandingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingPageRef);
@@ -100,9 +108,16 @@ export default function EditorLandingPage() {
   }, [allPlans]);
 
   useEffect(() => {
+    addDebugLog('Effect triggered: [initialLandingData, isLandingLoading]');
+    if (isLandingLoading) {
+      addDebugLog('⏳ Esperando datos de landing page...');
+      return;
+    }
     if (initialLandingData) {
-      setLocalData(initialLandingData);
-    } else if (!isLandingLoading) {
+      addDebugLog('📥 Datos de landing page cargados desde Firestore.');
+      setLocalData({ ...defaultLandingData, ...initialLandingData });
+    } else {
+      addDebugLog('⚠️ No hay datos, usando defaults.');
       setLocalData(defaultLandingData);
     }
   }, [initialLandingData, isLandingLoading]);
@@ -112,17 +127,34 @@ export default function EditorLandingPage() {
   const handleSave = async () => {
     if (!localData || !landingPageRef) return;
     setIsSaving(true);
+    addDebugLog('💾 Guardando datos...');
     try {
         await setDoc(landingPageRef, { ...localData, updatedAt: serverTimestamp() }, { merge: true });
         toast({ title: '¡Guardado!', description: 'La configuración de la página principal se ha actualizado.' });
+        addDebugLog('✅ Guardado exitoso.');
     } catch (error) {
-        console.error("Error saving landing page config:", error);
+        addDebugLog(`❌ Error al guardar: ${error}`);
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la configuración.' });
     } finally {
         setIsSaving(false);
     }
   };
   
+  const verifyFirestoreData = async () => {
+    if (!landingPageRef) return;
+    addDebugLog('🔍 Verificando datos...');
+    try {
+      const docSnap = await getDoc(landingPageTef);
+      if (docSnap.exists()) {
+        toast({ title: "Verificación Exitosa", description: `Título en BD: "${docSnap.data().title}"`});
+      } else {
+        toast({ variant: "destructive", title: "Verificación Fallida", description: "El documento no existe en la base de datos."});
+      }
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error de Verificación", description: e.message });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -133,6 +165,22 @@ export default function EditorLandingPage() {
 
   return (
     <div className="container mx-auto p-0">
+      <Alert variant="default" className="bg-orange-50 border-orange-200 mb-6">
+        <AlertCircle className="h-4 w-4 !text-orange-700" />
+        <AlertTitle className="text-orange-800 font-semibold">Panel de Depuración (Super Admin)</AlertTitle>
+        <AlertDescription className="text-orange-700">
+          <div className="text-xs space-y-1 max-h-32 overflow-y-auto font-mono">
+            <strong>Logs (Super Admin):</strong>
+            {debugInfo.map((log, i) => (
+              <div key={i}>{log}</div>
+            ))}
+          </div>
+          <Button size="sm" variant="outline" className="mt-2 text-orange-800 border-orange-300 hover:bg-orange-100" onClick={verifyFirestoreData}>
+            Verificar Firestore
+          </Button>
+        </AlertDescription>
+      </Alert>
+
       <div className="mb-6 flex justify-between items-center">
         <div>
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Editor Landing Principal</h1>
@@ -187,3 +235,4 @@ export default function EditorLandingPage() {
     </div>
   );
 }
+    
