@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -21,7 +20,7 @@ import { cn } from '@/lib/utils';
 
 interface EditorNavigationProps {
   data: LandingPageData;
-  setData: React.Dispatch<React.SetStateAction<LandingPageData>>;
+  setData: React.Dispatch<React.SetStateAction<LandingPageData | null>>;
 }
 
 export function EditorNavigation({ data, setData }: EditorNavigationProps) {
@@ -30,8 +29,12 @@ export function EditorNavigation({ data, setData }: EditorNavigationProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  if (!data || !setData) {
+    return <Loader2 className="animate-spin" />;
+  }
+
   const handleHeaderChange = (field: keyof HeaderConfig, value: any) => {
-    setData(prev => ({ ...prev, navigation: { ...prev.navigation, [field]: value } }));
+    setData(prev => prev ? ({ ...prev, navigation: { ...(prev.navigation as HeaderConfig), [field]: value } }) : null);
   };
   
   const handleLogoUploadClick = () => {
@@ -84,40 +87,40 @@ export function EditorNavigation({ data, setData }: EditorNavigationProps) {
   
   // Footer Handlers
   const handleFooterChange = (field: keyof FooterConfig, value: any) => {
-      setData(prev => ({ ...prev, footer: { ...prev.footer, [field]: value } }));
+      setData(prev => prev ? ({ ...prev, footer: { ...(prev.footer as FooterConfig), [field]: value } }) : null);
   };
 
   const addFooterColumn = () => {
       const newColumn: FooterColumn = { id: uuidv4(), title: 'Nueva Columna', links: [] };
-      handleFooterChange('columns', [...data.footer.columns, newColumn]);
+      handleFooterChange('columns', [...(data.footer?.columns || []), newColumn]);
   };
 
   const removeFooterColumn = (id: string) => {
-      handleFooterChange('columns', data.footer.columns.filter(col => col.id !== id));
+      handleFooterChange('columns', (data.footer?.columns || []).filter(col => col.id !== id));
   };
   
   const handleFooterColumnChange = (id: string, title: string) => {
-       const updatedColumns = data.footer.columns.map(col => col.id === id ? {...col, title} : col);
+       const updatedColumns = (data.footer?.columns || []).map(col => col.id === id ? {...col, title} : col);
        handleFooterChange('columns', updatedColumns);
   }
   
   const addFooterLink = (columnId: string) => {
       const newLink: FooterLink = { id: uuidv4(), text: 'Enlace', url: '#' };
-      const updatedColumns = data.footer.columns.map(col => 
+      const updatedColumns = (data.footer?.columns || []).map(col => 
           col.id === columnId ? {...col, links: [...col.links, newLink]} : col
       );
       handleFooterChange('columns', updatedColumns);
   }
   
   const removeFooterLink = (columnId: string, linkId: string) => {
-      const updatedColumns = data.footer.columns.map(col => 
+      const updatedColumns = (data.footer?.columns || []).map(col => 
           col.id === columnId ? {...col, links: col.links.filter(l => l.id !== linkId)} : col
       );
       handleFooterChange('columns', updatedColumns);
   }
   
   const handleFooterLinkChange = (columnId: string, linkId: string, field: keyof FooterLink, value: string) => {
-      const updatedColumns = data.footer.columns.map(col => {
+      const updatedColumns = (data.footer?.columns || []).map(col => {
           if (col.id === columnId) {
               const updatedLinks = col.links.map(l => l.id === linkId ? {...l, [field]: value} : l);
               return {...col, links: updatedLinks};
@@ -129,15 +132,15 @@ export function EditorNavigation({ data, setData }: EditorNavigationProps) {
   
   const addSocialLink = () => {
     const newSocial: SocialLink = { id: uuidv4(), network: 'facebook', url: '' };
-    handleFooterChange('socialLinks', [...data.footer.socialLinks, newSocial]);
+    handleFooterChange('socialLinks', [...(data.footer?.socialLinks || []), newSocial]);
   }
   
   const removeSocialLink = (id: string) => {
-    handleFooterChange('socialLinks', data.footer.socialLinks.filter(sl => sl.id !== id));
+    handleFooterChange('socialLinks', (data.footer?.socialLinks || []).filter(sl => sl.id !== id));
   }
   
   const handleSocialLinkChange = (id: string, field: keyof SocialLink, value: any) => {
-    const updatedSocials = data.footer.socialLinks.map(sl => sl.id === id ? {...sl, [field]: value} : sl);
+    const updatedSocials = (data.footer?.socialLinks || []).map(sl => sl.id === id ? {...sl, [field]: value} : sl);
     handleFooterChange('socialLinks', updatedSocials);
   }
 

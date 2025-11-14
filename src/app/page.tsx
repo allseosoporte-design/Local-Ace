@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect, useState, useRef } from 'react';
+import { useMemo } from 'react';
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { HomeNav } from '@/components/home-nav';
 import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
