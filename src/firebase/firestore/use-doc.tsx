@@ -1,4 +1,3 @@
-
 'use client';
     
 import { useState, useEffect } from 'react';
@@ -98,7 +97,8 @@ export function useDoc<T = any>(
     return () => {
       unsubscribe();
     };
-  }, [docRef?.path]); // The effect re-runs ONLY if the docRef's path string changes.
+  // The effect re-runs if the docRef object itself changes, ensuring a fresh subscription.
+  }, [docRef]); 
 
   return { data, isLoading, error };
 }
