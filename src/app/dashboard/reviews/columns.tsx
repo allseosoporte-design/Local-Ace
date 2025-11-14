@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -252,16 +253,24 @@ export const columns: ColumnDef<Review>[] = [
   {
     accessorKey: "rating",
     header: "Calificación",
-    cell: ({ row }) => (
-      <div className="flex items-center">
-        <Badge variant={
-          row.original.rating >= 4 ? 'default' :
-          row.original.rating === 3 ? 'secondary' : 'destructive'
-        } className="flex gap-1 items-center pr-1 pl-2">
-          {row.original.rating} <Star className="w-3 h-3 fill-current" />
-        </Badge>
-      </div>
-    ),
+    cell: ({ row }) => {
+      const rating = row.original.rating;
+      let badgeClass = '';
+      if (rating >= 4) {
+        badgeClass = 'bg-green-100 text-green-800 border-green-200';
+      } else if (rating === 3) {
+        badgeClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      } else {
+        badgeClass = 'bg-red-100 text-red-800 border-red-200';
+      }
+      return (
+        <div className="flex items-center">
+          <Badge variant="outline" className={cn("flex gap-1 items-center pr-1 pl-2", badgeClass)}>
+            {rating} <Star className="w-3 h-3 fill-current" />
+          </Badge>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "status",
