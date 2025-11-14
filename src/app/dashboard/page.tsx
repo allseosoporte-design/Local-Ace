@@ -14,7 +14,13 @@ import {
   Globe,
   Star,
   MessageSquare,
+  BarChart,
+  Circle,
+  AreaChart,
+  Printer,
+  FileDown,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function DashboardPage() {
   return (
@@ -73,8 +79,30 @@ export default function DashboardPage() {
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Resumen General</CardTitle>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm">
+                    <BarChart className="h-4 w-4 mr-2" />
+                    Barra
+                </Button>
+                <Button variant="outline" size="sm">
+                    <Circle className="h-4 w-4 mr-2" />
+                    Círculo
+                </Button>
+                <Button variant="outline" size="sm">
+                    <AreaChart className="h-4 w-4 mr-2" />
+                    Línea
+                </Button>
+                 <Button variant="outline" size="sm">
+                    <Printer className="h-4 w-4 mr-2" />
+                    Imprimir
+                </Button>
+                 <Button variant="outline" size="sm">
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Descargar PDF
+                </Button>
+            </div>
           </CardHeader>
           <CardContent className="pl-2">
             <Overview />
