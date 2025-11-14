@@ -1,15 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useFirestore, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
 import { Loader2 } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
-
-// --- CÓDIGO DE VISUALIZACIÓN DE LA LANDING PAGE ---
-// Este componente es responsable de mostrar la landing page pública a los visitantes.
 
 const defaultLandingData: LandingPageData = {
   title: "Bienvenido a Nuestro Espacio",
@@ -36,8 +33,13 @@ export default function PublicLandingPage() {
   const params = useParams();
   const businessId = params.businessId as string;
   const firestore = useFirestore();
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadedData, setLoadedData] = useState<Partial<LandingPageData> | null>(null);
+  const [formConfig, setFormConfig] = useState<FormConfigData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // 1. Apunta a los documentos correctos en Firestore usando el 'businessId' de la URL.
+  // Crear referencias a Firestore
   const landingPageRef = useMemo(() => {
     if (!firestore || !businessId) return null;
     return doc(firestore, `businesses/${businessId}/landingPages`, 'config');
@@ -48,15 +50,78 @@ export default function PublicLandingPage() {
     return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
   }, [firestore, businessId]);
 
-  // 2. Utiliza el hook 'useDoc' para obtener los datos de Firestore en tiempo real.
-  const { data: loadedData, isLoading: isLandingLoading } = useDoc<Partial<LandingPageData>>(landingPageRef);
-  const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
+  // ✨ SOLUCIÓN: Usar onSnapshot para escuchar cambios en tiempo real
+  useEffect(() => {
+    if (!landingPageRef || !formConfigRef) {
+      console.log('[PUBLIC] Referencias no disponibles');
+      return;
+    }
 
-  // 3. Combina los datos cargados con los datos por defecto para asegurar que la página siempre tenga contenido.
+    console.log('[PUBLIC] Suscribiendo a cambios en:', landingPageRef.path);
+    setIsLoading(true);
+    setError(null);
+
+    // Listener para landing page config
+    const unsubscribeLanding = onSnapshot(
+      landingPageRef,
+      (docSnap) => {
+        console.log('[PUBLIC] Snapshot recibido para landing page');
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data() as Partial<LandingPageData>;
+          console.log('[PUBLIC] ✅ Datos cargados:', {
+            title: data.title?.substring(0, 30),
+            sections: data.sections?.length,
+            testimonials: data.testimonials?.length
+          });
+          setLoadedData(data);
+        } else {
+          console.log('[PUBLIC] ⚠️ Documento no existe');
+          setLoadedData(null);
+        }
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error('[PUBLIC] ❌ Error al cargar landing page:', err);
+        setError('Error al cargar la página');
+        setIsLoading(false);
+      }
+    );
+
+    // Listener para form config
+    const unsubscribeForm = onSnapshot(
+      formConfigRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data() as FormConfigData;
+          console.log('[PUBLIC] ✅ Form config cargado');
+          setFormConfig(data);
+        } else {
+          console.log('[PUBLIC] ⚠️ Form config no existe');
+          setFormConfig(null);
+        }
+      },
+      (err) => {
+        console.error('[PUBLIC] ❌ Error al cargar form config:', err);
+      }
+    );
+
+    // Cleanup: cancelar suscripciones
+    return () => {
+      console.log('[PUBLIC] 🔌 Desconectando listeners');
+      unsubscribeLanding();
+      unsubscribeForm();
+    };
+  }, [landingPageRef, formConfigRef]);
+
+  // Combinar datos con defaults
   const displayData = useMemo(() => {
-    if (!loadedData) return null; // No mostrar nada si no hay datos.
-    
-    return {
+    if (!loadedData) {
+      console.log('[PUBLIC] No hay datos para mostrar');
+      return null;
+    }
+
+    const merged: LandingPageData = {
       ...defaultLandingData,
       ...loadedData,
       sections: loadedData.sections || [],
@@ -66,17 +131,37 @@ export default function PublicLandingPage() {
         ...(loadedData.seo || {}),
         keywords: loadedData.seo?.keywords || [],
       },
-      navigation: loadedData.navigation ? { ...defaultLandingData.navigation, ...loadedData.navigation } : defaultLandingData.navigation,
-      footer: loadedData.footer ? { ...defaultLandingData.footer, ...loadedData.footer } : defaultLandingData.footer
+      navigation: loadedData.navigation || defaultLandingData.navigation,
+      footer: loadedData.footer || defaultLandingData.footer,
     };
+
+    console.log('[PUBLIC] 🎨 Datos preparados para renderizar:', {
+      title: merged.title?.substring(0, 30),
+      sections: merged.sections?.length,
+    });
+
+    return merged;
   }, [loadedData]);
 
-  const isLoading = isLandingLoading || isFormLoading;
-
+  // Estados de carga y error
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">Cargando página...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background text-center p-4">
+        <div>
+          <h1 className='text-2xl font-bold text-destructive'>Error</h1>
+          <p className='text-muted-foreground mt-2'>{error}</p>
+        </div>
       </div>
     );
   }
@@ -86,18 +171,21 @@ export default function PublicLandingPage() {
       <div className="flex h-screen w-full items-center justify-center bg-background text-center p-4">
         <div>
           <h1 className='text-2xl font-bold'>Página no encontrada</h1>
-          <p className='text-muted-foreground mt-2'>La página que buscas no existe o no se pudo cargar. Es posible que la configuración aún no se haya guardado.</p>
+          <p className='text-muted-foreground mt-2'>
+            La página que buscas no existe o aún no se ha configurado.
+          </p>
+          <p className='text-xs text-muted-foreground mt-4'>
+            Business ID: {businessId}
+          </p>
         </div>
       </div>
     );
   }
 
-  // 4. Pasa los datos al componente 'EditorLandingPreview' que se encarga de renderizar el HTML final.
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-1">
         <EditorLandingPreview 
-          key={businessId}
           data={displayData} 
           formConfig={formConfig || undefined}
           businessId={businessId}
@@ -105,6 +193,7 @@ export default function PublicLandingPage() {
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">
         <p className="text-xs text-muted-foreground">&copy; 2024 Creado con Local Leap</p>
+
       </footer>
     </div>
   );
