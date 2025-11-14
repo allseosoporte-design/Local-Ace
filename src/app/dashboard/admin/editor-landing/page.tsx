@@ -15,6 +15,8 @@ import type { SubscriptionPlan } from "@/types/subscription-plan";
 import type { FormConfigData } from "@/components/dashboard/landing/FormEditor";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { AdminEditorNavigation } from "@/components/admin/landing/AdminEditorNavigation";
+import { AdminShareLandingPage } from "@/components/admin/landing/AdminShareLandingPage";
 
 const defaultLandingData: LandingPageData = {
   title: "Moderniza tu negocio y aumenta tus ventas.",
@@ -133,9 +135,9 @@ export default function EditorLandingPage() {
     <div className="container mx-auto p-0">
       <div className="mb-6 flex justify-between items-center">
         <div>
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Editor Landing</h1>
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Editor Landing Principal</h1>
             <p className="text-muted-foreground">
-            Edita la configuración de la página principal.
+            Edita la configuración de la página de inicio pública de la aplicación.
             </p>
         </div>
         <Button onClick={handleSave} disabled={isSaving}>
@@ -147,13 +149,18 @@ export default function EditorLandingPage() {
         <div className="lg:col-span-2">
           <Tabs defaultValue="hero">
             <TabsList>
-              <TabsTrigger value="hero">Hero</TabsTrigger>
+              <TabsTrigger value="hero">Principal</TabsTrigger>
+              <TabsTrigger value="navigation">Navegación</TabsTrigger>
               <TabsTrigger value="sections">Secciones</TabsTrigger>
               <TabsTrigger value="testimonials">Testimonios</TabsTrigger>
               <TabsTrigger value="seo">SEO</TabsTrigger>
             </TabsList>
-            <TabsContent value="hero">
+            <TabsContent value="hero" className="space-y-6">
               <EditorLandingForm data={localData} setData={setLocalData} />
+              <AdminShareLandingPage />
+            </TabsContent>
+            <TabsContent value="navigation">
+                <AdminEditorNavigation data={localData} setData={setLocalData} />
             </TabsContent>
             <TabsContent value="sections">
               <EditorSections data={localData} setData={setLocalData} />
