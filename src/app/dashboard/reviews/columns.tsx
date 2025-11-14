@@ -14,7 +14,6 @@ import {
 import { MoreHorizontal, Sparkles, Star, Trash2, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { generateReviewResponse } from "@/ai/flows/generate-review-response";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import {
