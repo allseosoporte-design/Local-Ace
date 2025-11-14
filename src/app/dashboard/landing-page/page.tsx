@@ -37,11 +37,11 @@ const defaultFooter: FooterConfig = {
 };
 
 const defaultLandingData: LandingPageData = {
-  title: "Tu Titular Atractivo Aquí",
-  subtitle: "Describe tu negocio de una manera que entusiasme a tus clientes.",
-  content: `Esta es tu oportunidad de brillar. Describe tu negocio con más detalle. Habla de lo que te hace especial, de tus productos estrella o de la experiencia que ofreces. Utiliza este espacio para conectar con tus visitantes.`,
+  title: "Tecnología que impulsa tu mundo",
+  subtitle: "Soluciones innovadoras para tu negocio.",
+  content: `Nos especializamos en la venta y reparación de computadores, ofreciendo un servicio de alta calidad y garantía.`,
   heroImageUrl: "https://picsum.photos/seed/15/1200/600",
-  ctaText: "Contáctanos",
+  ctaText: "Explora nuestros productos",
   ctaUrl: "#contact",
   backgroundColor: "#FFFFFF",
   textColor: "#000000",
