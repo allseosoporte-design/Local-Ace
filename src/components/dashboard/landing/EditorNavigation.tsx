@@ -17,6 +17,7 @@ import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { uploadImage } from '@/ai/flows/upload-image';
 import { cn } from '@/lib/utils';
+import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 
 interface EditorNavigationProps {
   data: LandingPageData;
@@ -143,6 +144,8 @@ export function EditorNavigation({ data, setData }: EditorNavigationProps) {
     const updatedSocials = (data.footer?.socialLinks || []).map(sl => sl.id === id ? {...sl, [field]: value} : sl);
     handleFooterChange('socialLinks', updatedSocials);
   }
+  
+  const catalogUrl = user?.uid === SUPER_ADMIN_BUSINESS_ID ? '/catalog' : `/catalog/${user?.uid}`;
 
   return (
     <Card className="h-full overflow-y-auto border-t-0 rounded-t-none bg-[#FEFBF9]">

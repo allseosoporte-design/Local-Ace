@@ -98,7 +98,7 @@ export default function LandingPageBuilder() {
       { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
       { id: '2', text: 'Servicios', url: '#', order: 2, newTab: false },
       { id: '3', text: 'Contacto', url: user ? `/contact/${user.uid}` : '#', order: 3, newTab: false },
-      { id: '4', text: 'Catalogo', url: user ? `/catalog/${user.uid}` : '/catalog', order: 4, newTab: false },
+      { id: '4', text: 'Catalogo', url: user ? `/catalog/${user.uid}` : '#', order: 4, newTab: false },
       { id: '5', text: 'Blog', url: '#', order: 5, newTab: false },
     ],
     backgroundColor: '#FFFFFF',
@@ -262,7 +262,7 @@ export default function LandingPageBuilder() {
 
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
           <EditorLandingPreview 
-            key={user?.uid || 'preview'}
+            key={user?.uid || 'preview-user'}
             data={landingData} 
             formConfig={formConfig} 
             isPreview={true} 
