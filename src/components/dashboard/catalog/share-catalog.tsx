@@ -35,7 +35,8 @@ export function ShareCatalog() {
   const { user } = useUser();
 
   const handleCopyLink = () => {
-    const catalogLink = `${window.location.origin}/catalog`;
+    if (!user) return;
+    const catalogLink = `${window.location.origin}/catalog/${user.uid}`;
     navigator.clipboard.writeText(catalogLink);
     toast({
         title: 'Enlace Copiado',
@@ -44,8 +45,8 @@ export function ShareCatalog() {
   }
 
   const handleShare = (platform: string) => {
-    // This will be the public catalog link. For now, it points to a generic path.
-    const catalogLink = `${window.location.origin}/catalog`;
+    if (!user) return;
+    const catalogLink = `${window.location.origin}/catalog/${user.uid}`;
     const encodedLink = encodeURIComponent(catalogLink);
     const text = encodeURIComponent('¡Mira nuestro catálogo de productos!');
     let url = '';
