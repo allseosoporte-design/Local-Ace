@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from "react";
@@ -35,7 +34,6 @@ const defaultFooter: FooterConfig = {
     textColor: '#333333',
     iconColor: '#4169E1'
 };
-
 
 const defaultLandingData: LandingPageData = {
   title: "Tu Titular Atractivo Aquí",
@@ -91,11 +89,13 @@ export default function LandingPageBuilder() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
-
-  const [landingData, setLandingData] = useState<LandingPageData>(defaultLandingData);
-  const [formConfig, setFormConfig] = useState<FormConfigData>(defaultFormConfig);
   
-  const defaultNavigation: HeaderConfig = {
+  // 🔧 CAMBIO IMPORTANTE: Inicializar con null para distinguir entre "no cargado" y "cargado con defaults"
+  const [landingData, setLandingData] = useState<LandingPageData | null>(null);
+  const [formConfig, setFormConfig] = useState<FormConfigData | null>(null);
+  
+  // Crear defaultNavigation con useMemo para evitar recreaciones
+  const defaultNavigation: HeaderConfig = useMemo(() => ({
     enabled: true,
     links: [
       { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
@@ -114,7 +114,7 @@ export default function LandingPageBuilder() {
     logoText: "Mi Negocio",
     logoWidth: 120,
     logoAlignment: 'left'
-  };
+  }), [user]);
 
   const landingConfigRef = useMemo(() => {
     if (!firestore || !user) return null;
@@ -129,55 +129,103 @@ export default function LandingPageBuilder() {
   const { data: initialLandingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingConfigRef);
   const { data: initialFormConfig, isLoading: isFormConfigLoading } = useDoc<FormConfigData>(formConfigRef);
 
+  // 🔧 CAMBIO CRÍTICO: Un solo useEffect que maneja toda la lógica de inicialización
   useEffect(() => {
+    // Solo proceder cuando ya no estamos cargando y tenemos usuario
+    if (isLandingLoading || !user) return;
+
+    // Si hay datos guardados en Firestore, úsalos
     if (initialLandingData) {
-      setLandingData(prev => ({ 
-          ...defaultLandingData, 
-          ...prev, 
-          ...initialLandingData,
-          navigation: { ...defaultNavigation, ...(initialLandingData.navigation || {}) },
-          footer: { ...defaultFooter, ...(initialLandingData.footer || {}) }
-        }));
-    } else if (!isLandingLoading && user) {
-        setLandingData(prev => ({...prev, navigation: defaultNavigation}));
+      console.log('✅ Cargando datos desde Firestore:', initialLandingData);
+      setLandingData({
+        ...defaultLandingData,
+        ...initialLandingData,
+        // Asegurar que navigation y footer siempre tengan valores completos
+        navigation: {
+          ...defaultNavigation,
+          ...(initialLandingData.navigation || {})
+        },
+        footer: {
+          ...defaultFooter,
+          ...(initialLandingData.footer || {})
+        },
+        // Asegurar que arrays existan
+        sections: initialLandingData.sections || [],
+        testimonials: initialLandingData.testimonials || [],
+      });
+    } else {
+      // Si no hay datos guardados, usar defaults
+      console.log('⚠️ No hay datos en Firestore, usando defaults');
+      setLandingData({
+        ...defaultLandingData,
+        navigation: defaultNavigation,
+        footer: defaultFooter
+      });
     }
-  }, [initialLandingData, isLandingLoading, user]);
+  }, [initialLandingData, isLandingLoading, user, defaultNavigation]);
 
+  // Manejar formConfig por separado
   useEffect(() => {
-    if (initialFormConfig) {
-      setFormConfig(prev => ({ ...defaultFormConfig, ...prev, ...initialFormConfig }));
-    }
-  }, [initialFormConfig]);
-  
-  const isLoading = isUserLoading || isLandingLoading || isFormConfigLoading;
+    if (isFormConfigLoading) return;
 
-  // --- FUNCIÓN DE GUARDADO ---
-  // Esta función se ejecuta cuando haces clic en "Guardar Toda la Configuración".
+    if (initialFormConfig) {
+      console.log('✅ Cargando config de formulario desde Firestore:', initialFormConfig);
+      setFormConfig({
+        ...defaultFormConfig,
+        ...initialFormConfig
+      });
+    } else {
+      console.log('⚠️ No hay config de formulario, usando defaults');
+      setFormConfig(defaultFormConfig);
+    }
+  }, [initialFormConfig, isFormConfigLoading]);
+  
+  const isLoading = isUserLoading || isLandingLoading || isFormConfigLoading || !landingData || !formConfig;
+
   const handleSaveAll = async () => {
-    // 1. Verifica que el usuario y la conexión a Firestore estén activos.
-    if (!user || !firestore || !landingConfigRef || !formConfigRef) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No se puede guardar. Usuario o conexión no disponible.' });
+    if (!user || !firestore || !landingConfigRef || !formConfigRef || !landingData || !formConfig) {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error', 
+          description: 'No se puede guardar. Usuario o conexión no disponible.' 
+        });
         return;
     }
+    
     setIsSaving(true);
+    
     try {
-        // 2. Guarda los datos principales de la landing page (títulos, secciones, etc.) en el documento 'config'.
+        console.log('💾 Guardando datos:', {
+          landingData,
+          formConfig,
+          userId: user.uid
+        });
+
+        // Guardar landing page config
         await setDoc(landingConfigRef, {
             ...landingData,
             updatedAt: serverTimestamp()
         }, { merge: true });
 
-        // 3. Guarda la configuración del formulario de reseñas en el documento 'form'.
+        // Guardar form config
         await setDoc(formConfigRef, {
             ...formConfig,
             updatedAt: serverTimestamp()
         }, { merge: true });
         
-        // 4. Muestra una notificación de éxito.
-        toast({ title: '¡Guardado!', description: 'Toda la configuración de la landing page ha sido actualizada.' });
+        console.log('✅ Guardado exitoso');
+        
+        toast({ 
+          title: '¡Guardado!', 
+          description: 'Toda la configuración de la landing page ha sido actualizada.' 
+        });
     } catch (error) {
-        console.error("Error saving all landing page data:", error);
-        toast({ variant: 'destructive', title: 'Error al Guardar', description: 'No se pudo guardar la configuración. Revisa la consola.' });
+        console.error("❌ Error saving all landing page data:", error);
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error al Guardar', 
+          description: 'No se pudo guardar la configuración. Revisa la consola.' 
+        });
     } finally {
         setIsSaving(false);
     }
@@ -237,7 +285,12 @@ export default function LandingPageBuilder() {
           </div>
 
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
-          <EditorLandingPreview data={landingData} formConfig={formConfig} isPreview={true} businessId={user?.uid} />
+          <EditorLandingPreview 
+            data={landingData} 
+            formConfig={formConfig} 
+            isPreview={true} 
+            businessId={user?.uid} 
+          />
         </div>
       </div>
     </div>
