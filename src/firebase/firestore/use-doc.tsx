@@ -1,6 +1,6 @@
 'use client';
     
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   DocumentReference,
   onSnapshot,
@@ -24,6 +24,18 @@ export interface UseDocResult<T> {
   error: FirestoreError | Error | null; // Error object, or null.
 }
 
+const useComparableRef = (ref: DocumentReference | null | undefined) => {
+    const refRef = useRef(ref);
+  
+    if (ref && refRef.current && ref.path !== refRef.current.path) {
+      refRef.current = ref;
+    } else if (!ref && refRef.current) {
+        refRef.current = null;
+    }
+  
+    return refRef.current;
+};
+
 /**
  * React hook to subscribe to a single Firestore document in real-time.
  * Handles nullable references.
@@ -45,10 +57,11 @@ export function useDoc<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true); 
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const memoizedDocRef = useComparableRef(docRef);
 
   useEffect(() => {
     // If the ref is null/undefined, set to a non-loading, empty state.
-    if (!docRef) {
+    if (!memoizedDocRef) {
       setData(null);
       setError(null);
       setIsLoading(false);
@@ -63,7 +76,7 @@ export function useDoc<T = any>(
     
     // onSnapshot returns an unsubscribe function.
     const unsubscribe = onSnapshot(
-      docRef,
+      memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
@@ -79,7 +92,7 @@ export function useDoc<T = any>(
         // Handle Firestore errors (e.g., permissions).
         const contextualError = new FirestorePermissionError({
           operation: 'get',
-          path: docRef.path,
+          path: memoizedDocRef.path,
         });
 
         setError(contextualError);
@@ -97,8 +110,8 @@ export function useDoc<T = any>(
     return () => {
       unsubscribe();
     };
-  // The effect re-runs if the docRef object itself changes, ensuring a fresh subscription.
-  }, [docRef]); 
+  // The effect re-runs if the memoizedDocRef object itself changes, ensuring a fresh subscription.
+  }, [memoizedDocRef]); 
 
   return { data, isLoading, error };
 }
