@@ -1,14 +1,12 @@
-
 'use client';
 
 import { useMemo } from 'react';
-import { DataTable } from '@/components/ui/data-table';
-import { feedbackColumns } from '@/app/dashboard/reviews/columns';
+import { DataTable } from '@/app/dashboard/reviews/data-table';
+import { columns, type Review } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Review } from '@/app/dashboard/reviews/columns';
 
 export function InternalFeedbackTable() {
     const { user, isUserLoading: isAuthLoading } = useUser();
@@ -18,51 +16,21 @@ export function InternalFeedbackTable() {
         if (isAuthLoading || !user || !firestore) {
             return null;
         }
-        // CORRECTED QUERY:
-        // Query the root collection 'internalFeedback'.
-        // Filter by the current logged-in user's UID, which is used as the businessId.
-        // Order the results by creation date.
         return query(
           collection(firestore, `internalFeedback`),
           where('businessId', '==', user.uid),
           orderBy('createdAt', 'desc')
         );
-    }, [firestore, user?.uid, isAuthLoading]);
+    }, [firestore, user, isAuthLoading]);
 
     const { data: feedbackData, isLoading: isLoadingFeedback, error } = useCollection<Review>(feedbackQuery);
 
     const isLoading = isAuthLoading || isLoadingFeedback;
     
-    const sortedData = useMemo(() => {
-        if (!feedbackData) return [];
-        return feedbackData;
-    }, [feedbackData]);
-
     if (error) {
         console.error("Firestore Error in InternalFeedbackTable:", error);
     }
     
-    if (!isAuthLoading && !user) {
-      return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Feedback Interno</CardTitle>
-                <CardDescription>
-                    Comentarios de clientes que te calificaron con 1-4 estrellas. Esto no es público.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center h-48 text-center">
-                <p className="text-lg font-semibold">No has iniciado sesión.</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Por favor, inicia sesión para ver tu feedback.
-                </p>
-              </div>
-            </CardContent>
-        </Card>
-      )
-    }
-
     return (
         <Card>
             <CardHeader>
@@ -84,7 +52,7 @@ export function InternalFeedbackTable() {
                        </p>
                     </div>
                 ) : (
-                    <DataTable columns={feedbackColumns} data={sortedData} />
+                    <DataTable columns={columns} data={feedbackData || []} />
                 )}
             </CardContent>
         </Card>
