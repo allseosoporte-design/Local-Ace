@@ -5,15 +5,17 @@ import { DataTable } from '@/app/dashboard/reviews/data-table';
 import { columns, type Review } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Printer, FileDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 type FilterType = 'all' | 'positive' | 'improve';
 
 export function InternalFeedbackTable() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
     const [filter, setFilter] = useState<FilterType>('all');
 
     const feedbackQuery = useMemo(() => {
@@ -42,6 +44,17 @@ export function InternalFeedbackTable() {
         }
     }, [feedbackData, filter]);
 
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const handleDownloadPdf = () => {
+        toast({
+            title: 'Función en desarrollo',
+            description: 'La descarga en formato PDF estará disponible próximamente.',
+        })
+    };
+
     const isLoading = isAuthLoading || isLoadingFeedback;
     
     if (error) {
@@ -59,6 +72,14 @@ export function InternalFeedbackTable() {
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
+                        <Button onClick={handlePrint} variant="outline">
+                            <Printer className="mr-2 h-4 w-4" />
+                            Imprimir
+                        </Button>
+                        <Button onClick={handleDownloadPdf} variant="outline">
+                            <FileDown className="mr-2 h-4 w-4" />
+                            Descargar PDF
+                        </Button>
                         <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('all')}>Todos</Button>
                         <Button variant={filter === 'positive' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('positive')}>Positivas</Button>
                         <Button variant={filter === 'improve' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('improve')}>A Mejorar</Button>
