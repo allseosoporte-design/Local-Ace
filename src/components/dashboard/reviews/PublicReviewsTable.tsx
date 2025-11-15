@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { DataTable } from '@/app/dashboard/reviews/data-table';
 import { columns, type Review } from '@/app/dashboard/reviews/columns';
 import { useUser, useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { Loader2, Printer, FileDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 
 type FilterType = 'all' | 'positive' | 'improve';
 
-// En una aplicación real, el `googleMyBusinessProfileId` se obtendría del perfil del negocio.
-// Por simplicidad, aquí asumimos que es el mismo que el UID del usuario.
+// In a real app, the `googleMyBusinessProfileId` would be fetched from the business's profile document.
+// For simplicity, we assume here that the GMB profile ID is the same as the user's UID.
 const getGMBProfileId = (userId: string) => userId;
 
 export function PublicReviewsTable() {
