@@ -71,9 +71,13 @@ export default function AdminPaymentSettingsPage() {
   const { data: plans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
 
   React.useEffect(() => {
-    if (isLoadingPlans || !plans || !firestore) return;
+    if (isLoadingPlans) return; // Espera a que la carga de planes termine
 
     const fetchAllSettings = async () => {
+      if (!plans || !firestore) {
+          setIsLoading(false); // No hay planes o firestore, termina la carga
+          return;
+      }
       setIsLoading(true);
       const allSettings: SettingsByPlan = {};
       if (plans.length > 0) {
