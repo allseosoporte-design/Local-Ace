@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -109,7 +108,8 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
     if (isInternalFeedback) {
       docRef = doc(firestore, "internalFeedback", review.id);
     } else if (review.googleMyBusinessProfileId) {
-      docRef = doc(firestore, `googleMyBusinessProfiles/${review.googleMyBusinessProfileId}/reviews`, review.id);
+      // Asumimos que el GMB Profile ID es el UID del usuario para simplificar
+      docRef = doc(firestore, `googleMyBusinessProfiles/${user.uid}/reviews`, review.id);
     } else {
         toast({ variant: 'destructive', title: 'Error', description: 'No se puede identificar el tipo de reseña.' });
         return;
@@ -250,7 +250,7 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
   );
 };
 
-export const columns: ColumnDef<Review>[] = [
+export const getColumns = (): ColumnDef<Review>[] => [
   {
     accessorKey: "name",
     header: "Cliente",
@@ -314,5 +314,3 @@ export const columns: ColumnDef<Review>[] = [
     cell: ActionsCell
   },
 ];
-
-    

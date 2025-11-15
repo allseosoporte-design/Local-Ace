@@ -1,16 +1,21 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Share2 } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Share2, Loader2 } from 'lucide-react';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { PublicReviewsTable } from '@/components/dashboard/reviews/PublicReviewsTable';
-import { InternalFeedbackTable } from '@/components/dashboard/reviews/InternalFeedbackTable';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import { DataTable } from '@/app/dashboard/reviews/data-table';
+import { getColumns, type Review } from '@/app/dashboard/reviews/columns';
 
 export default function ReviewsPage() {
-  const { user } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
+  const columns = useMemo(() => getColumns(), []);
 
   const handleCopyLink = () => {
     const businessId = user?.uid;
@@ -30,6 +35,35 @@ export default function ReviewsPage() {
     });
   };
 
+  // Query for public reviews
+  const publicReviewsQuery = useMemo(() => {
+    if (isAuthLoading || !user || !firestore) return null;
+    const gmbProfileId = user.uid; // Assumption for simplicity
+    return query(
+      collection(firestore, `googleMyBusinessProfiles/${gmbProfileId}/reviews`),
+      orderBy('date', 'desc')
+    );
+  }, [firestore, user, isAuthLoading]);
+
+  // Query for internal feedback
+  const internalFeedbackQuery = useMemo(() => {
+    if (isAuthLoading || !user || !firestore) return null;
+    return query(
+      collection(firestore, `internalFeedback`),
+      where('businessId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+  }, [firestore, user, isAuthLoading]);
+
+  const { data: publicReviews, isLoading: isLoadingPublic, error: publicError } = useCollection<Review>(publicReviewsQuery);
+  const { data: internalFeedback, isLoading: isLoadingInternal, error: internalError } = useCollection<Review>(internalFeedbackQuery);
+  
+  const isLoading = isAuthLoading || isLoadingPublic || isLoadingInternal;
+  const error = publicError || internalError;
+  
+   if (error) {
+        console.error("Firestore Error in ReviewsPage:", error);
+    }
 
   return (
     <div className="space-y-6">
@@ -50,14 +84,46 @@ export default function ReviewsPage() {
 
       <Tabs defaultValue="public">
         <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="public">Reseñas Públicas</TabsTrigger>
-            <TabsTrigger value="internal">Feedback Interno</TabsTrigger>
+          <TabsTrigger value="public">Reseñas Públicas</TabsTrigger>
+          <TabsTrigger value="internal">Feedback Interno</TabsTrigger>
         </TabsList>
         <TabsContent value="public">
-            <PublicReviewsTable />
+          <Card>
+            <CardHeader>
+              <CardTitle>Reseñas Públicas de Google</CardTitle>
+              <CardDescription>
+                Responde a las reseñas que tus clientes han dejado en Google.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <DataTable columns={columns} data={publicReviews || []} />
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="internal">
-            <InternalFeedbackTable />
+           <Card>
+            <CardHeader>
+              <CardTitle>Feedback Interno</CardTitle>
+              <CardDescription>
+                Comentarios de clientes que te calificaron con 1-4 estrellas. Esto no es público.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <DataTable columns={columns} data={internalFeedback || []} />
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
