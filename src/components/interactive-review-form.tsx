@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, type FormEvent } from 'react';
-import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -20,6 +19,7 @@ import { CheckCircle, MessageSquare, Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
+import { useToast } from '@/hooks/use-toast';
 
 interface InteractiveReviewFormProps {
   businessId: string;
@@ -35,6 +35,7 @@ export function InteractiveReviewForm({ businessId, formConfig }: InteractiveRev
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const handleRating = (newRating: number) => {
     setRating(newRating);
@@ -57,14 +58,12 @@ export function InteractiveReviewForm({ businessId, formConfig }: InteractiveRev
     e.preventDefault();
     
     if (!firestore) {
-      console.error("Firestore not initialized");
-      alert("Error: Base de datos no disponible");
+      toast({ variant: 'destructive', title: 'Error', description: 'Servicio de base de datos no disponible.' });
       return;
     }
   
     if (!businessId) {
-      console.error("BusinessId missing");
-      alert("Error: ID de negocio no encontrado");
+      toast({ variant: 'destructive', title: 'Error', description: 'ID de negocio no encontrado.' });
       return;
     }
   
@@ -87,8 +86,12 @@ export function InteractiveReviewForm({ businessId, formConfig }: InteractiveRev
       
       setStep(3);
     } catch (error) {
-      console.error('Error completo al enviar feedback:', error);
-      alert(`Error al enviar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      console.error('Error submitting feedback:', error);
+      let errorMessage = 'No se pudo enviar tu comentario. Por favor, inténtalo más tarde.';
+      if (error instanceof Error && error.message.includes('permission-denied')) {
+        errorMessage = 'No tienes permiso para realizar esta acción.';
+      }
+      toast({ variant: 'destructive', title: 'Error al enviar', description: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
