@@ -141,7 +141,7 @@ export default function SettingsPage() {
   };
 
   const handleSaveProfile = async () => {
-    if (!user) return;
+    if (!user || !firestore) return;
     
     setIsUploading(true);
     toast({ title: "Guardando perfil..." });
@@ -160,11 +160,13 @@ export default function SettingsPage() {
         setAvatarPreview(newPhotoUrl); 
       }
       
-      // Actualizar perfil de Firebase Auth
-      await updateProfile(user, {
-        displayName: displayName,
-        photoURL: newPhotoUrl,
-      });
+      // Actualizar perfil de Firebase Auth si hay cambios
+      if (user.displayName !== displayName || user.photoURL !== newPhotoUrl) {
+          await updateProfile(user, {
+            displayName: displayName,
+            photoURL: newPhotoUrl,
+          });
+      }
 
       // Actualizar el documento del negocio en Firestore
       const businessRef = doc(firestore, 'businesses', user.uid);
@@ -173,7 +175,7 @@ export default function SettingsPage() {
           updatedAt: serverTimestamp()
       });
 
-      await user.reload(); // Recargar datos del usuario
+      await user.reload(); // Recargar datos del usuario para reflejar cambios
 
       toast({ title: "¡Perfil guardado!", description: "Tu información ha sido actualizada." });
 
@@ -327,3 +329,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
