@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +29,31 @@ export function EditorNavigation({ data, setData }: EditorNavigationProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (user && data.navigation.links.some(link => link.text === 'Catálogo')) {
+        return; // Ya existe, no hacer nada.
+    }
+    
+    if (user) {
+        const catalogUrl = user.uid === SUPER_ADMIN_BUSINESS_ID ? '/catalog' : `/catalog/${user.uid}`;
+        const catalogLink: NavLink = {
+            id: 'catalog-link',
+            text: 'Catálogo',
+            url: catalogUrl,
+            order: (data.navigation.links.length || 0) + 1,
+            newTab: false,
+        };
+
+        // Prevenir duplicados si se re-renderiza
+        const existingLinks = data.navigation.links || [];
+        if (!existingLinks.find(link => link.id === 'catalog-link')) {
+             setData(prev => prev ? ({ ...prev, navigation: { ...prev.navigation, links: [...existingLinks, catalogLink] } }) : null);
+        }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, data.navigation.links, setData]);
+
 
   if (!data || !setData) {
     return <Loader2 className="animate-spin" />;
@@ -354,5 +379,3 @@ export function EditorNavigation({ data, setData }: EditorNavigationProps) {
     </Card>
   );
 }
-
-    

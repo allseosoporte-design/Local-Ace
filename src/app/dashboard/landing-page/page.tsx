@@ -107,29 +107,6 @@ export default function LandingPageBuilder() {
   const { data: initialLandingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingConfigRef);
   const { data: initialFormConfig, isLoading: isFormConfigLoading } = useDoc<FormConfigData>(formConfigRef);
 
-  const defaultNavigation: HeaderConfig = useMemo(() => {
-      const catalogUrl = user?.uid === 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' ? '/catalog' : `/catalog/${user?.uid}`;
-      return {
-          enabled: true,
-          links: [
-            { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
-            { id: '2', text: 'Servicios', url: '#', order: 2, newTab: false },
-            { id: '3', text: 'Contacto', url: user ? `/contact/${user.uid}` : '#', order: 3, newTab: false },
-            { id: '4', text: 'Catálogo', url: catalogUrl, order: 4, newTab: false },
-          ],
-          backgroundColor: '#FFFFFF',
-          textColor: '#000000',
-          hoverColor: '#4169E1',
-          fontSize: '16',
-          spacing: '24',
-          shadow: true,
-          logoUrl: null,
-          logoText: "Mi Negocio",
-          logoWidth: 120,
-          logoAlignment: 'left'
-    };
-  }, [user]);
-
   useEffect(() => {
     if (!isLandingLoading && user) {
         if (initialLandingData) {
@@ -137,7 +114,7 @@ export default function LandingPageBuilder() {
                 ...defaultLandingData,
                 ...initialLandingData,
                 navigation: {
-                    ...defaultNavigation,
+                    ...defaultLandingData.navigation,
                     ...(initialLandingData.navigation || {})
                 },
                 footer: {
@@ -155,12 +132,19 @@ export default function LandingPageBuilder() {
         } else {
             setLandingData({
                 ...defaultLandingData,
-                navigation: defaultNavigation,
+                navigation: {
+                    ...defaultLandingData.navigation,
+                    links: [
+                        { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
+                        { id: '2', text: 'Servicios', url: '#', order: 2, newTab: false },
+                        { id: '3', text: 'Contacto', url: user ? `/contact/${user.uid}` : '#', order: 3, newTab: false },
+                    ]
+                },
                 footer: defaultFooter
             });
         }
     }
-  }, [initialLandingData, isLandingLoading, user, defaultNavigation]);
+  }, [initialLandingData, isLandingLoading, user]);
 
   useEffect(() => {
     if (!isFormConfigLoading) {
@@ -261,5 +245,3 @@ export default function LandingPageBuilder() {
     </div>
   );
 }
-
-    
