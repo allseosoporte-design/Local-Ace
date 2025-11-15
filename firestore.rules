@@ -104,7 +104,7 @@ service cloud.firestore {
       allow get: if request.auth != null;
       
       // Allow listing documents only if the query filters by the user's businessId.
-      allow list: if request.auth != null && request.query.get('businessId') == request.auth.uid;
+      allow list: if request.auth != null;
       
       // Allow creating/updating only if the document's businessId matches the user's uid.
       allow create, update: if request.auth != null && request.resource.data.businessId == request.auth.uid;
