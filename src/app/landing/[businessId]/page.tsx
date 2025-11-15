@@ -4,9 +4,43 @@ import { useMemo, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useFirestore } from '@/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { EditorLandingPreview, type LandingPageData } from '@/components/editor-landing-preview';
+import { EditorLandingPreview, type LandingPageData, type HeaderConfig, type FooterConfig } from '@/components/editor-landing-preview';
 import { Loader2 } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
+
+const defaultFooter: FooterConfig = {
+    enabled: true,
+    copyrightText: `© ${new Date().getFullYear()} Tu Negocio. Todos los derechos reservados.`,
+    columns: [
+        { id: '1', title: 'Compañía', links: [{id: 'l1', text: 'Sobre nosotros', url: '#'}] },
+        { id: '2', title: 'Legal', links: [{id: 'l2', text: 'Términos y condicones', url: '#'}] },
+    ],
+    socialLinks: [
+        { id: '1', network: 'facebook', url: '#' },
+        { id: '2', network: 'instagram', url: '#' },
+    ],
+    address: 'Calle Falsa 123, Ciudad',
+    phone: '+123 456 7890',
+    email: 'contacto@tu-negocio.com',
+    backgroundColor: '#F8F9FA',
+    textColor: '#333333',
+    iconColor: '#4169E1'
+};
+
+const defaultNavigation: HeaderConfig = {
+      enabled: true,
+      links: [],
+      backgroundColor: '#FFFFFF',
+      textColor: '#000000',
+      hoverColor: '#4169E1',
+      fontSize: '16',
+      spacing: '24',
+      shadow: true,
+      logoUrl: null,
+      logoText: "Mi Negocio",
+      logoWidth: 120,
+      logoAlignment: 'left'
+  };
 
 const defaultLandingData: LandingPageData = {
   title: "Bienvenido a Nuestro Espacio",
@@ -26,7 +60,9 @@ const defaultLandingData: LandingPageData = {
     title: "Título de la Página",
     description: "Descripción de la página para motores de búsqueda.",
     keywords: [],
-  }
+  },
+  navigation: defaultNavigation,
+  footer: defaultFooter,
 };
 
 export default function PublicLandingPage() {
@@ -50,14 +86,14 @@ export default function PublicLandingPage() {
     return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
   }, [firestore, businessId]);
 
-  // ✨ SOLUCIÓN: Usar onSnapshot para escuchar cambios en tiempo real
+  // Usar onSnapshot para escuchar cambios en tiempo real
   useEffect(() => {
     if (!landingPageRef || !formConfigRef) {
-      console.log('[PUBLIC] Referencias no disponibles');
+      setIsLoading(false);
+      setError('ID de negocio no válido.');
       return;
     }
 
-    console.log('[PUBLIC] Suscribiendo a cambios en:', landingPageRef.path);
     setIsLoading(true);
     setError(null);
 
@@ -65,25 +101,16 @@ export default function PublicLandingPage() {
     const unsubscribeLanding = onSnapshot(
       landingPageRef,
       (docSnap) => {
-        console.log('[PUBLIC] Snapshot recibido para landing page');
-        
         if (docSnap.exists()) {
-          const data = docSnap.data() as Partial<LandingPageData>;
-          console.log('[PUBLIC] ✅ Datos cargados:', {
-            title: data.title?.substring(0, 30),
-            sections: data.sections?.length,
-            testimonials: data.testimonials?.length
-          });
-          setLoadedData(data);
+          setLoadedData(docSnap.data() as Partial<LandingPageData>);
         } else {
-          console.log('[PUBLIC] ⚠️ Documento no existe');
-          setLoadedData(null);
+          setLoadedData(null); // Documento no existe
         }
         setIsLoading(false);
       },
       (err) => {
-        console.error('[PUBLIC] ❌ Error al cargar landing page:', err);
-        setError('Error al cargar la página');
+        console.error('Error al cargar landing page:', err);
+        setError('Error al cargar la página. Verifica los permisos.');
         setIsLoading(false);
       }
     );
@@ -93,22 +120,19 @@ export default function PublicLandingPage() {
       formConfigRef,
       (docSnap) => {
         if (docSnap.exists()) {
-          const data = docSnap.data() as FormConfigData;
-          console.log('[PUBLIC] ✅ Form config cargado');
-          setFormConfig(data);
+          setFormConfig(docSnap.data() as FormConfigData);
         } else {
-          console.log('[PUBLIC] ⚠️ Form config no existe');
           setFormConfig(null);
         }
       },
       (err) => {
-        console.error('[PUBLIC] ❌ Error al cargar form config:', err);
+        console.error('Error al cargar form config:', err);
+        // No establecer error principal para este, puede que no exista
       }
     );
 
     // Cleanup: cancelar suscripciones
     return () => {
-      console.log('[PUBLIC] 🔌 Desconectando listeners');
       unsubscribeLanding();
       unsubscribeForm();
     };
@@ -116,32 +140,29 @@ export default function PublicLandingPage() {
 
   // Combinar datos con defaults
   const displayData = useMemo(() => {
-    if (!loadedData) {
-      console.log('[PUBLIC] No hay datos para mostrar');
+    if (isLoading || !loadedData) {
       return null;
     }
 
-    const merged: LandingPageData = {
+    return {
       ...defaultLandingData,
       ...loadedData,
+      navigation: {
+        ...defaultLandingData.navigation,
+        ...(loadedData.navigation || {}),
+      },
+      footer: {
+        ...defaultLandingData.footer,
+        ...(loadedData.footer || {}),
+      },
       sections: loadedData.sections || [],
       testimonials: loadedData.testimonials || [],
       seo: {
         ...defaultLandingData.seo,
         ...(loadedData.seo || {}),
-        keywords: loadedData.seo?.keywords || [],
       },
-      navigation: loadedData.navigation || defaultLandingData.navigation,
-      footer: loadedData.footer || defaultLandingData.footer,
     };
-
-    console.log('[PUBLIC] 🎨 Datos preparados para renderizar:', {
-      title: merged.title?.substring(0, 30),
-      sections: merged.sections?.length,
-    });
-
-    return merged;
-  }, [loadedData]);
+  }, [loadedData, isLoading]);
 
   // Estados de carga y error
   if (isLoading) {
@@ -193,7 +214,6 @@ export default function PublicLandingPage() {
       </main>
       <footer className="flex items-center justify-center py-6 border-t bg-card">
         <p className="text-xs text-muted-foreground">&copy; 2024 Creado con Local Leap</p>
-
       </footer>
     </div>
   );

@@ -114,8 +114,8 @@ export interface LandingPageData {
   testimonialsSubtitle: string;
   testimonials: Testimonial[];
   seo: SeoData;
-  navigation?: HeaderConfig;
-  footer?: FooterConfig;
+  navigation: HeaderConfig;
+  footer: FooterConfig;
 }
 
 interface EditorLandingPreviewProps {
