@@ -71,7 +71,7 @@ export default function DashboardPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12,234</div>
+            <div className="text-2xl font-bold">{Math.floor(Math.random() * 5000) + 1000}</div>
             <p className="text-xs text-muted-foreground">
               +20.1% desde el mes pasado
             </p>
@@ -83,7 +83,7 @@ export default function DashboardPage() {
             <Phone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+2,350</div>
+            <div className="text-2xl font-bold">+{Math.floor(Math.random() * 300) + 50}</div>
             <p className="text-xs text-muted-foreground">
               +180.1% desde el mes pasado
             </p>
@@ -95,7 +95,7 @@ export default function DashboardPage() {
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+1,234</div>
+            <div className="text-2xl font-bold">+{Math.floor(Math.random() * 1000) + 200}</div>
             <p className="text-xs text-muted-foreground">
               +19% desde el mes pasado
             </p>
@@ -107,7 +107,7 @@ export default function DashboardPage() {
             <Globe className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+573</div>
+            <div className="text-2xl font-bold">+{Math.floor(Math.random() * 500) + 50}</div>
             <p className="text-xs text-muted-foreground">
               +32% desde el mes pasado
             </p>
