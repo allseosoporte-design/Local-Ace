@@ -4,21 +4,49 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
-exports.addSuperAdminRole = functions.https.onCall(async (data, context) => {
-  // Para el primer superadmin, no se necesita una verificación estricta,
-  // ya que la lógica de creación en el cliente solo se activa para el email designado.
-  // En un futuro, se podría añadir: if (context.auth?.token?.isSuperAdmin !== true) { ... }
-  // para que solo un admin pueda crear a otros.
+const SUPER_ADMIN_EMAIL = 'allseosoporte@gmail.com';
 
-  // Get user and add custom claim
+exports.addSuperAdminRole = functions.https.onCall(async (data, context) => {
+  // Verificar que el usuario está autenticado
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Debes estar autenticado para llamar esta función.'
+    );
+  }
+
+  const requestingUserEmail = context.auth.token.email;
+  const targetEmail = data.email;
+
+  // Solo permitir si:
+  // 1. El usuario solicitante es el super admin configurado
+  // 2. O el usuario solicitante ya es super admin (para crear más admins en el futuro)
+  const isSuperAdminRequest = 
+    requestingUserEmail === SUPER_ADMIN_EMAIL ||
+    context.auth.token.isSuperAdmin === true;
+
+  if (!isSuperAdminRequest) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'No tienes permisos para asignar roles de administrador.'
+    );
+  }
+
   try {
-    const user = await admin.auth().getUserByEmail(data.email);
+    const user = await admin.auth().getUserByEmail(targetEmail);
+    
     await admin.auth().setCustomUserClaims(user.uid, {
       isSuperAdmin: true
     });
-    return { message: `Success! ${data.email} has been made a super admin.` };
+
+    console.log(`✅ SuperAdmin role assigned to: ${targetEmail}`);
+    
+    return { 
+      success: true,
+      message: `${targetEmail} ahora es superadministrador.` 
+    };
   } catch (err) {
-    console.error(err);
+    console.error('❌ Error asignando rol:', err);
     throw new functions.https.HttpsError('internal', err.message);
   }
 });

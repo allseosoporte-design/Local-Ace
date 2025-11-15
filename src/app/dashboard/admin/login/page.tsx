@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -22,6 +21,7 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getIdTokenResult } from 'firebase/auth';
 
 const SUPER_ADMIN_EMAIL = 'allseosoporte@gmail.com';
 
@@ -49,65 +49,107 @@ export default function AdminLoginPage() {
     }
 
     if (email.toLowerCase() !== SUPER_ADMIN_EMAIL) {
-        toast({
-            variant: 'destructive',
-            title: 'Acceso Denegado',
-            description: 'Esta página es solo para el superadministrador.',
-        });
-        setIsLoading(false);
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Acceso Denegado',
+        description: 'Esta página es solo para el superadministrador.',
+      });
+      setIsLoading(false);
+      return;
     }
 
     const functions = getFunctions(auth.app);
     const addSuperAdminRole = httpsCallable(functions, 'addSuperAdminRole');
 
     try {
-      // Intenta iniciar sesión primero
-      await signInWithEmailAndPassword(auth, email, password);
+      // Intentar iniciar sesión
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Verificar si ya tiene el claim
+      const tokenResult = await getIdTokenResult(user, true);
+      
+      if (!tokenResult.claims.isSuperAdmin) {
+        toast({
+          title: 'Configurando permisos...',
+          description: 'Asignando rol de superadministrador.',
+        });
+
+        // Llamar a la función para asignar el rol
+        await addSuperAdminRole({ email: user.email });
+        
+        // Forzar actualización del token
+        await user.getIdToken(true);
+        
+        // Esperar un momento para que se propague
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      toast({
+        title: '¡Bienvenido!',
+        description: 'Acceso concedido.',
+      });
+      
       router.push('/dashboard/admin');
+
     } catch (error: any) {
-      // SI EL USUARIO NO EXISTE (Y ES EL SUPER ADMIN), LO CREAMOS
-      if (error.code === 'auth/user-not-found') {
+      // Si el usuario no existe, crearlo
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
+          toast({
+            title: 'Creando cuenta...',
+            description: 'Configurando superadministrador por primera vez.',
+          });
+
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
-          
-          // Crear el documento en una colección `superAdmins`
+
+          // Crear documento en Firestore
           const superAdminRef = doc(firestore, 'superAdmins', user.uid);
           await setDoc(superAdminRef, {
-              id: user.uid,
-              firstName: "Super",
-              lastName: "Admin",
-              email: user.email,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
+            id: user.uid,
+            firstName: 'Super',
+            lastName: 'Admin',
+            email: user.email,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
           });
-          
+
+          // Asignar el rol de superadmin
           await addSuperAdminRole({ email: user.email });
-          await user.getIdToken(true); 
+          
+          // Forzar actualización del token
+          await user.getIdToken(true);
+          
+          // Esperar propagación
+          await new Promise(resolve => setTimeout(resolve, 1000));
 
           toast({
-            title: '¡Bienvenido, Super Admin!',
-            description: 'Se ha creado tu cuenta de administrador.',
+            title: '¡Cuenta creada!',
+            description: 'Superadministrador configurado exitosamente.',
           });
+
           router.push('/dashboard/admin');
 
         } catch (creationError: any) {
-           toast({
+          console.error('Error creando cuenta:', creationError);
+          toast({
             variant: 'destructive',
-            title: 'Error Crítico',
-            description: `No se pudo crear la cuenta de super admin: ${creationError.message}`,
+            title: 'Error',
+            description: `No se pudo crear la cuenta: ${creationError.message}`,
           });
         }
-      } else {
-        let errorMessage = 'Credenciales incorrectas.';
-        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-            errorMessage = 'La contraseña es incorrecta.';
-        }
+      } else if (error.code === 'auth/wrong-password') {
         toast({
           variant: 'destructive',
-          title: 'Error de inicio de sesión',
-          description: errorMessage,
+          title: 'Contraseña incorrecta',
+          description: 'Verifica tu contraseña e intenta nuevamente.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error de autenticación',
+          description: error.message || 'No se pudo iniciar sesión.',
         });
       }
     } finally {
@@ -152,7 +194,7 @@ export default function AdminLoginPage() {
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Entrar
+              {isLoading ? 'Verificando acceso...' : 'Entrar'}
             </Button>
           </CardFooter>
         </form>
