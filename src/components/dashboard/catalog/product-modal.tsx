@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -25,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UploadCloud, X, Plus, Trash2, Pencil } from 'lucide-react';
+import { Loader2, UploadCloud, Plus, Trash2, Pencil } from 'lucide-react';
 import type { Product } from '@/types/product';
 import RichTextEditor from '@/components/editor/RichTextEditor';
 import { uploadImage } from '@/ai/flows/upload-image';
@@ -83,7 +82,7 @@ export function ProductModal({
     },
   });
   
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, update } = useFieldArray({
     control: form.control,
     name: "imageUrls"
   });
@@ -145,9 +144,7 @@ export function ProductModal({
         if (result.imageUrl) {
             const currentImageUrls = form.getValues('imageUrls');
             if (index < currentImageUrls.length) {
-                const newImageUrls = [...currentImageUrls];
-                newImageUrls[index] = result.imageUrl;
-                form.setValue('imageUrls', newImageUrls);
+                update(index, result.imageUrl);
             } else {
                 append(result.imageUrl);
             }

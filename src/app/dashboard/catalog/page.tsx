@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -104,7 +103,7 @@ export default function CatalogPage() {
     try {
       const transformedData = {
         ...data,
-        imageUrls: data.imageUrls.map((img: any) => (typeof img === 'object' ? img.value : img)),
+        imageUrls: data.imageUrls || [],
       };
 
       if (editingProduct) {
@@ -120,6 +119,8 @@ export default function CatalogPage() {
         await addDoc(collection(firestore, 'products'), {
           ...transformedData,
           businessId: user.uid,
+          rating: 0,
+          ratingCount: 0,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
