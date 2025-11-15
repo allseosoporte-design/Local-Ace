@@ -28,7 +28,7 @@ import { PlusCircle, Info, CheckCircle, AlertTriangle, MoreHorizontal, Loader2 }
 import { DataTable } from "./data-table";
 import { getColumns } from "./columns";
 import { useFirestore, useUser, useCollection } from "@/firebase";
-import { collection, query, where, orderBy, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { AutomatedPost } from "@/types/automated-post";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -67,8 +67,7 @@ export default function PostsPage() {
     return query(
         collection(firestore, 'automatedPosts'), 
         where('businessId', '==', user.uid),
-        orderBy('scheduledDate', 'desc'),
-        limit(100)
+        orderBy('scheduledDate', 'desc')
     );
   }, [user, firestore]);
 
