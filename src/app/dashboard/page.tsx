@@ -1,28 +1,43 @@
+'use client';
+
+import { useState } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Overview } from "@/components/overview"
-import { RecentReviews } from "@/components/recent-reviews"
+} from '@/components/ui/card';
+import { Overview } from '@/components/overview';
+import { RecentReviews } from '@/components/recent-reviews';
 import {
   Activity,
   Phone,
   MapPin,
   Globe,
-  Star,
-  MessageSquare,
   BarChart,
   Circle,
   AreaChart,
   Printer,
   FileDown,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
+  const { toast } = useToast();
+  const [chartType, setChartType] = useState('Barra');
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownload = () => {
+    toast({
+      title: 'Función en desarrollo',
+      description: 'La descarga de PDF estará disponible próximamente.',
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -84,23 +99,35 @@ export default function DashboardPage() {
               Resumen General
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
+              <Button
+                variant={chartType === 'Barra' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setChartType('Barra')}
+              >
                 <BarChart className="h-4 w-4 mr-2" />
                 Barra
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant={chartType === 'Círculo' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setChartType('Círculo')}
+              >
                 <Circle className="h-4 w-4 mr-2" />
                 Círculo
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant={chartType === 'Línea' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setChartType('Línea')}
+              >
                 <AreaChart className="h-4 w-4 mr-2" />
                 Línea
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
                 Imprimir
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleDownload}>
                 <FileDown className="h-4 w-4 mr-2" />
                 Descargar PDF
               </Button>
@@ -113,9 +140,9 @@ export default function DashboardPage() {
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Reseñas Recientes de 5 Estrellas</CardTitle>
-            <CardDescription>
+            <p className="text-sm text-muted-foreground">
               Obtuviste 26 nuevas reseñas de 5 estrellas este mes.
-            </CardDescription>
+            </p>
           </CardHeader>
           <CardContent>
             <RecentReviews />
@@ -123,5 +150,5 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
