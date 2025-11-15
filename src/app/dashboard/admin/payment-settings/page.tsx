@@ -66,40 +66,28 @@ export default function AdminPaymentSettingsPage() {
   const [settings, setSettings] = useState<SettingsByPlan>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (user) {
-        try {
-          const tokenResult = await getIdTokenResult(user);
-          if (tokenResult.claims.isSuperAdmin) {
-            setIsSuperAdmin(true);
-          }
-        } catch (error) {
-          console.error("Error checking admin status:", error);
-        }
-      }
-    };
-    if (!isUserLoading) {
-        checkAdmin();
-    }
-  }, [user, isUserLoading]);
 
   const plansQuery = useMemo(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    // Crucial change: Do not create the query until the user is loaded and exists
+    if (isUserLoading || !user || !firestore) return null;
     return query(collection(firestore, 'subscriptionPlans'), orderBy('order'));
-  }, [firestore, isSuperAdmin]);
+  }, [firestore, user, isUserLoading]);
 
-  const { data: plans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
+  const { data: plans, isLoading: isLoadingPlans, error: plansError } = useCollection<SubscriptionPlan>(plansQuery);
 
   useEffect(() => {
     const fetchAllSettings = async () => {
-      if (!plans || !firestore) {
-        if (!isLoadingPlans) setIsLoadingSettings(false);
+      // Don't run if plans are still loading or there are no plans
+      if (isLoadingPlans || !plans || !firestore) {
+        if (!isLoadingPlans) {
+          setIsLoadingSettings(false);
+        }
         return;
       }
+      
+      setIsLoadingSettings(true);
 
+      // Handle case where there are no plans
       if (plans.length === 0) {
         setSettings({});
         setIsLoadingSettings(false);
@@ -134,10 +122,9 @@ export default function AdminPaymentSettingsPage() {
       setIsLoadingSettings(false);
     };
 
-    if (!isLoadingPlans && isSuperAdmin) {
-      fetchAllSettings();
-    }
-  }, [plans, isLoadingPlans, firestore, isSuperAdmin]);
+    // The effect depends on `plans` being loaded.
+    fetchAllSettings();
+  }, [plans, isLoadingPlans, firestore]);
 
   const handleSettingsChange = (planId: string, newSettings: PlanPaymentSettings) => {
     setSettings(prev => ({
@@ -166,7 +153,7 @@ export default function AdminPaymentSettingsPage() {
     }
   }
   
-  const isLoading = isUserLoading || isLoadingPlans || (isSuperAdmin && isLoadingSettings);
+  const isLoading = isUserLoading || isLoadingPlans || isLoadingSettings;
 
   if (isLoading) {
     return (
@@ -177,21 +164,22 @@ export default function AdminPaymentSettingsPage() {
     );
   }
 
-  if (!isSuperAdmin) {
+  // The admin layout already handles this, but as a fallback.
+  if (!user) {
      return (
         <Card className="bg-destructive/10 border-destructive">
             <CardHeader className="flex flex-row items-center gap-4">
                 <AlertTriangle className="h-8 w-8 text-destructive" />
                 <div>
                     <CardTitle className="text-destructive">Acceso Denegado</CardTitle>
-                    <CardDescription className="text-destructive/80">No tienes permisos de Super Administrador para ver esta sección.</CardDescription>
+                    <CardDescription className="text-destructive/80">Debes iniciar sesión para ver esta sección.</CardDescription>
                 </div>
             </CardHeader>
         </Card>
      );
   }
   
-  if (!plans || plans.length === 0) {
+  if (!isLoadingPlans && (!plans || plans.length === 0)) {
       return (
           <Card>
               <CardHeader>
