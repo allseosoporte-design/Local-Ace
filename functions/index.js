@@ -7,30 +7,16 @@ admin.initializeApp();
 const SUPER_ADMIN_EMAIL = 'allseosoporte@gmail.com';
 
 exports.addSuperAdminRole = functions.https.onCall(async (data, context) => {
-  // Verificar que el usuario que llama a la función esté autenticado.
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'Debes estar autenticado para llamar esta función.'
-    );
-  }
-
-  const requestingUserEmail = context.auth.token.email;
-  const targetEmail = data.email;
-
-  // Permitir la ejecución si:
-  // 1. El usuario que llama es el SUPER_ADMIN_EMAIL (para la auto-asignación inicial).
-  // 2. O si el usuario que llama ya tiene el claim de `isSuperAdmin` (para asignar a otros).
-  const isSuperAdminRequest = 
-    requestingUserEmail === SUPER_ADMIN_EMAIL ||
-    context.auth.token.isSuperAdmin === true;
-
-  if (!isSuperAdminRequest) {
+  // Para la auto-asignación inicial, la función es llamada por el propio usuario.
+  // Después, solo un superadmin puede asignar el rol a otros.
+  if (context.auth.token.email !== SUPER_ADMIN_EMAIL && context.auth.token.isSuperAdmin !== true) {
     throw new functions.https.HttpsError(
       'permission-denied',
       'No tienes permisos para asignar roles de administrador.'
     );
   }
+
+  const targetEmail = data.email;
 
   try {
     const user = await admin.auth().getUserByEmail(targetEmail);
