@@ -61,7 +61,7 @@ export default function AdminPaymentSettingsPage() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<SettingsByPlan>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   const plansQuery = useMemo(() => {
     if (!firestore) return null;
@@ -71,28 +71,37 @@ export default function AdminPaymentSettingsPage() {
   const { data: plans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
 
   React.useEffect(() => {
-    if (isLoadingPlans) return; // Espera a que la carga de planes termine
+    // No hacer nada si la carga inicial de planes no ha terminado.
+    if (isLoadingPlans) return;
 
     const fetchAllSettings = async () => {
+      // Si no hay planes o firestore, la carga ha terminado.
       if (!plans || !firestore) {
-          setIsLoading(false); // No hay planes o firestore, termina la carga
+          setIsLoadingData(false);
           return;
       }
-      setIsLoading(true);
+      
+      // Si hay planes, pero el array está vacío, la carga también ha terminado.
+      if (plans.length === 0) {
+        setIsLoadingData(false);
+        return;
+      }
+
+      setIsLoadingData(true);
       const allSettings: SettingsByPlan = {};
-      if (plans.length > 0) {
-        for (const plan of plans) {
-          const settingsDocRef = doc(firestore, 'paymentSettings', plan.id);
-          const docSnap = await getDoc(settingsDocRef);
-          if (docSnap.exists()) {
-            allSettings[plan.id] = docSnap.data() as PlanPaymentSettings;
-          } else {
-            allSettings[plan.id] = initialPlanSettings;
-          }
+      
+      for (const plan of plans) {
+        const settingsDocRef = doc(firestore, 'paymentSettings', plan.id);
+        const docSnap = await getDoc(settingsDocRef);
+        if (docSnap.exists()) {
+          allSettings[plan.id] = docSnap.data() as PlanPaymentSettings;
+        } else {
+          allSettings[plan.id] = initialPlanSettings;
         }
       }
+      
       setSettings(allSettings);
-      setIsLoading(false);
+      setIsLoadingData(false);
     };
 
     fetchAllSettings();
@@ -125,7 +134,7 @@ export default function AdminPaymentSettingsPage() {
     }
   }
 
-  if (isLoading || isLoadingPlans) {
+  if (isLoadingPlans || isLoadingData) {
     return (
       <div className='flex items-center justify-center h-64'>
         <Loader2 className='h-8 w-8 animate-spin' />
