@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -18,9 +17,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useDoc } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { uploadImage } from '@/ai/flows/upload-image';
-import { updatePassword, updateProfile } from 'firebase/auth';
+import { updatePassword, updateProfile, getIdTokenResult } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 
 interface SuperAdminProfile {
@@ -43,6 +42,7 @@ export default function AdminProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const superAdminRef = useMemo(() => {
     if (!firestore || !user) return null;
@@ -52,10 +52,28 @@ export default function AdminProfilePage() {
   const { data: initialData, isLoading: isProfileLoading } = useDoc<SuperAdminProfile>(superAdminRef);
 
   useEffect(() => {
+    const checkAdminStatus = async () => {
+        if (user && firestore) {
+            const tokenResult = await getIdTokenResult(user);
+            setIsSuperAdmin(!!tokenResult.claims.isSuperAdmin);
+        }
+    };
+    checkAdminStatus();
+  }, [user, firestore]);
+
+  useEffect(() => {
     if (initialData) {
       setProfileData(initialData);
+    } else if (user) {
+        // Fallback if the doc doesn't exist yet
+        setProfileData({
+            email: user.email || '',
+            firstName: user.displayName?.split(' ')[0] || '',
+            lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
+            avatarUrl: user.photoURL || ''
+        });
     }
-  }, [initialData]);
+  }, [initialData, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -67,7 +85,7 @@ export default function AdminProfilePage() {
     setIsSaving(true);
     try {
       const displayName = `${profileData.firstName} ${profileData.lastName}`.trim();
-      const dataToSave: Partial<SuperAdminProfile> & { updatedAt: any } = {
+      const dataToSave: Partial<SuperAdmin-profile> & { updatedAt: any } = {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
         phone: profileData.phone,
@@ -153,8 +171,11 @@ export default function AdminProfilePage() {
 
         if (result.imageUrl) {
           await updateDoc(superAdminRef, { avatarUrl: result.imageUrl });
-          await updateProfile(user, { photoURL: result.imageUrl });
-          await user.reload(); // Force refresh of user object
+          if(auth.currentUser) {
+            await updateProfile(auth.currentUser, { photoURL: result.imageUrl });
+            await auth.currentUser.reload();
+          }
+          setProfileData(prev => ({ ...prev, avatarUrl: result.imageUrl }));
           
           toast({
             title: 'Foto actualizada',
@@ -180,6 +201,14 @@ export default function AdminProfilePage() {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
+  }
+  
+  if (!isSuperAdmin) {
+    return (
+        <div className="text-center p-8">
+            <p>Acceso denegado.</p>
         </div>
     );
   }
