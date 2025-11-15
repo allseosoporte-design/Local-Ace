@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Query,
   onSnapshot,
@@ -25,6 +25,7 @@ export interface UseCollectionResult<T> {
   data: WithId<T>[] | null; // Document data with ID, or null.
   isLoading: boolean;       // True if loading.
   error: FirestoreError | Error | null; // Error object, or null.
+  forceUpdate: () => void; // Function to manually trigger a re-fetch.
 }
 
 /* Internal implementation of Query:
@@ -78,8 +79,13 @@ export function useCollection<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const [updateCount, setUpdateCount] = useState(0); // State to trigger re-fetch
 
   const memoizedQuery = useComparableQuery(targetRefOrQuery);
+  
+  const forceUpdate = useCallback(() => {
+    setUpdateCount(prev => prev + 1);
+  }, []);
 
   useEffect(() => {
     // If the query is not ready, set a non-loading, empty state.
@@ -136,7 +142,9 @@ export function useCollection<T = any>(
     };
     // By using the memoized query, this effect only runs when the query's
     // logical value changes, not just its object reference.
-  }, [memoizedQuery]);
+  }, [memoizedQuery, updateCount]); // Add updateCount to dependencies
 
-  return { data, isLoading, error };
+  return { data, isLoading, error, forceUpdate };
 }
+
+    

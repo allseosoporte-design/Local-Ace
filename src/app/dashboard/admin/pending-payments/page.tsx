@@ -34,6 +34,7 @@ import {
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { getIdTokenResult } from 'firebase/auth';
 
 interface PendingPayment {
@@ -56,7 +57,7 @@ export default function PendingPaymentsPage() {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      if (user) {
+      if (user && firestore) {
         try {
           const tokenResult = await getIdTokenResult(user, true);
           const claims = tokenResult.claims;
@@ -74,7 +75,7 @@ export default function PendingPaymentsPage() {
       }
     };
     checkAdmin();
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, firestore]);
 
   const paymentsQuery = useMemo(() => {
     if (isCheckingAdmin || !isSuperAdmin || !firestore) return null;
@@ -85,7 +86,7 @@ export default function PendingPaymentsPage() {
     );
   }, [firestore, isSuperAdmin, isCheckingAdmin]);
 
-  const { data: payments, isLoading: isLoadingPayments, error } = useCollection<PendingPayment>(paymentsQuery);
+  const { data: payments, isLoading: isLoadingPayments, error, forceUpdate } = useCollection<PendingPayment>(paymentsQuery);
 
   const filteredPayments = useMemo(() => {
     if (!payments) return [];
@@ -125,20 +126,26 @@ export default function PendingPaymentsPage() {
             paymentId: paymentId
           });
 
-          const logRef = doc(collection(firestore, 'activityLogs'));
+          // In a real app, you would have a more robust logging system.
+          // For now, we'll log to a simple collection.
+          const logRef = doc(collection(firestore, 'globalAuditLogs'));
           batch.set(logRef, {
-            tipoAccion: 'Aprobación de pago',
-            idAdmin: user.uid,
-            empresaId: payment.empresaId,
-            timestamp: serverTimestamp()
+            entity: 'pendingPayments',
+            entityId: paymentId,
+            action: 'updated',
+            performedBy: { uid: user.uid, email: user.email },
+            timestamp: serverTimestamp(),
+            details: `Payment status for ${payment.empresaNombre} changed to ${newStatus}.`,
+            newData: { estadoPago: newStatus },
+            previousData: { estadoPago: 'pendiente' }
           });
         }
         
         await batch.commit();
         
         toast({
-          title: `Pago ${newStatus}`,
-          description: `El pago para ${payment.empresaNombre} ha sido ${newStatus}.`,
+          title: `Pago ${newStatus === 'aprobado' ? 'Aprobado' : 'Rechazado'}`,
+          description: `El pago para ${payment.empresaNombre} ha sido ${newStatus === 'aprobado' ? 'aprobado' : 'rechazado'}.`,
         });
 
       } catch (e) {
@@ -156,10 +163,24 @@ export default function PendingPaymentsPage() {
   );
   
   const refreshData = () => {
+    if (forceUpdate) {
+        forceUpdate();
+    }
     toast({ title: "Datos actualizados", description: "Se han recargado los pagos pendientes."})
   }
   
   const isLoading = isUserLoading || isCheckingAdmin || (paymentsQuery !== null && isLoadingPayments);
+
+  if (!isCheckingAdmin && !isSuperAdmin) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-destructive">Acceso Denegado</CardTitle>
+                <CardDescription>No tienes permisos para ver esta sección.</CardDescription>
+            </CardHeader>
+        </Card>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -182,7 +203,7 @@ export default function PendingPaymentsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nombre, RUC o plan..."
+                placeholder="Buscar por nombre de empresa, plan..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -212,14 +233,14 @@ export default function PendingPaymentsPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && (!isSuperAdmin || filteredPayments.length === 0) && (
+              {!isLoading && filteredPayments.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center h-24">
                     No hay pagos pendientes.
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && isSuperAdmin &&
+              {!isLoading &&
                 filteredPayments.map((payment) => (
                   <TableRow key={payment.id}>
                     <TableCell>
@@ -231,7 +252,7 @@ export default function PendingPaymentsPage() {
                     </TableCell>
                     <TableCell>
                       {payment.fechaSolicitud
-                        ? format(payment.fechaSolicitud.toDate(), 'dd/MM/yyyy HH:mm')
+                        ? format(payment.fechaSolicitud.toDate(), 'dd/MM/yyyy HH:mm', {locale: es})
                         : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
@@ -246,7 +267,7 @@ export default function PendingPaymentsPage() {
                             onClick={() => handleUpdateStatus(payment.id, 'aprobado', payment)}
                           >
                             <CheckCircle className="mr-2 h-4 w-4" />
-                            Activar
+                            Aprobar
                           </Button>
                           <Button
                             variant="ghost"
@@ -269,3 +290,5 @@ export default function PendingPaymentsPage() {
     </div>
   );
 }
+
+    
