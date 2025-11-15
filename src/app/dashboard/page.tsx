@@ -79,33 +79,31 @@ export default function DashboardPage() {
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-semibold tracking-tight">
-                Resumen General
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <BarChart className="h-4 w-4 mr-2" />
-                  Barra
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Circle className="h-4 w-4 mr-2" />
-                  Círculo
-                </Button>
-                <Button variant="outline" size="sm">
-                  <AreaChart className="h-4 w-4 mr-2" />
-                  Línea
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Printer className="h-4 w-4 mr-2" />
-                  Imprimir
-                </Button>
-                <Button variant="outline" size="sm">
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Descargar PDF
-                </Button>
-              </div>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-2xl font-semibold tracking-tight mb-3">
+              Resumen General
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm">
+                <BarChart className="h-4 w-4 mr-2" />
+                Barra
+              </Button>
+              <Button variant="outline" size="sm">
+                <Circle className="h-4 w-4 mr-2" />
+                Círculo
+              </Button>
+              <Button variant="outline" size="sm">
+                <AreaChart className="h-4 w-4 mr-2" />
+                Línea
+              </Button>
+              <Button variant="outline" size="sm">
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir
+              </Button>
+              <Button variant="outline" size="sm">
+                <FileDown className="h-4 w-4 mr-2" />
+                Descargar PDF
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
