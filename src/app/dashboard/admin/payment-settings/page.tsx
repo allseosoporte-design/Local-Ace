@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -16,53 +15,116 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { Save } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
 import { PaymentPlanForm } from '@/components/payment-plan-form';
 import type { PlanPaymentSettings } from '@/types/payment-settings';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, orderBy, doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import type { SubscriptionPlan } from '@/types/subscription-plan';
+import { useToast } from '@/hooks/use-toast';
+
+const initialQRData = {
+  enabled: false,
+  qrImageUrl: null,
+  accountNumber: '',
+  holderName: '',
+  idDocument: '',
+  phone: '',
+  isMainQR: false,
+  instructions: '',
+};
+
+const initialStripeData = { enabled: false, publicKey: '', secretKey: '' };
+
+const initialMercadoPagoData = { enabled: false, accessToken: '', publicKey: '', mode: 'production' as 'production' | 'sandbox', instructions: '' };
+
+const initialPayPalData = { enabled: false, clientId: '', clientSecret: '', mode: 'sandbox' as 'production' | 'sandbox'};
+
+const initialWompiData = { enabled: false, publicKey: '', privateKey: '', mode: 'sandbox' as 'production' | 'sandbox'};
 
 const initialPlanSettings: PlanPaymentSettings = {
-    nequi: {
-        enabled: false,
-        qrImageUrl: null,
-        accountNumber: '',
-        holderName: '',
-        idDocument: '',
-        phone: '',
-        isMainQR: false,
-        instructions: ''
-    },
-    bancolombia: {
-        enabled: false,
-        qrImageUrl: null,
-        accountNumber: '',
-        holderName: '',
-        idDocument: '',
-        phone: '',
-        isMainQR: false,
-        instructions: ''
-    },
-    daviplata: {
-        enabled: false,
-        qrImageUrl: null,
-        accountNumber: '',
-        holderName: '',
-        idDocument: '',
-        phone: '',
-        isMainQR: false,
-        instructions: ''
-    },
-    stripe: { enabled: false, publicKey: '', secretKey: '' },
-    mercadoPago: { enabled: false, accessToken: '', publicKey: '', mode: 'production', instructions: '' },
-    paypal: { enabled: false, clientId: '', clientSecret: '', mode: 'sandbox' },
-    wompi: { enabled: false, publicKey: '', privateKey: '', mode: 'sandbox' },
+    nequi: initialQRData,
+    bancolombia: initialQRData,
+    daviplata: initialQRData,
+    stripe: initialStripeData,
+    mercadoPago: initialMercadoPagoData,
+    paypal: initialPayPalData,
+    wompi: initialWompiData,
     cashOnDelivery: false,
 };
 
+type SettingsByPlan = Record<string, PlanPaymentSettings>;
 
 export default function AdminPaymentSettingsPage() {
-  const [starterSettings, setStarterSettings] = useState<PlanPaymentSettings>(initialPlanSettings);
-  const [professionalSettings, setProfessionalSettings] = useState<PlanPaymentSettings>(initialPlanSettings);
-  const [businessSettings, setBusinessSettings] = useState<PlanPaymentSettings>(initialPlanSettings);
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<SettingsByPlan>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const plansQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'subscriptionPlans'), orderBy('order'));
+  }, [firestore]);
+
+  const { data: plans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
+
+  React.useEffect(() => {
+    if (isLoadingPlans || !plans) return;
+
+    const fetchAllSettings = async () => {
+      setIsLoading(true);
+      const allSettings: SettingsByPlan = {};
+      for (const plan of plans) {
+        const settingsDocRef = doc(firestore, 'paymentSettings', plan.id);
+        const docSnap = await getDoc(settingsDocRef);
+        if (docSnap.exists()) {
+          allSettings[plan.id] = docSnap.data() as PlanPaymentSettings;
+        } else {
+          allSettings[plan.id] = initialPlanSettings;
+        }
+      }
+      setSettings(allSettings);
+      setIsLoading(false);
+    };
+
+    fetchAllSettings();
+  }, [plans, isLoadingPlans, firestore]);
+
+  const handleSettingsChange = (planId: string, newSettings: PlanPaymentSettings) => {
+    setSettings(prev => ({
+      ...prev,
+      [planId]: newSettings,
+    }));
+  };
+
+  const handleSaveAll = async () => {
+    if (!firestore || !plans) return;
+    setIsSaving(true);
+    try {
+      for (const plan of plans) {
+        const planSettings = settings[plan.id];
+        if (planSettings) {
+          const settingsDocRef = doc(firestore, 'paymentSettings', plan.id);
+          await setDoc(settingsDocRef, { ...planSettings, updatedAt: serverTimestamp() }, { merge: true });
+        }
+      }
+      toast({ title: "Configuración Guardada", description: "Todos los ajustes de pago por plan han sido guardados."});
+    } catch (error) {
+      console.error("Error saving all payment settings:", error);
+      toast({ variant: 'destructive', title: "Error", description: "No se pudieron guardar los ajustes."});
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className='flex items-center justify-center h-64'>
+        <Loader2 className='h-8 w-8 animate-spin' />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -75,29 +137,29 @@ export default function AdminPaymentSettingsPage() {
             Define qué métodos de pago están disponibles para cada nivel de suscripción.
           </p>
         </div>
-         <Button size="lg">
-          <Save className="mr-2 h-4 w-4" />
+         <Button size="lg" onClick={handleSaveAll} disabled={isSaving}>
+          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
           Guardar Toda la Configuración
         </Button>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Tabs defaultValue="starter" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-14 rounded-t-lg rounded-b-none">
-              <TabsTrigger value="starter" className="h-full">Starter</TabsTrigger>
-              <TabsTrigger value="professional" className="h-full">Professional</TabsTrigger>
-              <TabsTrigger value="business" className="h-full">Business</TabsTrigger>
+          <Tabs defaultValue={plans?.[0]?.id} className="w-full">
+            <TabsList className={`grid w-full h-14 rounded-t-lg rounded-b-none grid-cols-${plans?.length || 1}`}>
+              {plans?.map(plan => (
+                <TabsTrigger key={plan.id} value={plan.id} className="h-full">{plan.name}</TabsTrigger>
+              ))}
             </TabsList>
-            <TabsContent value="starter">
-                <PaymentPlanForm isLoading={false} settings={starterSettings} setSettings={setStarterSettings} />
-            </TabsContent>
-            <TabsContent value="professional">
-                <PaymentPlanForm isLoading={false} settings={professionalSettings} setSettings={setProfessionalSettings} />
-            </TabsContent>
-            <TabsContent value="business">
-                <PaymentPlanForm isLoading={false} settings={businessSettings} setSettings={setBusinessSettings} />
-            </TabsContent>
+            {plans?.map(plan => (
+              <TabsContent key={plan.id} value={plan.id}>
+                <PaymentPlanForm 
+                    isLoading={!settings[plan.id]} 
+                    settings={settings[plan.id] || initialPlanSettings} 
+                    setSettings={(newSettings) => handleSettingsChange(plan.id, newSettings)} 
+                />
+              </TabsContent>
+            ))}
           </Tabs>
         </CardContent>
       </Card>
