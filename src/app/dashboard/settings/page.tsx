@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -77,7 +76,6 @@ export default function SettingsPage() {
 
   const settingsDocRef = useMemo(() => {
       if (!firestore || !user) return null;
-      // Using a single document for the business's payment settings.
       return doc(firestore, 'paymentSettings', user.uid);
   }, [firestore, user]);
 

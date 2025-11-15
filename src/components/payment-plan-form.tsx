@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -317,37 +316,37 @@ export function PaymentPlanForm({
         </PaymentMethodSelector>
       </RadioGroup>
 
-      {selectedMethod === 'nequi' && (
+      {selectedMethod === 'nequi' && settings.nequi.enabled && (
         <QRForm
           methodName="Nequi"
           data={settings.nequi}
           setData={(data) => handleQRDataChange('nequi', data)}
         />
       )}
-      {selectedMethod === 'daviplata' && (
+      {selectedMethod === 'daviplata' && settings.daviplata.enabled && (
         <QRForm
           methodName="Daviplata"
           data={settings.daviplata}
           setData={(data) => handleQRDataChange('daviplata', data)}
         />
       )}
-      {selectedMethod === 'bancolombia' && (
+      {selectedMethod === 'bancolombia' && settings.bancolombia.enabled && (
         <QRForm
           methodName="Bancolombia"
           data={settings.bancolombia}
           setData={(data) => handleQRDataChange('bancolombia', data)}
         />
       )}
-       {selectedMethod === 'stripe' && (
+       {selectedMethod === 'stripe' && settings.stripe.enabled && (
         <StripeForm data={settings.stripe} setData={handleStripeDataChange} />
       )}
-      {selectedMethod === 'mercadoPago' && (
+      {selectedMethod === 'mercadoPago' && settings.mercadoPago.enabled && (
         <MercadoPagoForm data={settings.mercadoPago} setData={handleMercadoPagoDataChange} />
       )}
-      {selectedMethod === 'paypal' && (
+      {selectedMethod === 'paypal' && settings.paypal.enabled && (
         <PayPalForm data={settings.paypal} setData={handlePayPalDataChange} />
       )}
-      {selectedMethod === 'wompi' && (
+      {selectedMethod === 'wompi' && settings.wompi.enabled && (
         <WompiForm data={settings.wompi} setData={handleWompiDataChange} />
       )}
     </div>
