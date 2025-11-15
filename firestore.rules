@@ -67,9 +67,8 @@ service cloud.firestore {
     // Internal Feedback Collection
     match /internalFeedback/{feedbackId} {
       allow create: if true;
-      allow get: if request.auth != null && (resource.data.businessId == request.auth.uid || isSuperAdmin());
-      allow list: if request.auth != null;
-      allow delete: if request.auth != null && (resource.data.businessId == request.auth.uid || isSuperAdmin());
+      allow read, delete: if request.auth != null && (resource.data.businessId == request.auth.uid || isSuperAdmin());
+      allow list: if request.auth != null; // Allow listing only if authenticated
     }
     
     match /products/{productId} {
@@ -100,7 +99,7 @@ service cloud.firestore {
     }
 
     match /automatedPosts/{postId} {
-      allow read, write: if request.auth != null && (request.auth.uid == request.resource.data.businessId || isSuperAdmin());
+      allow read, write: if request.auth != null && ((resource == null && request.resource.data.businessId == request.auth.uid) || (resource.data.businessId == request.auth.uid) || isSuperAdmin());
     }
   }
 }
