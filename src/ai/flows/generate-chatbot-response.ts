@@ -15,7 +15,7 @@ import { getSubscriptionPlans } from '@/services/subscription-service';
 const getSubscriptionPlansTool = ai.defineTool(
   {
     name: 'getSubscriptionPlans',
-    description: 'Retrieves the available subscription plans from the database.',
+    description: 'Use this tool to get information about subscription plans, including pricing, features, and billing periods.',
     outputSchema: z.array(z.object({
         name: z.string(),
         price: z.number(),
@@ -52,28 +52,30 @@ export type GenerateChatbotResponseOutput = z.infer<
   typeof GenerateChatbotResponseOutputSchema
 >;
 
+const prompt = ai.definePrompt({
+    name: 'chatbotPrompt',
+    tools: [getSubscriptionPlansTool],
+    system: `{{systemPrompt}}
+    
+    IMPORTANT: If the user asks about subscription plans, pricing, costs, or features of the plans, you MUST use the 'getSubscriptionPlans' tool to fetch the current data before answering.
+    If the tool returns an empty list, inform the user that there are currently no plans defined and they should check back later.
+    Base your answer ONLY on the information provided by the tool.
+    `,
+    output: { schema: GenerateChatbotResponseOutputSchema },
+});
+
 export async function generateChatbotResponse(
   input: GenerateChatbotResponseInput
 ): Promise<GenerateChatbotResponseOutput> {
   
   const historyPrompt = input.history.map(msg => `${msg.sender === 'user' ? 'User' : 'Assistant'}: ${msg.text}`).join('\n');
 
-  const prompt = ai.definePrompt({
-    name: 'chatbotPrompt',
-    input: { schema: GenerateChatbotResponseInputSchema },
-    output: { schema: GenerateChatbotResponseOutputSchema },
-    tools: [getSubscriptionPlansTool], // Make the tool available to the AI
-    system: `${input.systemPrompt}
-    
-    IMPORTANT: If the user asks about subscription plans, pricing, costs, or features of the plans, you MUST use the 'getSubscriptionPlans' tool to fetch the current data before answering.
-    If the tool returns an empty list, inform the user that there are currently no plans defined and they should check back later.
-    Base your answer ONLY on the information provided by the tool.
-    `,
+  const { output } = await prompt({
     prompt: `Conversation History:
     ${historyPrompt}
     
     User Question:
-    {{{question}}}
+    ${input.question}
     
     Assistant Response:
     `,
@@ -82,7 +84,6 @@ export async function generateChatbotResponse(
         maxOutputTokens: input.maxTokens || 150
     }
   });
-
-  const { output } = await prompt(input);
+  
   return output!;
 }
