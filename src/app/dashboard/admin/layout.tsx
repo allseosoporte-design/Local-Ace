@@ -41,22 +41,12 @@ export default function AdminDashboardLayout({
     }
 
     const checkAdminStatus = async () => {
-        // Primary check: special email address.
-        if (user.email === 'allseosoporte@gmail.com') {
-            setHasAccess(true);
-            return;
-        }
-
-        // Secondary check: look for a document in a 'superAdmins' collection.
-        // This is a more scalable approach than custom claims for this context.
+        // The single source of truth for super admin access
+        // is the existence of a document in the 'superAdmins' collection.
         try {
             const adminDocRef = doc(firestore, 'superAdmins', user.uid);
             const adminDocSnap = await getDoc(adminDocRef);
-            if (adminDocSnap.exists()) {
-                setHasAccess(true);
-            } else {
-                setHasAccess(false);
-            }
+            setHasAccess(adminDocSnap.exists());
         } catch (error) {
             console.error("Error checking admin status:", error);
             setHasAccess(false);

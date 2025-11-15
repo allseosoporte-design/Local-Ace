@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
@@ -37,7 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCollection, useFirestore, useUser } from "@/firebase";
-import { collection, query, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
+import { collection, query, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { BusinessModal, BusinessFormData } from "@/components/business-modal";
 import { useToast } from "@/hooks/use-toast";
 
@@ -58,38 +59,13 @@ export default function AdminDashboardPage() {
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [businessToDelete, setBusinessToDelete] = useState<Business | null>(null);
-  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!user && !isUserLoading) {
-        setIsCheckingAdmin(false);
-        setIsSuperAdmin(false);
-        return;
-      }
-      if (user) {
-        // En un entorno real, dependeríamos de los custom claims.
-        // Por ahora, usamos el email como fallback para desarrollo.
-        if (user.email === 'allseosoporte@gmail.com') {
-          setIsSuperAdmin(true);
-        } else {
-          // Si no es el email, comprobamos si el documento de superadmin existe.
-          const superAdminDoc = await getDoc(doc(firestore, "superAdmins", user.uid));
-          setIsSuperAdmin(superAdminDoc.exists());
-        }
-        setIsCheckingAdmin(false);
-      }
-    };
-    checkAdmin();
-  }, [user, isUserLoading, firestore]);
-
+  
   const businessesQuery = useMemo(() => {
-    if (isCheckingAdmin || !isSuperAdmin || !firestore) {
+    if (!firestore) {
       return null;
     }
     return query(collection(firestore, "businesses"));
-  }, [firestore, isSuperAdmin, isCheckingAdmin]);
+  }, [firestore]);
 
   const { data: businesses, isLoading: isLoadingBusinesses } = useCollection<Business>(businessesQuery);
 
@@ -144,7 +120,7 @@ export default function AdminDashboardPage() {
     }
   };
   
-  const showLoading = isUserLoading || isCheckingAdmin || (businessesQuery !== null && isLoadingBusinesses);
+  const showLoading = isUserLoading || isLoadingBusinesses;
 
   return (
     <>
@@ -155,7 +131,7 @@ export default function AdminDashboardPage() {
               <CardTitle>Gestión de Clientes</CardTitle>
               <CardDescription>Crea, modifica y gestiona las cuentas de tus clientes.</CardDescription>
             </div>
-            <Button onClick={handleCreate} disabled={!isSuperAdmin}>
+            <Button onClick={handleCreate}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Crear Negocio
             </Button>
@@ -173,8 +149,8 @@ export default function AdminDashboardPage() {
             </TableHeader>
             <TableBody>
               {showLoading && <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></TableCell></TableRow>}
-              {!showLoading && (!isSuperAdmin || !businesses || businesses.length === 0) && <TableRow><TableCell colSpan={4} className="text-center">No hay negocios registrados o no tienes permisos.</TableCell></TableRow>}
-              {!showLoading && isSuperAdmin && businesses?.map((business) => (
+              {!showLoading && (!businesses || businesses.length === 0) && <TableRow><TableCell colSpan={4} className="text-center">No hay negocios registrados.</TableCell></TableRow>}
+              {!showLoading && businesses?.map((business) => (
                 <TableRow key={business.id}>
                   <TableCell className="font-medium">{business.name}</TableCell>
                   <TableCell>

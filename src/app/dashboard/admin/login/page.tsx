@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -20,7 +21,7 @@ import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { doc, writeBatch, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const SUPER_ADMIN_EMAIL = 'allseosoporte@gmail.com';
 
@@ -70,11 +71,10 @@ export default function AdminLoginPage() {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
-          const batch = writeBatch(firestore);
-
+          
           // Crear el documento en una colección `superAdmins`
           const superAdminRef = doc(firestore, 'superAdmins', user.uid);
-          batch.set(superAdminRef, {
+          await setDoc(superAdminRef, {
               id: user.uid,
               firstName: "Super",
               lastName: "Admin",
@@ -86,8 +86,6 @@ export default function AdminLoginPage() {
           await addSuperAdminRole({ email: user.email });
           await user.getIdToken(true); 
 
-          await batch.commit();
-          
           toast({
             title: '¡Bienvenido, Super Admin!',
             description: 'Se ha creado tu cuenta de administrador.',
