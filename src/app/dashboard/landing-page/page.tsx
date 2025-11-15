@@ -107,66 +107,68 @@ export default function LandingPageBuilder() {
   const { data: initialLandingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingConfigRef);
   const { data: initialFormConfig, isLoading: isFormConfigLoading } = useDoc<FormConfigData>(formConfigRef);
 
-  const defaultNavigation: HeaderConfig = useMemo(() => ({
-      enabled: true,
-      links: [
-        { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
-        { id: '2', text: 'Servicios', url: '#', order: 2, newTab: false },
-        { id: '3', text: 'Contacto', url: user ? `/contact/${user.uid}` : '#', order: 3, newTab: false },
-        { id: '4', text: 'Catalogo', url: user ? `/catalog/${user.uid}` : '#', order: 4, newTab: false },
-        { id: '5', text: 'Blog', url: '#', order: 5, newTab: false },
-      ],
-      backgroundColor: '#FFFFFF',
-      textColor: '#000000',
-      hoverColor: '#4169E1',
-      fontSize: '16',
-      spacing: '24',
-      shadow: true,
-      logoUrl: null,
-      logoText: "Mi Negocio",
-      logoWidth: 120,
-      logoAlignment: 'left'
-    }), [user]);
+  const defaultNavigation: HeaderConfig = useMemo(() => {
+      const catalogUrl = user?.uid === 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' ? '/catalog' : `/catalog/${user?.uid}`;
+      return {
+          enabled: true,
+          links: [
+            { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
+            { id: '2', text: 'Servicios', url: '#', order: 2, newTab: false },
+            { id: '3', text: 'Contacto', url: user ? `/contact/${user.uid}` : '#', order: 3, newTab: false },
+            { id: '4', text: 'Catálogo', url: catalogUrl, order: 4, newTab: false },
+          ],
+          backgroundColor: '#FFFFFF',
+          textColor: '#000000',
+          hoverColor: '#4169E1',
+          fontSize: '16',
+          spacing: '24',
+          shadow: true,
+          logoUrl: null,
+          logoText: "Mi Negocio",
+          logoWidth: 120,
+          logoAlignment: 'left'
+    };
+  }, [user]);
 
   useEffect(() => {
-    if (isLandingLoading || !user) return;
-    
-    if (initialLandingData) {
-      const cleanData: LandingPageData = {
-        ...defaultLandingData,
-        ...initialLandingData,
-        navigation: {
-          ...defaultNavigation,
-          ...(initialLandingData.navigation || {})
-        },
-        footer: {
-          ...defaultFooter,
-          ...(initialLandingData.footer || {})
-        },
-        sections: initialLandingData.sections || [],
-        testimonials: initialLandingData.testimonials || [],
-        seo: {
-          ...defaultLandingData.seo,
-          ...(initialLandingData.seo || {})
+    if (!isLandingLoading && user) {
+        if (initialLandingData) {
+            const cleanData: LandingPageData = {
+                ...defaultLandingData,
+                ...initialLandingData,
+                navigation: {
+                    ...defaultNavigation,
+                    ...(initialLandingData.navigation || {})
+                },
+                footer: {
+                    ...defaultFooter,
+                    ...(initialLandingData.footer || {})
+                },
+                sections: initialLandingData.sections || [],
+                testimonials: initialLandingData.testimonials || [],
+                seo: {
+                    ...defaultLandingData.seo,
+                    ...(initialLandingData.seo || {})
+                }
+            };
+            setLandingData(cleanData);
+        } else {
+            setLandingData({
+                ...defaultLandingData,
+                navigation: defaultNavigation,
+                footer: defaultFooter
+            });
         }
-      };
-      setLandingData(cleanData);
-    } else {
-      setLandingData({
-        ...defaultLandingData,
-        navigation: defaultNavigation,
-        footer: defaultFooter
-      });
     }
   }, [initialLandingData, isLandingLoading, user, defaultNavigation]);
 
   useEffect(() => {
-    if (isFormConfigLoading) return;
-    
-    if (initialFormConfig) {
-      setFormConfig({ ...defaultFormConfig, ...initialFormConfig });
-    } else {
-      setFormConfig(defaultFormConfig);
+    if (!isFormConfigLoading) {
+        if (initialFormConfig) {
+            setFormConfig({ ...defaultFormConfig, ...initialFormConfig });
+        } else {
+            setFormConfig(defaultFormConfig);
+        }
     }
   }, [initialFormConfig, isFormConfigLoading]);
   
@@ -242,7 +244,7 @@ export default function LandingPageBuilder() {
                       <EditorSeo data={landingData!} setData={setLandingData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
                   </TabsContent>
                   <TabsContent value="form">
-                      <FormEditor data={formConfig!} setData={setFormConfig} />
+                      <FormEditor data={formConfig!} setData={setFormConfig as React.Dispatch<React.SetStateAction<FormConfigData>>} />
                   </TabsContent>
               </Tabs>
           </div>
@@ -259,3 +261,5 @@ export default function LandingPageBuilder() {
     </div>
   );
 }
+
+    

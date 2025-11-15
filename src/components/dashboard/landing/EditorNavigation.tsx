@@ -145,7 +145,6 @@ export function EditorNavigation({ data, setData }: EditorNavigationProps) {
     handleFooterChange('socialLinks', updatedSocials);
   }
   
-  const catalogUrl = user?.uid === SUPER_ADMIN_BUSINESS_ID ? '/catalog' : `/catalog/${user?.uid}`;
 
   return (
     <Card className="h-full overflow-y-auto border-t-0 rounded-t-none bg-[#FEFBF9]">
@@ -355,3 +354,5 @@ export function EditorNavigation({ data, setData }: EditorNavigationProps) {
     </Card>
   );
 }
+
+    
