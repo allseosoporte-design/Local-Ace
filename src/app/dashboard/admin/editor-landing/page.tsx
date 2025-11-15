@@ -144,7 +144,7 @@ export default function EditorLandingPage() {
     if (!landingPageRef) return;
     addDebugLog('🔍 Verificando datos...');
     try {
-      const docSnap = await getDoc(landingPageTef);
+      const docSnap = await getDoc(landingPageRef);
       if (docSnap.exists()) {
         toast({ title: "Verificación Exitosa", description: `Título en BD: "${docSnap.data().title}"`});
       } else {
@@ -204,27 +204,27 @@ export default function EditorLandingPage() {
               <TabsTrigger value="seo">SEO</TabsTrigger>
             </TabsList>
             <TabsContent value="hero" className="space-y-6">
-              <EditorLandingForm data={localData} setData={setLocalData} />
+              <EditorLandingForm data={localData!} setData={setLocalData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
               <AdminShareLandingPage />
             </TabsContent>
             <TabsContent value="navigation">
-                <AdminEditorNavigation data={localData} setData={setLocalData} />
+                <AdminEditorNavigation data={localData!} setData={setLocalData} />
             </TabsContent>
             <TabsContent value="sections">
-              <EditorSections data={localData} setData={setLocalData} />
+              <EditorSections data={localData!} setData={setLocalData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
             </TabsContent>
             <TabsContent value="testimonials">
-              <EditorTestimonials data={localData} setData={setLocalData} />
+              <EditorTestimonials data={localData!} setData={setLocalData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
             </TabsContent>
             <TabsContent value="seo">
-              <EditorSeo data={localData} setData={setLocalData} />
+              <EditorSeo data={localData!} setData={setLocalData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
             </TabsContent>
           </Tabs>
         </div>
         <div className="lg:col-span-1 bg-white rounded-lg shadow-lg overflow-y-auto">
           <EditorLandingPreview 
             key={SUPER_ADMIN_BUSINESS_ID}
-            data={localData} 
+            data={localData!} 
             formConfig={formConfig || undefined}
             businessId={SUPER_ADMIN_BUSINESS_ID}
             plans={plans}
