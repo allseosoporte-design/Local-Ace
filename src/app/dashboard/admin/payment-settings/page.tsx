@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -22,6 +22,7 @@ import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, orderBy, doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { useToast } from '@/hooks/use-toast';
+import React from 'react';
 
 const initialQRData = {
   enabled: false,
@@ -70,18 +71,20 @@ export default function AdminPaymentSettingsPage() {
   const { data: plans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
 
   React.useEffect(() => {
-    if (isLoadingPlans || !plans) return;
+    if (isLoadingPlans || !plans || !firestore) return;
 
     const fetchAllSettings = async () => {
       setIsLoading(true);
       const allSettings: SettingsByPlan = {};
-      for (const plan of plans) {
-        const settingsDocRef = doc(firestore, 'paymentSettings', plan.id);
-        const docSnap = await getDoc(settingsDocRef);
-        if (docSnap.exists()) {
-          allSettings[plan.id] = docSnap.data() as PlanPaymentSettings;
-        } else {
-          allSettings[plan.id] = initialPlanSettings;
+      if (plans.length > 0) {
+        for (const plan of plans) {
+          const settingsDocRef = doc(firestore, 'paymentSettings', plan.id);
+          const docSnap = await getDoc(settingsDocRef);
+          if (docSnap.exists()) {
+            allSettings[plan.id] = docSnap.data() as PlanPaymentSettings;
+          } else {
+            allSettings[plan.id] = initialPlanSettings;
+          }
         }
       }
       setSettings(allSettings);
@@ -118,12 +121,25 @@ export default function AdminPaymentSettingsPage() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingPlans) {
     return (
       <div className='flex items-center justify-center h-64'>
         <Loader2 className='h-8 w-8 animate-spin' />
       </div>
     );
+  }
+  
+  if (!plans || plans.length === 0) {
+      return (
+          <Card>
+              <CardHeader>
+                  <CardTitle>Sin Planes de Suscripción</CardTitle>
+                  <CardDescription>
+                      No se encontraron planes de suscripción. Por favor, crea al menos un plan en la sección de "Gestión de Planes" antes de configurar los pagos.
+                  </CardDescription>
+              </CardHeader>
+          </Card>
+      );
   }
 
   return (
@@ -138,7 +154,7 @@ export default function AdminPaymentSettingsPage() {
           </p>
         </div>
          <Button size="lg" onClick={handleSaveAll} disabled={isSaving}>
-          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Guardar Toda la Configuración
         </Button>
       </div>
