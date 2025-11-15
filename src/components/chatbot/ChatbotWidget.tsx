@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -334,13 +333,7 @@ const mockConfig: ChatbotConfig = {
     systemPrompt: 'Eres un asistente amigable y profesional para el SaaS Local Leap.',
     temperature: 0.7,
     maxTokens: 150,
-    apiIntegrations: {
-        openRouter: { enabled: true, apiKey: '', status: 'connected' },
-        huggingFace: { enabled: false, apiKey: '', modelEndpoint: '', status: 'error' },
-        deepInfra: { enabled: true, apiKey: '', status: 'untested' },
-        gemini: { enabled: true, apiKey: '', rateLimit: 60, status: 'untested' }
-    }
-}
+};
 
 export default function ChatbotWidget() {
   const firestore = useFirestore();
