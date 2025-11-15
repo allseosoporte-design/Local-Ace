@@ -28,7 +28,8 @@ import { uploadImage } from '@/ai/flows/upload-image';
 import { Loader2, Upload, Save } from 'lucide-react';
 import { PaymentPlanForm } from '@/components/payment-plan-form';
 import type { PlanPaymentSettings } from '@/types/payment-settings';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
 
 const initialQRData = {
   enabled: false,
@@ -62,10 +63,11 @@ const initialPlanSettings: PlanPaymentSettings = {
 
 
 export default function SettingsPage() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const firestore = useFirestore();
 
+  const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [isUploading, setIsUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.photoURL || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +75,13 @@ export default function SettingsPage() {
   const [paymentSettings, setPaymentSettings] = useState<PlanPaymentSettings>(initialPlanSettings);
   const [isSavingPayments, setIsSavingPayments] = useState(false);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName || '');
+      setAvatarPreview(user.photoURL || null);
+    }
+  }, [user]);
 
   const settingsDocRef = useMemo(() => {
       if (!firestore || !user) return null;
@@ -132,22 +141,41 @@ export default function SettingsPage() {
   };
 
   const handleSaveProfile = async () => {
+    if (!user) return;
+    
     setIsUploading(true);
     toast({ title: "Guardando perfil..." });
 
-    const file = fileInputRef.current?.files?.[0];
-
     try {
+      let newPhotoUrl = user.photoURL;
+      const file = fileInputRef.current?.files?.[0];
+
+      // Si hay un nuevo archivo y una previsualización de data URL
       if (file && avatarPreview && avatarPreview.startsWith('data:')) {
         const result = await uploadImage({
           fileAsDataUrl: avatarPreview,
-          folder: `avatars/${user?.uid}`
+          folder: `avatars/${user.uid}`
         });
-        setAvatarPreview(result.imageUrl);
-        toast({ title: "¡Perfil guardado!", description: "Tu foto de perfil ha sido actualizada." });
-      } else {
-        toast({ title: "¡Perfil guardado!", description: "Tu información ha sido actualizada." });
+        newPhotoUrl = result.imageUrl;
+        setAvatarPreview(newPhotoUrl); 
       }
+      
+      // Actualizar perfil de Firebase Auth
+      await updateProfile(user, {
+        displayName: displayName,
+        photoURL: newPhotoUrl,
+      });
+
+      // Actualizar el documento del negocio en Firestore
+      const businessRef = doc(firestore, 'businesses', user.uid);
+      await updateDoc(businessRef, {
+          name: displayName,
+          updatedAt: serverTimestamp()
+      });
+
+      await user.reload(); // Recargar datos del usuario
+
+      toast({ title: "¡Perfil guardado!", description: "Tu información ha sido actualizada." });
 
     } catch (error) {
       console.error("Error saving profile:", error);
@@ -174,6 +202,10 @@ export default function SettingsPage() {
     }
   };
   
+  if (isUserLoading) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin"/></div>
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -212,16 +244,16 @@ export default function SettingsPage() {
 
           <div className="space-y-2">
             <Label htmlFor="name">Nombre Completo</Label>
-            <Input id="name" defaultValue={user?.displayName || "John Doe"} />
+            <Input id="name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Correo Electrónico</Label>
-            <Input id="email" type="email" defaultValue={user?.email || "john.doe@example.com"} disabled />
+            <Input id="email" type="email" value={user?.email || ""} disabled />
           </div>
         </CardContent>
         <CardFooter>
           <Button onClick={handleSaveProfile} disabled={isUploading}>
-             {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+             {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Guardar Perfil
           </Button>
         </CardFooter>
@@ -237,7 +269,7 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="business-name">Nombre del Negocio</Label>
-            <Input id="business-name" defaultValue="The Cozy Corner Cafe" />
+            <Input id="business-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </div>
            <div className="space-y-2">
             <Label htmlFor="language">Idioma</Label>
@@ -263,7 +295,10 @@ export default function SettingsPage() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button>Guardar Configuración del Negocio</Button>
+          <Button onClick={handleSaveProfile} disabled={isUploading}>
+            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Guardar Configuración del Negocio
+            </Button>
         </CardFooter>
       </Card>
 
