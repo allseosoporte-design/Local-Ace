@@ -63,8 +63,7 @@ export default function AdminPaymentSettingsPage() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<SettingsByPlan>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   const plansQuery = useMemo(() => {
     if (!firestore) return null;
@@ -76,17 +75,16 @@ export default function AdminPaymentSettingsPage() {
   useEffect(() => {
     const fetchAllSettings = async () => {
       if (!plans || !firestore) {
-        setIsLoadingSettings(false);
+        setIsLoadingData(false);
         return;
       }
 
       if (plans.length === 0) {
         setSettings({});
-        setIsLoadingSettings(false);
+        setIsLoadingData(false);
         return;
       }
       
-      setIsLoadingSettings(true);
       const allSettings: SettingsByPlan = {};
       
       for (const plan of plans) {
@@ -112,16 +110,13 @@ export default function AdminPaymentSettingsPage() {
       }
       
       setSettings(allSettings);
-      setIsLoadingSettings(false);
-      setSettingsLoaded(true); // Mark settings as loaded
+      setIsLoadingData(false);
     };
 
-    if (!isLoadingPlans && plans && !settingsLoaded) {
+    if (!isLoadingPlans) {
       fetchAllSettings();
-    } else if (!isLoadingPlans && !plans) {
-        setIsLoadingSettings(false);
     }
-  }, [plans, isLoadingPlans, firestore, settingsLoaded]);
+  }, [plans, isLoadingPlans, firestore]);
 
   const handleSettingsChange = (planId: string, newSettings: PlanPaymentSettings) => {
     setSettings(prev => ({
@@ -150,7 +145,7 @@ export default function AdminPaymentSettingsPage() {
     }
   }
   
-  const isLoading = isLoadingPlans || isLoadingSettings;
+  const isLoading = isLoadingPlans || isLoadingData;
 
   if (isLoading) {
     return (
