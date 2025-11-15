@@ -149,19 +149,19 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Cliente</Label>
+              <Label className="text-right">Cliente:</Label>
               <span className="col-span-3 font-medium">{review.name}</span>
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Email</Label>
+              <Label className="text-right">Email:</Label>
               <a href={`mailto:${review.email}`} className="col-span-3 text-primary underline">{review.email}</a>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Fecha</Label>
+              <Label className="text-right">Fecha:</Label>
               <span className="col-span-3 text-muted-foreground">{formattedDate}</span>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Calificación</Label>
+              <Label className="text-right">Calificación:</Label>
               <div className="col-span-3 flex items-center">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star
@@ -174,7 +174,7 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
               </div>
             </div>
             <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-1">Comentario</Label>
+              <Label className="text-right pt-1">Comentario:</Label>
               <p className="col-span-3 bg-muted p-3 rounded-md text-sm leading-relaxed whitespace-pre-wrap">
                 {review.review}
               </p>
@@ -211,7 +211,7 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
             <AlertDialogHeader>
                 <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Esta acción es irreversible. La reseña de <span className="font-bold">{review.name}</span> será eliminada permanentemente.
+                    Esta acción es irreversible. El feedback de <span className="font-bold">{review.name}</span> será eliminado permanentemente.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

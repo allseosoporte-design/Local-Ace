@@ -72,16 +72,15 @@ export function InternalFeedbackTable() {
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button onClick={handlePrint} variant="outline">
+                        <Button onClick={handlePrint} variant="outline" size="sm">
                             <Printer className="mr-2 h-4 w-4" />
                             Imprimir
                         </Button>
-                        <Button onClick={handleDownloadPdf} variant="outline">
+                        <Button onClick={handleDownloadPdf} variant="outline" size="sm">
                             <FileDown className="mr-2 h-4 w-4" />
                             Descargar PDF
                         </Button>
                         <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('all')}>Todos</Button>
-                        <Button variant={filter === 'positive' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('positive')}>Positivas</Button>
                         <Button variant={filter === 'improve' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('improve')}>A Mejorar</Button>
                     </div>
                 </div>
