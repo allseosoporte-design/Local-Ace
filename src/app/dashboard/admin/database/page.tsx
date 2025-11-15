@@ -46,7 +46,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import backendConfig from '@/../docs/backend.json';
+import backendConfig from '../../../../../docs/backend.json';
 
 
 type CollectionInfo = {
