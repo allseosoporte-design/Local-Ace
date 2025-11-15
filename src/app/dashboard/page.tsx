@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
   const { toast } = useToast();
-  const [chartType, setChartType] = useState('Barra');
+  const [chartType, setChartType] = useState<'Barra' | 'Círculo' | 'Línea'>('Barra');
 
   const handlePrint = () => {
     window.print();
@@ -134,7 +134,7 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <Overview />
+            <Overview type={chartType} />
           </CardContent>
         </Card>
         <Card className="lg:col-span-3">
