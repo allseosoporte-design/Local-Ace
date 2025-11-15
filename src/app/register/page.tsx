@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -122,12 +123,12 @@ export default function RegisterPage() {
         });
 
         // Create initial contact form config
-        const contactFormConfigRef = doc(firestore, `businesses/${user.uid}/contactForms`, 'main_form');
+        const contactFormConfigRef = doc(firestore, `businesses/${user.uid}/contactForms`, 'config');
         batch.set(contactFormConfigRef, {
             fields: [
-              { id: 'nombre', type: 'text', label: 'Nombre', placeholder: 'Tu nombre completo', required: true },
-              { id: 'correo', type: 'email', label: 'Correo Electrónico', placeholder: 'tu@ejemplo.com', required: true },
-              { id: 'mensaje', type: 'textarea', label: 'Mensaje', placeholder: 'Escribe tu mensaje aquí...', required: true },
+              { id: uuidv4(), type: 'text', label: 'Nombre', placeholder: 'Tu nombre completo', required: true },
+              { id: uuidv4(), type: 'email', label: 'Correo Electrónico', placeholder: 'tu@ejemplo.com', required: true },
+              { id: uuidv4(), type: 'textarea', label: 'Mensaje', placeholder: 'Escribe tu mensaje aquí...', required: true },
             ],
             emailConfig: {
                 recipientEmail: user.email,
