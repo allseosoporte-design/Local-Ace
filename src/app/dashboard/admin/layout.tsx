@@ -15,9 +15,10 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { LocalLeap } from '@/components/icons';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function AdminDashboardLayout({
   children,
@@ -25,35 +26,53 @@ export default function AdminDashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (isUserLoading) {
+    if (isUserLoading || !firestore) {
       return;
     }
     
     if (!user) {
-      router.replace('/login');
+      router.replace('/admin/login'); // Redirect to specific admin login
       return;
     }
 
-    // Estrategia de "Modo Dios" Temporal:
-    // Si el email es el del super admin, conceder acceso directamente.
-    // Esto evita depender de custom claims que no podemos asignar.
-    if (user.email === 'allseosoporte@gmail.com') {
-      setHasAccess(true);
-    } else {
-      setHasAccess(false);
-    }
-  }, [user, isUserLoading, router]);
+    const checkAdminStatus = async () => {
+        // Primary check: special email address.
+        if (user.email === 'allseosoporte@gmail.com') {
+            setHasAccess(true);
+            return;
+        }
+
+        // Secondary check: look for a document in a 'superAdmins' collection.
+        // This is a more scalable approach than custom claims for this context.
+        try {
+            const adminDocRef = doc(firestore, 'superAdmins', user.uid);
+            const adminDocSnap = await getDoc(adminDocRef);
+            if (adminDocSnap.exists()) {
+                setHasAccess(true);
+            } else {
+                setHasAccess(false);
+            }
+        } catch (error) {
+            console.error("Error checking admin status:", error);
+            setHasAccess(false);
+        }
+    };
+
+    checkAdminStatus();
+
+  }, [user, isUserLoading, router, firestore]);
 
   if (hasAccess === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-muted/40">
         <div className='flex items-center gap-2'>
             <Loader2 className="h-6 w-6 animate-spin" />
-            <p className='text-muted-foreground'>Verificando permisos...</p>
+            <p className='text-muted-foreground'>Verificando permisos de superadmin...</p>
         </div>
       </div>
     );

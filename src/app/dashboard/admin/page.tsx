@@ -37,10 +37,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCollection, useFirestore, useUser } from "@/firebase";
-import { collection, query, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { BusinessModal, BusinessFormData } from "@/components/business-modal";
 import { useToast } from "@/hooks/use-toast";
-import { getIdTokenResult } from "firebase/auth";
 
 type Business = {
   id: string;
@@ -70,23 +69,22 @@ export default function AdminDashboardPage() {
         return;
       }
       if (user) {
-        try {
-          const idTokenResult = await getIdTokenResult(user);
-          const isUserSuperAdmin = idTokenResult.claims.isSuperAdmin === true || user.email === 'allseosoporte@gmail.com';
-          setIsSuperAdmin(isUserSuperAdmin);
-        } catch (error) {
-          console.error("Error fetching user claims:", error);
-          setIsSuperAdmin(false);
-        } finally {
-          setIsCheckingAdmin(false);
+        // En un entorno real, dependeríamos de los custom claims.
+        // Por ahora, usamos el email como fallback para desarrollo.
+        if (user.email === 'allseosoporte@gmail.com') {
+          setIsSuperAdmin(true);
+        } else {
+          // Si no es el email, comprobamos si el documento de superadmin existe.
+          const superAdminDoc = await getDoc(doc(firestore, "superAdmins", user.uid));
+          setIsSuperAdmin(superAdminDoc.exists());
         }
+        setIsCheckingAdmin(false);
       }
     };
     checkAdmin();
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, firestore]);
 
   const businessesQuery = useMemo(() => {
-    // CRITICAL: Do not run the query until we've confirmed the user is a super admin.
     if (isCheckingAdmin || !isSuperAdmin || !firestore) {
       return null;
     }
@@ -226,7 +224,7 @@ export default function AdminDashboardPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
