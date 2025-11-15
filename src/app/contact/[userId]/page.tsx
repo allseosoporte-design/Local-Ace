@@ -148,17 +148,17 @@ export default function PublicContactPage() {
                     id={field.id}
                     placeholder={field.placeholder}
                     required={field.required}
-                    value={formData[field.id] || ''}
-                    onChange={(e) => handleInputChange(field.id, e.target.value)}
+                    value={formData[field.label] || ''}
+                    onChange={(e) => handleInputChange(field.label, e.target.value)}
                   />
                 ) : (
                   <Input
                     id={field.id}
-                    name={field.id}
+                    name={field.label}
                     type={field.type}
                     placeholder={field.placeholder}
                     required={field.required}
-                    value={formData[field.id] || ''}
+                    value={formData[field.label] || ''}
                     onChange={(e) => handleInputChange(e.target.name, e.target.value)}
                   />
                 )}
