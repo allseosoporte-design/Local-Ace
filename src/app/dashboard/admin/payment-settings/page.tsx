@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -63,7 +62,7 @@ export default function AdminPaymentSettingsPage() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<SettingsByPlan>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   const plansQuery = useMemo(() => {
     if (!firestore) return null;
@@ -75,13 +74,13 @@ export default function AdminPaymentSettingsPage() {
   useEffect(() => {
     const fetchAllSettings = async () => {
       if (!plans || !firestore) {
-        setIsLoadingData(false);
+        setIsLoadingSettings(false);
         return;
       }
 
       if (plans.length === 0) {
         setSettings({});
-        setIsLoadingData(false);
+        setIsLoadingSettings(false);
         return;
       }
       
@@ -110,7 +109,7 @@ export default function AdminPaymentSettingsPage() {
       }
       
       setSettings(allSettings);
-      setIsLoadingData(false);
+      setIsLoadingSettings(false);
     };
 
     if (!isLoadingPlans) {
@@ -145,7 +144,7 @@ export default function AdminPaymentSettingsPage() {
     }
   }
   
-  const isLoading = isLoadingPlans || isLoadingData;
+  const isLoading = isLoadingPlans || isLoadingSettings;
 
   if (isLoading) {
     return (
@@ -200,7 +199,7 @@ export default function AdminPaymentSettingsPage() {
             {plans?.map(plan => (
               <TabsContent key={plan.id} value={plan.id}>
                 <PaymentPlanForm 
-                    isLoading={!settings[plan.id]} 
+                    isLoading={isLoadingSettings} 
                     settings={settings[plan.id] || initialPlanSettings} 
                     setSettings={(newSettings) => handleSettingsChange(plan.id, newSettings)} 
                 />
