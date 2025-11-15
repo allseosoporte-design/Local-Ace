@@ -100,18 +100,8 @@ service cloud.firestore {
     }
 
     match /automatedPosts/{postId} {
-      // Allow reading a single document if the user is authenticated and is the owner.
-      allow get: if request.auth != null && resource.data.businessId == request.auth.uid;
-      
-      // Allow listing documents only if the user is authenticated. 
-      // The security is enforced by the `where('businessId', '==', user.uid)` clause in the query.
-      allow list: if request.auth != null;
-      
-      // Allow creating/updating only if the document's businessId matches the user's uid.
-      allow create, update: if request.auth != null && request.resource.data.businessId == request.auth.uid;
-      
-      // Allow deleting only if the user is the owner of the document.
-      allow delete: if request.auth != null && resource.data.businessId == request.auth.uid;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.resource.data.businessId == request.auth.uid;
     }
   }
 }
