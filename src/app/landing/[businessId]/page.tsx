@@ -2,11 +2,12 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useFirestore } from '@/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { useFirestore, useCollection, useDoc } from '@/firebase';
+import { doc, onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { EditorLandingPreview, type LandingPageData, type HeaderConfig, type FooterConfig } from '@/components/editor-landing-preview';
 import { Loader2 } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
+import type { SubscriptionPlan } from '@/types/subscription-plan';
 
 const defaultFooter: FooterConfig = {
     enabled: true,
@@ -70,12 +71,6 @@ export default function PublicLandingPage() {
   const businessId = params.businessId as string;
   const firestore = useFirestore();
   
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadedData, setLoadedData] = useState<Partial<LandingPageData> | null>(null);
-  const [formConfig, setFormConfig] = useState<FormConfigData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // Crear referencias a Firestore
   const landingPageRef = useMemo(() => {
     if (!firestore || !businessId) return null;
     return doc(firestore, `businesses/${businessId}/landingPages`, 'config');
@@ -86,85 +81,51 @@ export default function PublicLandingPage() {
     return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
   }, [firestore, businessId]);
 
-  // Usar onSnapshot para escuchar cambios en tiempo real
-  useEffect(() => {
-    if (!landingPageRef || !formConfigRef) {
-      setIsLoading(false);
-      setError('ID de negocio no válido.');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    // Listener para landing page config
-    const unsubscribeLanding = onSnapshot(
-      landingPageRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          setLoadedData(docSnap.data() as Partial<LandingPageData>);
-        } else {
-          setLoadedData(null); // Documento no existe
-        }
-        setIsLoading(false);
-      },
-      (err) => {
-        console.error('Error al cargar landing page:', err);
-        setError('Error al cargar la página. Verifica los permisos.');
-        setIsLoading(false);
-      }
+  const plansQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'subscriptionPlans'),
+      orderBy('order', 'asc')
     );
+  }, [firestore]);
 
-    // Listener para form config
-    const unsubscribeForm = onSnapshot(
-      formConfigRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          setFormConfig(docSnap.data() as FormConfigData);
-        } else {
-          setFormConfig(null);
-        }
-      },
-      (err) => {
-        console.error('Error al cargar form config:', err);
-        // No establecer error principal para este, puede que no exista
-      }
-    );
 
-    // Cleanup: cancelar suscripciones
-    return () => {
-      unsubscribeLanding();
-      unsubscribeForm();
-    };
-  }, [landingPageRef, formConfigRef]);
+  const { data: landingData, isLoading: isLandingLoading, error: landingError } = useDoc<LandingPageData>(landingPageRef);
+  const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
+  const { data: allPlans, isLoading: arePlansLoading } = useCollection<SubscriptionPlan>(plansQuery);
 
-  // Combinar datos con defaults
+  const plans = useMemo(() => {
+    if (!allPlans) return [];
+    return allPlans.filter(plan => plan.isActive === true);
+  }, [allPlans]);
+
   const displayData = useMemo(() => {
-    if (isLoading || !loadedData) {
-      return null;
+    if (isLandingLoading) return null; // Espera a que termine de cargar
+    
+    // Si hay datos, combínalos con los por defecto para asegurar que todos los campos existan
+    if (landingData) {
+        return {
+            ...defaultLandingData,
+            ...landingData,
+            navigation: { ...defaultLandingData.navigation, ...(landingData.navigation || {}) },
+            footer: { ...defaultLandingData.footer, ...(landingData.footer || {}) },
+            sections: landingData.sections || [],
+            testimonials: landingData.testimonials || [],
+            seo: { ...defaultLandingData.seo, ...(landingData.seo || {}) },
+        };
+    }
+    
+    // Si no hay datos después de cargar y no hay error, significa que el documento no existe
+    if (!landingData && !landingError) {
+        return null;
     }
 
-    return {
-      ...defaultLandingData,
-      ...loadedData,
-      navigation: {
-        ...defaultLandingData.navigation,
-        ...(loadedData.navigation || {}),
-      },
-      footer: {
-        ...defaultLandingData.footer,
-        ...(loadedData.footer || {}),
-      },
-      sections: loadedData.sections || [],
-      testimonials: loadedData.testimonials || [],
-      seo: {
-        ...defaultLandingData.seo,
-        ...(loadedData.seo || {}),
-      },
-    };
-  }, [loadedData, isLoading]);
+    return defaultLandingData; // Fallback en caso de error, para que no se rompa la vista
 
-  // Estados de carga y error
+  }, [landingData, isLandingLoading, landingError]);
+  
+  const isLoading = isLandingLoading || isFormLoading || arePlansLoading;
+
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -176,12 +137,12 @@ export default function PublicLandingPage() {
     );
   }
 
-  if (error) {
+  if (landingError) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background text-center p-4">
         <div>
-          <h1 className='text-2xl font-bold text-destructive'>Error</h1>
-          <p className='text-muted-foreground mt-2'>{error}</p>
+          <h1 className='text-2xl font-bold text-destructive'>Error al Cargar</h1>
+          <p className='text-muted-foreground mt-2'>No se pudo cargar la configuración de la página. Es posible que el enlace no sea válido o haya un problema de permisos.</p>
         </div>
       </div>
     );
@@ -210,6 +171,7 @@ export default function PublicLandingPage() {
           data={displayData} 
           formConfig={formConfig || undefined}
           businessId={businessId}
+          plans={plans}
         />
       </main>
     </div>
