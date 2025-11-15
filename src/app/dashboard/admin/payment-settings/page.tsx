@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -63,6 +64,7 @@ export default function AdminPaymentSettingsPage() {
   const [settings, setSettings] = useState<SettingsByPlan>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const plansQuery = useMemo(() => {
     if (!firestore) return null;
@@ -93,7 +95,6 @@ export default function AdminPaymentSettingsPage() {
         
         const loadedData = docSnap.exists() ? docSnap.data() as PlanPaymentSettings : initialPlanSettings;
         
-        // Deep merge to ensure all keys from initial settings are present
         const mergedSettings = {
             ...initialPlanSettings,
             ...loadedData,
@@ -112,12 +113,15 @@ export default function AdminPaymentSettingsPage() {
       
       setSettings(allSettings);
       setIsLoadingSettings(false);
+      setSettingsLoaded(true); // Mark settings as loaded
     };
 
-    if (!isLoadingPlans) {
+    if (!isLoadingPlans && plans && !settingsLoaded) {
       fetchAllSettings();
+    } else if (!isLoadingPlans && !plans) {
+        setIsLoadingSettings(false);
     }
-  }, [plans, isLoadingPlans, firestore]);
+  }, [plans, isLoadingPlans, firestore, settingsLoaded]);
 
   const handleSettingsChange = (planId: string, newSettings: PlanPaymentSettings) => {
     setSettings(prev => ({
