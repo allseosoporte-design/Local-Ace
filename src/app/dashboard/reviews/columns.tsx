@@ -36,14 +36,19 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 export type Review = {
   id: string;
-  businessId: string;
-  name: string;
-  email: string;
+  businessId?: string; // Feedback interno lo tiene
+  googleMyBusinessProfileId?: string; // Reseña pública lo tiene
+  name: string; // Para feedback interno
+  authorName?: string; // Para reseña pública
+  email?: string;
   rating: number;
-  review: string;
-  createdAt: Timestamp;
-  status: "Pending" | "Responded";
+  review?: string; // Feedback interno
+  comment?: string; // Reseña pública
+  createdAt?: Timestamp; // Feedback interno
+  date?: Timestamp; // Reseña pública
+  status?: "Pending" | "Responded";
 };
+
 
 const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
   const { toast } = useToast();
@@ -56,15 +61,19 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
   const [draftResponse, setDraftResponse] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const review = row.original;
+  
+  const reviewText = review.review || review.comment || '';
+  const customerName = review.name || review.authorName || 'Cliente';
+  const reviewDate = review.createdAt || review.date;
 
   const handleGenerateResponse = async () => {
     if (!user) return;
     setIsGenerating(true);
     try {
       const result = await generateReviewResponse({
-        reviewText: review.review,
+        reviewText: reviewText,
         businessName: user.displayName || "nuestro negocio",
-        customerName: review.name,
+        customerName: customerName,
         industry: "Servicio al cliente", // Puedes hacer esto dinámico en el futuro
         customerSentiment: review.rating >= 4 ? "positive" : (review.rating === 3 ? "neutral" : "negative"),
       });
@@ -91,26 +100,39 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
   };
   
   const handleDelete = async () => {
-    if (!firestore || !review.businessId) return;
+    if (!firestore || !user) return;
+    
+    // Determinar si es feedback interno o una reseña pública para saber de dónde borrar
+    const isInternalFeedback = !!review.businessId;
+    
+    let docRef;
+    if (isInternalFeedback) {
+      docRef = doc(firestore, "internalFeedback", review.id);
+    } else if (review.googleMyBusinessProfileId) {
+      docRef = doc(firestore, `googleMyBusinessProfiles/${review.googleMyBusinessProfileId}/reviews`, review.id);
+    } else {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se puede identificar el tipo de reseña.' });
+        return;
+    }
+
     try {
-      const docRef = doc(firestore, "internalFeedback", review.id);
       await deleteDoc(docRef);
       toast({
-        title: "Feedback eliminado",
-        description: "El comentario ha sido eliminado permanentemente."
+        title: "Elemento eliminado",
+        description: "La reseña/feedback ha sido eliminada permanentemente."
       });
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Error al eliminar",
-        description: "No se pudo eliminar el comentario de la base de datos."
+        description: "No se pudo eliminar el elemento de la base de datos."
       });
     }
     setIsDeleteDialogOpen(false);
   };
 
-  const formattedDate = review.createdAt 
-    ? format(review.createdAt.toDate(), 'dd/MM/yyyy HH:mm') 
+  const formattedDate = reviewDate 
+    ? format(reviewDate.toDate(), 'dd/MM/yyyy HH:mm') 
     : 'N/A';
 
   return (
@@ -144,18 +166,20 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
           <DialogHeader>
             <DialogTitle>Detalles de la Reseña</DialogTitle>
             <DialogDescription>
-              Reseña completa de {review.name}.
+              Reseña completa de {customerName}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Cliente:</Label>
-              <span className="col-span-3 font-medium">{review.name}</span>
+              <span className="col-span-3 font-medium">{customerName}</span>
             </div>
+            {review.email && (
              <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Email:</Label>
               <a href={`mailto:${review.email}`} className="col-span-3 text-primary underline">{review.email}</a>
             </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Fecha:</Label>
               <span className="col-span-3 text-muted-foreground">{formattedDate}</span>
@@ -176,7 +200,7 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
             <div className="grid grid-cols-4 items-start gap-4">
               <Label className="text-right pt-1">Comentario:</Label>
               <p className="col-span-3 bg-muted p-3 rounded-md text-sm leading-relaxed whitespace-pre-wrap">
-                {review.review}
+                {reviewText}
               </p>
             </div>
           </div>
@@ -189,7 +213,7 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
       <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Borrador de respuesta para {review.name}</DialogTitle>
+            <DialogTitle>Borrador de respuesta para {customerName}</DialogTitle>
             <DialogDescription>
               Revisa y edita la respuesta generada por la IA antes de enviarla.
             </DialogDescription>
@@ -211,7 +235,7 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
             <AlertDialogHeader>
                 <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Esta acción es irreversible. El feedback de <span className="font-bold">{review.name}</span> será eliminado permanentemente.
+                    Esta acción es irreversible. El comentario de <span className="font-bold">{customerName}</span> será eliminado permanentemente.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -230,21 +254,26 @@ export const columns: ColumnDef<Review>[] = [
   {
     accessorKey: "name",
     header: "Cliente",
+    cell: ({ row }) => (
+        <span>{row.original.name || row.original.authorName}</span>
+    )
   },
   {
     accessorKey: "review",
     header: "Reseña",
-    cell: ({ row }) => (
-      <p className="text-muted-foreground max-w-xs truncate">{row.original.review}</p>
+    cell: ({ row }: { row: { original: Review } }) => (
+      <p className="text-muted-foreground max-w-xs truncate">
+        {row.original.review || row.original.comment}
+      </p>
     ),
   },
   {
     accessorKey: "createdAt",
     header: "Fecha",
      cell: ({ row }) => {
-      const { createdAt } = row.original;
-      if (createdAt && createdAt.toDate) {
-        return format(createdAt.toDate(), 'dd/MM/yyyy HH:mm');
+      const date = row.original.createdAt || row.original.date;
+      if (date && date.toDate) {
+        return format(date.toDate(), 'dd/MM/yyyy HH:mm');
       }
       return 'N/A';
     },
