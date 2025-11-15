@@ -85,7 +85,7 @@ export default function AdminProfilePage() {
     setIsSaving(true);
     try {
       const displayName = `${profileData.firstName} ${profileData.lastName}`.trim();
-      const dataToSave: Partial<SuperAdmin-profile> & { updatedAt: any } = {
+      const dataToSave: Partial<SuperAdminProfile> & { updatedAt: any } = {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
         phone: profileData.phone,
