@@ -90,22 +90,24 @@ export default function LandingPageBuilder() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
-
+  
   const [landingData, setLandingData] = useState<LandingPageData | null>(null);
   const [formConfig, setFormConfig] = useState<FormConfigData | null>(null);
   
-  // Helper para agregar logs de debug
-  const addDebugLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const log = `[${timestamp}] ${message}`;
-    console.log(log);
-    setDebugInfo(prev => [...prev.slice(-9), log]); // Mantener últimos 10 logs
-  };
+  const landingConfigRef = useMemo(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `businesses/${user.uid}/landingPages`, 'config');
+  }, [firestore, user]);
 
-  const defaultNavigation: HeaderConfig = useMemo(() => {
-    const nav = {
+  const formConfigRef = useMemo(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
+  }, [firestore, user]);
+
+  const { data: initialLandingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingConfigRef);
+  const { data: initialFormConfig, isLoading: isFormConfigLoading } = useDoc<FormConfigData>(formConfigRef);
+
+  const defaultNavigation: HeaderConfig = useMemo(() => ({
       enabled: true,
       links: [
         { id: '1', text: 'Inicio', url: '#', order: 1, newTab: false },
@@ -124,46 +126,12 @@ export default function LandingPageBuilder() {
       logoText: "Mi Negocio",
       logoWidth: 120,
       logoAlignment: 'left'
-    };
-    addDebugLog(`DefaultNavigation creado para user: ${user?.uid || 'null'}`);
-    return nav;
-  }, [user]);
+    }), [user]);
 
-  const landingConfigRef = useMemo(() => {
-    if (!firestore || !user) {
-      addDebugLog('❌ No se puede crear ref: firestore o user null');
-      return null;
-    }
-    const path = `businesses/${user.uid}/landingPages/config`;
-    addDebugLog(`✅ Ref creada: ${path}`);
-    return doc(firestore, path);
-  }, [firestore, user]);
-
-  const formConfigRef = useMemo(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, `businesses/${user.uid}/landingPages`, 'form');
-  }, [firestore, user]);
-
-  const { data: initialLandingData, isLoading: isLandingLoading } = useDoc<LandingPageData>(landingConfigRef);
-  const { data: initialFormConfig, isLoading: isFormConfigLoading } = useDoc<FormConfigData>(formConfigRef);
-
-  // EFECTO CRÍTICO: Inicialización única de datos
   useEffect(() => {
-    // Evitar re-inicialización
-    if (isInitialized) return;
-    
-    // Esperar a que termine de cargar
-    if (isLandingLoading || !user) {
-      addDebugLog(`⏳ Esperando... isLoading: ${isLandingLoading}, user: ${!!user}`);
-      return;
-    }
-
-    addDebugLog('🔄 Iniciando carga de datos...');
+    if (isLandingLoading || !user) return;
     
     if (initialLandingData) {
-      addDebugLog(`📥 Datos encontrados en Firestore`);
-      addDebugLog(`   - Título: "${initialLandingData.title?.substring(0, 30)}..."`);
-      
       const cleanData: LandingPageData = {
         ...defaultLandingData,
         ...initialLandingData,
@@ -182,91 +150,43 @@ export default function LandingPageBuilder() {
           ...(initialLandingData.seo || {})
         }
       };
-      
       setLandingData(cleanData);
-      addDebugLog(`✅ Datos cargados correctamente`);
     } else {
-      addDebugLog(`⚠️ No hay datos en Firestore, usando defaults`);
       setLandingData({
         ...defaultLandingData,
         navigation: defaultNavigation,
         footer: defaultFooter
       });
     }
-    
-    setIsInitialized(true);
-    addDebugLog(`✅ Inicialización completada`);
-  }, [initialLandingData, isLandingLoading, user, isInitialized, defaultNavigation]);
+  }, [initialLandingData, isLandingLoading, user, defaultNavigation]);
 
-  // Efecto separado para formConfig
   useEffect(() => {
     if (isFormConfigLoading) return;
     
     if (initialFormConfig) {
-      addDebugLog(`📥 Form config cargado desde Firestore`);
       setFormConfig({ ...defaultFormConfig, ...initialFormConfig });
     } else {
-      addDebugLog(`⚠️ No hay form config, usando defaults`);
       setFormConfig(defaultFormConfig);
     }
   }, [initialFormConfig, isFormConfigLoading]);
   
-  const isLoading = isUserLoading || !isInitialized || !landingData || !formConfig;
-
-  // Función para verificar datos en Firestore directamente
-  const verifyFirestoreData = async () => {
-    if (!landingConfigRef) return;
-    
-    try {
-      addDebugLog('🔍 Verificando datos en Firestore...');
-      const docSnap = await getDoc(landingConfigRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        addDebugLog(`✅ Documento existe en Firestore`);
-        addDebugLog(`   Path: ${docSnap.ref.path}`);
-        addDebugLog(`   Título: "${data.title?.substring(0, 30)}..."`);
-        console.log('📄 Datos completos en Firestore:', data);
-        toast({ title: "Verificación Exitosa", description: `Título en BD: "${data.title}"`});
-      } else {
-        addDebugLog(`❌ El documento NO existe en Firestore`);
-        addDebugLog(`   Path que se intentó: ${landingConfigRef.path}`);
-        toast({ variant: "destructive", title: "Verificación Fallida", description: "El documento no existe en la base de datos."});
-      }
-    } catch (error: any) {
-      addDebugLog(`❌ Error al verificar: ${error.message}`);
-      console.error(error);
-      toast({ variant: "destructive", title: "Error de Verificación", description: "No se pudo leer la base de datos."});
-    }
-  };
+  const isLoading = isUserLoading || !landingData || !formConfig;
 
   const handleSaveAll = async () => {
     if (!user || !firestore || !landingConfigRef || !formConfigRef || !landingData) {
-        addDebugLog('❌ No se puede guardar: faltan requisitos');
         toast({ variant: 'destructive', title: 'Error', description: 'No se puede guardar. Usuario o conexión no disponible.' });
         return;
     }
     
     setIsSaving(true);
-    addDebugLog('💾 Iniciando guardado...');
     
     try {
-        const dataToSave = { ...landingData, updatedAt: serverTimestamp() };
-        
-        addDebugLog(`📤 Guardando en: ${landingConfigRef.path}`);
-        addDebugLog(`   Título a guardar: "${landingData.title?.substring(0, 30)}..."`);
-        
-        await setDoc(landingConfigRef, dataToSave, { merge: true });
+        await setDoc(landingConfigRef, { ...landingData, updatedAt: serverTimestamp() }, { merge: true });
         await setDoc(formConfigRef, { ...formConfig, updatedAt: serverTimestamp() }, { merge: true });
-        
-        addDebugLog('✅ Guardado exitoso');
-        
-        setTimeout(() => verifyFirestoreData(), 1000);
         
         toast({ title: '¡Guardado!', description: 'Toda la configuración ha sido actualizada.' });
     } catch (error: any) {
-        addDebugLog(`❌ Error al guardar: ${error.message}`);
-        console.error("Error completo:", error);
+        console.error("Error al guardar:", error);
         toast({ variant: 'destructive', title: 'Error al Guardar', description: 'No se pudo guardar. Revisa la consola.' });
     } finally {
         setIsSaving(false);
@@ -283,22 +203,6 @@ export default function LandingPageBuilder() {
 
   return (
     <div className="space-y-6">
-      <Alert variant="default" className="bg-blue-50 border-blue-200">
-        <AlertCircle className="h-4 w-4 !text-blue-700" />
-        <AlertTitle className="text-blue-800 font-semibold">Panel de Depuración (Usuario)</AlertTitle>
-        <AlertDescription className="text-blue-700">
-          <div className="text-xs space-y-1 max-h-32 overflow-y-auto font-mono">
-            <strong>Logs (Usuario: {user?.uid?.substring(0, 8)}...):</strong>
-            {debugInfo.map((log, i) => (
-              <div key={i}>{log}</div>
-            ))}
-          </div>
-          <Button size="sm" variant="outline" className="mt-2 text-blue-800 border-blue-300 hover:bg-blue-100" onClick={verifyFirestoreData}>
-            Verificar Firestore
-          </Button>
-        </AlertDescription>
-      </Alert>
-
       <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Constructor de Landing Page</h1>
@@ -322,20 +226,20 @@ export default function LandingPageBuilder() {
                       <TabsTrigger value="form">Formulario</TabsTrigger>
                   </TabsList>
                   <TabsContent value="hero" className="space-y-6">
-                      <EditorLandingForm data={landingData} setData={setLandingData} />
+                      <EditorLandingForm data={landingData!} setData={setLandingData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
                       <ShareLandingPage />
                   </TabsContent>
                    <TabsContent value="navigation">
-                      <EditorNavigation data={landingData} setData={setLandingData} />
+                      <EditorNavigation data={landingData!} setData={setLandingData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
                   </TabsContent>
                   <TabsContent value="sections">
-                      <EditorSections data={landingData} setData={setLandingData} />
+                      <EditorSections data={landingData!} setData={setLandingData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
                   </TabsContent>
                   <TabsContent value="testimonials">
-                      <EditorTestimonials data={landingData} setData={setLandingData} />
+                      <EditorTestimonials data={landingData!} setData={setLandingData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
                   </TabsContent>
                   <TabsContent value="seo">
-                      <EditorSeo data={landingData} setData={setLandingData} />
+                      <EditorSeo data={landingData!} setData={setLandingData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
                   </TabsContent>
                   <TabsContent value="form">
                       <FormEditor data={formConfig!} setData={setFormConfig} />
