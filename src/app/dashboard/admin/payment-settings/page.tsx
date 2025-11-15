@@ -23,6 +23,7 @@ import { collection, query, orderBy, doc, setDoc, serverTimestamp, getDoc } from
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
+import Link from 'next/link';
 
 const initialQRData = {
   enabled: false,
@@ -61,7 +62,7 @@ export default function AdminPaymentSettingsPage() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<SettingsByPlan>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   const plansQuery = useMemo(() => {
     if (!firestore) return null;
@@ -70,41 +71,52 @@ export default function AdminPaymentSettingsPage() {
 
   const { data: plans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
 
-  React.useEffect(() => {
-    // No hacer nada si la carga inicial de planes no ha terminado.
-    if (isLoadingPlans) return;
-
+  useEffect(() => {
     const fetchAllSettings = async () => {
-      // Si no hay planes o firestore, la carga ha terminado.
       if (!plans || !firestore) {
-          setIsLoadingData(false);
-          return;
-      }
-      
-      // Si hay planes, pero el array está vacío, la carga también ha terminado.
-      if (plans.length === 0) {
-        setIsLoadingData(false);
+        setIsLoadingSettings(false);
         return;
       }
 
-      setIsLoadingData(true);
+      if (plans.length === 0) {
+        setSettings({});
+        setIsLoadingSettings(false);
+        return;
+      }
+      
+      setIsLoadingSettings(true);
       const allSettings: SettingsByPlan = {};
       
       for (const plan of plans) {
         const settingsDocRef = doc(firestore, 'paymentSettings', plan.id);
         const docSnap = await getDoc(settingsDocRef);
-        if (docSnap.exists()) {
-          allSettings[plan.id] = docSnap.data() as PlanPaymentSettings;
-        } else {
-          allSettings[plan.id] = initialPlanSettings;
-        }
+        
+        const loadedData = docSnap.exists() ? docSnap.data() as PlanPaymentSettings : initialPlanSettings;
+        
+        // Deep merge to ensure all keys from initial settings are present
+        const mergedSettings = {
+            ...initialPlanSettings,
+            ...loadedData,
+            nequi: { ...initialQRData, ...(loadedData.nequi || {}) },
+            bancolombia: { ...initialQRData, ...(loadedData.bancolombia || {}) },
+            daviplata: { ...initialQRData, ...(loadedData.daviplata || {}) },
+            stripe: { ...initialStripeData, ...(loadedData.stripe || {}) },
+            mercadoPago: { ...initialMercadoPagoData, ...(loadedData.mercadoPago || {}) },
+            paypal: { ...initialPayPalData, ...(loadedData.paypal || {}) },
+            wompi: { ...initialWompiData, ...(loadedData.wompi || {}) },
+            cashOnDelivery: loadedData.cashOnDelivery || false,
+        };
+
+        allSettings[plan.id] = mergedSettings;
       }
       
       setSettings(allSettings);
-      setIsLoadingData(false);
+      setIsLoadingSettings(false);
     };
 
-    fetchAllSettings();
+    if (!isLoadingPlans) {
+      fetchAllSettings();
+    }
   }, [plans, isLoadingPlans, firestore]);
 
   const handleSettingsChange = (planId: string, newSettings: PlanPaymentSettings) => {
@@ -133,8 +145,10 @@ export default function AdminPaymentSettingsPage() {
       setIsSaving(false);
     }
   }
+  
+  const isLoading = isLoadingPlans || isLoadingSettings;
 
-  if (isLoadingPlans || isLoadingData) {
+  if (isLoading) {
     return (
       <div className='flex items-center justify-center h-64'>
         <Loader2 className='h-8 w-8 animate-spin' />
@@ -148,7 +162,11 @@ export default function AdminPaymentSettingsPage() {
               <CardHeader>
                   <CardTitle>Sin Planes de Suscripción</CardTitle>
                   <CardDescription>
-                      No se encontraron planes de suscripción. Por favor, crea al menos un plan en la sección de "Gestión de Planes" antes de configurar los pagos.
+                      No se encontraron planes de suscripción. Por favor, crea al menos un plan en la sección de{" "}
+                      <Link href="/dashboard/admin/subscription-plans" className="text-primary underline">
+                         Gestión de Planes
+                      </Link>
+                      {" "}antes de configurar los pagos.
                   </CardDescription>
               </CardHeader>
           </Card>
