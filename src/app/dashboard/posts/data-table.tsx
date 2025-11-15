@@ -8,10 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 
 interface DataTableProps<TData, TValue> {
-  columns: any[];
+  columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
@@ -63,7 +63,7 @@ export function DataTable<TData, TValue>({
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
+                No has creado ninguna publicación todavía.
               </TableCell>
             </TableRow>
           )}
