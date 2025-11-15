@@ -73,9 +73,6 @@ export default function Home() {
           plans={plans}
         />
       </main>
-      <footer className="flex items-center justify-center py-6 border-t bg-card">
-          <p className="text-xs text-muted-foreground">&copy; 2024 Creado con Local Leap</p>
-      </footer>
     </div>
   );
 }

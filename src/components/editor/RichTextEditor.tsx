@@ -43,36 +43,17 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
         [{ 'script': 'sub'}, { 'script': 'super' }],
         [{ 'indent': '-1'}, { 'indent': '+1' }],
         ['link', 'image', 'video', 'blockquote', 'code-block'],
-        ['clean'],
-        ['undo', 'redo']
+        ['clean']
       ];
-      
-      const handlers = {
-        undo: () => quillRef.current.history.undo(),
-        redo: () => quillRef.current.history.redo(),
-      };
 
       quillRef.current = new Quill(editorRef.current!, {
         theme: 'snow',
         placeholder: placeholder || '',
         modules: {
-          toolbar: {
-            container: toolbarOptions,
-            handlers: handlers,
-          },
-           history: {
-            delay: 2000,
-            maxStack: 500,
-            userOnly: true
-          }
+          toolbar: toolbarOptions
         }
       });
 
-      // Custom buttons for undo/redo
-      const toolbar = quillRef.current.getModule('toolbar');
-      toolbar.addHandler('undo', handlers.undo);
-      toolbar.addHandler('redo', handlers.redo);
-      
       // Set initial value
       if (value) {
         quillRef.current.root.innerHTML = value;
