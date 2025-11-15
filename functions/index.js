@@ -7,7 +7,7 @@ admin.initializeApp();
 const SUPER_ADMIN_EMAIL = 'allseosoporte@gmail.com';
 
 exports.addSuperAdminRole = functions.https.onCall(async (data, context) => {
-  // Verificar que el usuario está autenticado
+  // Verificar que el usuario que llama a la función esté autenticado.
   if (!context.auth) {
     throw new functions.https.HttpsError(
       'unauthenticated',
@@ -18,9 +18,9 @@ exports.addSuperAdminRole = functions.https.onCall(async (data, context) => {
   const requestingUserEmail = context.auth.token.email;
   const targetEmail = data.email;
 
-  // Solo permitir si:
-  // 1. El usuario solicitante es el super admin configurado
-  // 2. O el usuario solicitante ya es super admin (para crear más admins en el futuro)
+  // Permitir la ejecución si:
+  // 1. El usuario que llama es el SUPER_ADMIN_EMAIL (para la auto-asignación inicial).
+  // 2. O si el usuario que llama ya tiene el claim de `isSuperAdmin` (para asignar a otros).
   const isSuperAdminRequest = 
     requestingUserEmail === SUPER_ADMIN_EMAIL ||
     context.auth.token.isSuperAdmin === true;
@@ -34,6 +34,11 @@ exports.addSuperAdminRole = functions.https.onCall(async (data, context) => {
 
   try {
     const user = await admin.auth().getUserByEmail(targetEmail);
+    
+    // Si el usuario ya tiene el claim, no hacemos nada para evitar trabajo innecesario.
+    if (user.customClaims && user.customClaims.isSuperAdmin === true) {
+        return { success: true, message: `${targetEmail} ya es superadministrador.` };
+    }
     
     await admin.auth().setCustomUserClaims(user.uid, {
       isSuperAdmin: true
