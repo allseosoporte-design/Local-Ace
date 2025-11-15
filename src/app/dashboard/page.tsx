@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useUser, useFirestore, useCollection } from '@/firebase';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import {
   Card,
   CardContent,
@@ -19,13 +21,31 @@ import {
   AreaChart,
   Printer,
   FileDown,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import type { Review } from '@/app/dashboard/reviews/columns';
+
 
 export default function DashboardPage() {
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const [chartType, setChartType] = useState<'Barra' | 'Círculo' | 'Línea'>('Barra');
+
+  const reviewsQuery = useMemo(() => {
+    if (!user || !firestore) return null;
+    return query(
+      collection(firestore, 'internalFeedback'),
+      where('businessId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+      limit(5)
+    );
+  }, [user, firestore]);
+  
+  const { data: recentReviews, isLoading: isLoadingReviews } = useCollection<Review>(reviewsQuery);
+
 
   const handlePrint = () => {
     window.print();
@@ -37,6 +57,8 @@ export default function DashboardPage() {
       description: 'La descarga de PDF estará disponible próximamente.',
     });
   };
+  
+  const isLoading = isUserLoading || isLoadingReviews;
 
   return (
     <div className="space-y-6">
@@ -139,13 +161,19 @@ export default function DashboardPage() {
         </Card>
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Reseñas Recientes de 5 Estrellas</CardTitle>
+            <CardTitle>Feedback Interno Reciente</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Obtuviste 26 nuevas reseñas de 5 estrellas este mes.
+              {recentReviews ? `Últimos ${recentReviews.length} comentarios recibidos.` : 'Cargando comentarios...'}
             </p>
           </CardHeader>
           <CardContent>
-            <RecentReviews />
+             {isLoading ? (
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <RecentReviews reviews={recentReviews || []} />
+            )}
           </CardContent>
         </Card>
       </div>

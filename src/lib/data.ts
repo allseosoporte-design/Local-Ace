@@ -13,49 +13,6 @@ export const overviewData = [
   { name: 'Dec', total: Math.floor(Math.random() * 5000) + 1000 },
 ];
 
-export const recentReviewsData = [
-    {
-      id: "1",
-      name: "Olivia Martin",
-      email: "olivia.martin@email.com",
-      rating: 5,
-      review: "Absolutely loved the service! Highly recommend.",
-      date: "2023-11-23",
-    },
-    {
-      id: "2",
-      name: "Jackson Lee",
-      email: "jackson.lee@email.com",
-      rating: 5,
-      review: "Great experience from start to finish.",
-      date: "2023-11-22",
-    },
-    {
-      id: "3",
-      name: "Isabella Nguyen",
-      email: "isabella.nguyen@email.com",
-      rating: 5,
-      review: "The staff was incredibly friendly and helpful.",
-      date: "2023-11-21",
-    },
-    {
-      id: "4",
-      name: "William Kim",
-      email: "will@email.com",
-      rating: 5,
-      review: "A must-visit place. Will be back for sure!",
-      date: "2023-11-20",
-    },
-    {
-      id: "5",
-      name: "Sofia Davis",
-      email: "sofia.davis@email.com",
-      rating: 5,
-      review: "Exceeded all my expectations. Fantastic!",
-      date: "2023-11-19",
-    },
-];
-
 export const internalFeedbackData = [
     {
       id: "feedback-1",
