@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LocalLeap } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getIdTokenResult } from 'firebase/auth';
 
@@ -88,23 +89,28 @@ export default function AdminLoginPage() {
       // Si el usuario no existe, crearlo para que el script de admin pueda encontrarlo
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
+          const functions = getFunctions(auth.app);
+          const addSuperAdminRole = httpsCallable(functions, 'addSuperAdminRole');
+
           toast({
             title: 'Creando cuenta de Super Admin...',
-            description: 'La cuenta se creará. A continuación, el rol debe ser asignado manualmente.',
+            description: 'La cuenta se creará y se asignará el rol de administrador.',
           });
 
-          await createUserWithEmailAndPassword(auth, email, password);
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           
-          toast({
-            variant: 'destructive',
-            title: 'Acción Requerida',
-            duration: 10000,
-            description: 'Cuenta creada. Ahora un administrador debe asignarte el rol de Super Admin usando el script del servidor antes de que puedas iniciar sesión.',
-          });
+          await addSuperAdminRole({ email: userCredential.user.email });
 
-          if(auth.currentUser) {
-            await auth.signOut();
-          }
+          // Es crucial forzar la actualización del token para obtener el nuevo claim
+          await userCredential.user.getIdToken(true);
+
+          toast({
+            title: '¡Cuenta creada y configurada!',
+            description: 'Iniciando sesión...',
+          });
+          
+          // Ahora redirigimos al panel de admin
+          router.push('/dashboard/admin');
 
         } catch (creationError: any) {
           console.error('Error creando cuenta de superadmin:', creationError);
