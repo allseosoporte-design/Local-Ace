@@ -84,12 +84,14 @@ export default function AdminLoginPage() {
           });
           
           await addSuperAdminRole({ email: user.email });
+          // Force refresh the token to get the custom claim immediately.
           await user.getIdToken(true); 
 
           toast({
             title: '¡Bienvenido, Super Admin!',
             description: 'Se ha creado tu cuenta de administrador.',
           });
+          // Now redirect
           router.push('/dashboard/admin');
 
         } catch (creationError: any) {
