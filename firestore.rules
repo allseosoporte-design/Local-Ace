@@ -12,9 +12,10 @@ service cloud.firestore {
       allow read, create, update: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Allow read access for super admins, and write access for super admins
+    // Allow read access for everyone, and write access for super admins
     match /subscriptionPlans/{planId} {
-      allow read, write: if isSuperAdmin();
+      allow list, get: if true;
+      allow write: if isSuperAdmin();
     }
     
     match /businesses/{businessId} {

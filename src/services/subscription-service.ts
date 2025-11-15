@@ -40,6 +40,9 @@ interface SubscriptionPlan {
 export async function getSubscriptionPlans(): Promise<Omit<SubscriptionPlan, 'id' | 'createdAt' | 'updatedAt' | 'isActive' | 'isPopular' | 'order'>[]> {
   try {
     const plansRef = db.collection('subscriptionPlans');
+    // The security rules now allow public read, so we don't need a privileged read here.
+    // However, keeping the admin SDK is fine as it's a backend service.
+    // We still filter for active plans.
     const snapshot = await plansRef.where('isActive', '==', true).orderBy('order').get();
 
     if (snapshot.empty) {
