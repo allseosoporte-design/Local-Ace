@@ -192,17 +192,17 @@ export default function BackupPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl" style={{color: '#FF8550'}}>Respaldo de superadmin</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Respaldo de superadmin</h1>
         <p className="text-muted-foreground">Descripción del componente</p>
       </div>
 
-      <Card className='bg-[#FFF9F6]'>
+      <Card>
         <CardHeader>
           <CardTitle>Operaciones</CardTitle>
           <CardDescription>Descripción de las operaciones</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Button onClick={() => setIsBackupAlertOpen(true)} className="w-full justify-start text-left" style={{backgroundColor: '#FF8550', color: 'white'}} disabled={!isSuperAdmin}>
+          <Button onClick={() => setIsBackupAlertOpen(true)} className="w-full justify-start text-left" disabled={!isSuperAdmin}>
             <PlayCircle className="mr-2 h-5 w-5" />
             Iniciar Respaldo
           </Button>
@@ -259,7 +259,7 @@ export default function BackupPage() {
         </CardContent>
       </Card>
 
-      <Card className='bg-[#FFF9F6]'>
+      <Card>
         <CardHeader>
           <CardTitle>Historial</CardTitle>
           <CardDescription>Descripción del historial</CardDescription>
@@ -333,7 +333,7 @@ export default function BackupPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#FFF9F6]">
+      <Card>
         <CardHeader>
           <CardTitle>Almacenamiento</CardTitle>
           <CardDescription>Información sobre el uso de la base de datos.</CardDescription>

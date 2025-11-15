@@ -185,7 +185,7 @@ export default function PendingPaymentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl" style={{ color: '#FF8550' }}>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
           Gestión de Pagos Pendientes
         </h1>
         <p className="text-muted-foreground">
@@ -290,5 +290,3 @@ export default function PendingPaymentsPage() {
     </div>
   );
 }
-
-    

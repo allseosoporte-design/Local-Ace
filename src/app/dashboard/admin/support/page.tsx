@@ -142,7 +142,7 @@ export default function AdminSupportPage() {
   return (
     <div className="space-y-6">
        <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl flex items-center gap-3" style={{color: '#FF8550'}}>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl flex items-center gap-3">
           <MessageSquare className='h-8 w-8'/> Soporte
         </h1>
         <p className="text-muted-foreground">
@@ -150,14 +150,14 @@ export default function AdminSupportPage() {
         </p>
       </div>
 
-      <Card className='bg-[#FFF9F6]'>
+      <Card>
         <CardHeader>
           <CardTitle>Bandeja de Entrada</CardTitle>
           <CardDescription>Visualiza y gestiona todos los tickets de soporte y mensajes de contacto.</CardDescription>
         </CardHeader>
         <CardContent>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'internal' | 'public')}>
-                <TabsList className="grid w-full grid-cols-2 bg-[#F6E9E1]">
+                <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="internal">Tickets de Soporte (Internos)</TabsTrigger>
                     <TabsTrigger value="public">Mensajes de Contacto (Públicos)</TabsTrigger>
                 </TabsList>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -99,7 +100,7 @@ export default function MaintenancePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl" style={{color: '#FF8550'}}>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
           Mantenimiento del Sistema
         </h1>
         <p className="text-muted-foreground">
@@ -109,7 +110,7 @@ export default function MaintenancePage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="bg-[#FFF9F6]">
+        <Card>
           <CardHeader className="flex flex-row items-start gap-4">
             <HardDriveDownload className="h-8 w-8 text-primary" />
             <div>
@@ -121,7 +122,7 @@ export default function MaintenancePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <Button onClick={handleCleanCache} disabled={isCleaningCache} className="w-full" style={{backgroundColor: '#FF8550', color: 'white'}}>
+            <Button onClick={handleCleanCache} disabled={isCleaningCache} className="w-full">
               {isCleaningCache ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
@@ -129,7 +130,7 @@ export default function MaintenancePage() {
             </Button>
           </CardContent>
         </Card>
-        <Card className="bg-[#FFF9F6]">
+        <Card>
           <CardHeader className="flex flex-row items-start gap-4">
             <DatabaseZap className="h-8 w-8 text-primary" />
             <div>
@@ -148,7 +149,7 @@ export default function MaintenancePage() {
             </Button>
           </CardContent>
         </Card>
-        <Card className="bg-[#FFF9F6]">
+        <Card>
           <CardHeader className="flex flex-row items-start gap-4">
             <Wrench className="h-8 w-8 text-primary" />
             <div>

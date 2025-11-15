@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -103,12 +104,12 @@ export default function DatabasePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl" style={{color: '#FF8550'}}>Gestión de Base de Datos</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Gestión de Base de Datos</h1>
         <p className="text-muted-foreground">Visualiza y gestiona las colecciones de tu base de datos Firestore.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-[#FFF9F6]">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Estado</CardTitle>
             <CheckCircle className="h-5 w-5 text-green-500" />
@@ -118,7 +119,7 @@ export default function DatabasePage() {
             <p className="text-xs text-muted-foreground">Estado actual de la conexión</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#FFF9F6]">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Latencia</CardTitle>
             <Clock className="h-5 w-5 text-muted-foreground" />
@@ -128,7 +129,7 @@ export default function DatabasePage() {
             <p className="text-xs text-muted-foreground">Tiempo de respuesta del servidor</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#FFF9F6]">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Colecciones</CardTitle>
             <ListTree className="h-5 w-5 text-muted-foreground" />
@@ -138,7 +139,7 @@ export default function DatabasePage() {
             <p className="text-xs text-muted-foreground">Total de colecciones raíz</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#FFF9F6]">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Documentos</CardTitle>
             <FileText className="h-5 w-5 text-muted-foreground" />
@@ -150,7 +151,7 @@ export default function DatabasePage() {
         </Card>
       </div>
 
-      <Card className="bg-[#FFF9F6]">
+      <Card>
         <CardHeader>
           <CardTitle>Colecciones Principales</CardTitle>
           <CardDescription>Lista de las colecciones raíz disponibles en la base de datos.</CardDescription>
@@ -201,13 +202,13 @@ export default function DatabasePage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#FFF9F6]">
+      <Card>
         <CardHeader>
           <CardTitle>Acciones de la Base de Datos</CardTitle>
           <CardDescription>Ejecuta acciones para verificar el estado de la conexión.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleTestConnection} style={{backgroundColor: '#FF8550', color: 'white'}}>Probar conexión</Button>
+          <Button onClick={handleTestConnection}>Probar conexión</Button>
         </CardContent>
       </Card>
       

@@ -151,7 +151,7 @@ export default function AuditPage() {
         <p className="text-muted-foreground">Historial de acciones críticas en el sistema.</p>
       </div>
 
-      <Card className="bg-[#FFF9F6]">
+      <Card>
         <CardHeader>
           <CardTitle>Filtros de Búsqueda</CardTitle>
           <CardDescription>Filtra los registros para encontrar lo que necesitas.</CardDescription>
