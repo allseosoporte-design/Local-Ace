@@ -63,7 +63,9 @@ export default function AdminLoginPage() {
 
     try {
       // Intenta iniciar sesión primero
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Forzar la actualización del token al iniciar sesión para obtener los últimos claims
+      await userCredential.user.getIdToken(true);
       router.push('/dashboard/admin');
     } catch (error: any) {
       // SI EL USUARIO NO EXISTE (Y ES EL SUPER ADMIN), LO CREAMOS

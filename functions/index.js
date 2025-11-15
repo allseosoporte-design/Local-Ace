@@ -19,6 +19,6 @@ exports.addSuperAdminRole = functions.https.onCall(async (data, context) => {
     return { message: `Success! ${data.email} has been made a super admin.` };
   } catch (err) {
     console.error(err);
-    return { error: err.message };
+    throw new functions.https.HttpsError('internal', err.message);
   }
 });

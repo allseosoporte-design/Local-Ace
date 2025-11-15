@@ -41,8 +41,7 @@ export default function AdminDashboardLayout({
 
     const checkAdminStatus = async () => {
         try {
-            // Force refresh is not strictly needed here anymore if login page does it,
-            // but it's good for resilience (e.g., if claims change during a session).
+            // Force refresh is important to get the latest claims after login/signup.
             const tokenResult = await getIdTokenResult(user, true); 
             setHasAccess(tokenResult.claims.isSuperAdmin === true);
         } catch (error) {
