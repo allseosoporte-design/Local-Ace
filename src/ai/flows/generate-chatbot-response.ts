@@ -21,6 +21,8 @@ const getSubscriptionPlansTool = ai.defineTool(
         price: z.number(),
         billingPeriod: z.string(),
         features: z.array(z.string()),
+        currency: z.string(),
+        description: z.string(),
     }))
   },
   async () => {
