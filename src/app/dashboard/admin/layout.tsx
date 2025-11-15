@@ -15,10 +15,10 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { LocalLeap } from '@/components/icons';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { doc, getDoc } from 'firebase/firestore';
+import { getIdTokenResult } from 'firebase/auth';
 
 export default function AdminDashboardLayout({
   children,
@@ -26,12 +26,11 @@ export default function AdminDashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const router = useRouter();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (isUserLoading || !firestore) {
+    if (isUserLoading) {
       return;
     }
     
@@ -41,12 +40,10 @@ export default function AdminDashboardLayout({
     }
 
     const checkAdminStatus = async () => {
-        // The single source of truth for super admin access
-        // is the existence of a document in the 'superAdmins' collection.
         try {
-            const adminDocRef = doc(firestore, 'superAdmins', user.uid);
-            const adminDocSnap = await getDoc(adminDocRef);
-            setHasAccess(adminDocSnap.exists());
+            // Force refresh the token to get the latest custom claims
+            const tokenResult = await getIdTokenResult(user, true); 
+            setHasAccess(tokenResult.claims.isSuperAdmin === true);
         } catch (error) {
             console.error("Error checking admin status:", error);
             setHasAccess(false);
@@ -55,7 +52,7 @@ export default function AdminDashboardLayout({
 
     checkAdminStatus();
 
-  }, [user, isUserLoading, router, firestore]);
+  }, [user, isUserLoading, router]);
 
   if (hasAccess === null) {
     return (

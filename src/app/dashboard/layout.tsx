@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { LocalLeap } from '@/components/icons';
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu } from '@/components/ui/sidebar';
 import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
+import { getIdTokenResult } from 'firebase/auth';
 
 export default function DashboardLayout({
   children,
@@ -31,16 +32,26 @@ export default function DashboardLayout({
       return;
     }
     
-    // Si el super admin intenta acceder al dashboard de usuario, redirigirlo a su panel
-    if (user.uid === SUPER_ADMIN_BUSINESS_ID && !pathname.startsWith('/dashboard/admin')) {
-      router.replace('/dashboard/admin');
-      return;
-    }
+    // Check for super admin claim and redirect if necessary
+    const checkAdminAndRedirect = async () => {
+        try {
+            const tokenResult = await getIdTokenResult(user, true);
+            const isSuperAdmin = tokenResult.claims.isSuperAdmin === true;
+
+            if (isSuperAdmin && !pathname.startsWith('/dashboard/admin')) {
+                router.replace('/dashboard/admin');
+            }
+        } catch (error) {
+            console.error("Error checking admin status for redirect:", error);
+        }
+    };
+    
+    checkAdminAndRedirect();
 
   }, [isUserLoading, user, router, pathname]);
 
 
-  if (isUserLoading || !user || (user.uid === SUPER_ADMIN_BUSINESS_ID && !pathname.startsWith('/dashboard/admin'))) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -48,12 +59,14 @@ export default function DashboardLayout({
     );
   }
   
-  // El layout específico de admin renderizará su propia estructura.
+  // The specific admin layout will handle its own rendering,
+  // including the loading and access denied states.
+  // We just need to let it render if the path matches.
   if (pathname.startsWith('/dashboard/admin')) {
     return <>{children}</>;
   }
   
-  // Renderizar el layout del dashboard de usuario estándar.
+  // Render the standard user dashboard layout.
   return (
     <SidebarProvider>
       <div className="grid min-h-screen w-full md:grid-cols-[200px_1fr] lg:grid-cols-[200px_1fr]">

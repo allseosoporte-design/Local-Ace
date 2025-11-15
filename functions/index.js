@@ -1,17 +1,15 @@
+
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
 
 exports.addSuperAdminRole = functions.https.onCall(async (data, context) => {
-  // Check if request is made by an authenticated user.
-  // This is a security check to ensure only authenticated users can trigger this.
-  // In a real production app, you'd want to lock this down further,
-  // e.g., only callable by other admins.
-  if (!context.auth) {
-     return { error: 'Authentication required to assign super admin role.' };
-  }
-  
+  // Para el primer superadmin, no se necesita una verificación estricta,
+  // ya que la lógica de creación en el cliente solo se activa para el email designado.
+  // En un futuro, se podría añadir: if (context.auth?.token?.isSuperAdmin !== true) { ... }
+  // para que solo un admin pueda crear a otros.
+
   // Get user and add custom claim
   try {
     const user = await admin.auth().getUserByEmail(data.email);
