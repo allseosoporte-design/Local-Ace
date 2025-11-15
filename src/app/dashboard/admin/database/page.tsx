@@ -103,8 +103,8 @@ export default function DatabasePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl" style={{color: '#FF8550'}}>Base de datos</h1>
-        <p className="text-muted-foreground">Descripción de la sección de base de datos</p>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl" style={{color: '#FF8550'}}>Gestión de Base de Datos</h1>
+        <p className="text-muted-foreground">Visualiza y gestiona las colecciones de tu base de datos Firestore.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -152,15 +152,15 @@ export default function DatabasePage() {
 
       <Card className="bg-[#FFF9F6]">
         <CardHeader>
-          <CardTitle>Colecciones</CardTitle>
-          <CardDescription>Lista de colecciones disponibles en la base de datos</CardDescription>
+          <CardTitle>Colecciones Principales</CardTitle>
+          <CardDescription>Lista de las colecciones raíz disponibles en la base de datos.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
-                <TableHead>Cantidad</TableHead>
+                <TableHead>Documentos</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -203,8 +203,8 @@ export default function DatabasePage() {
 
       <Card className="bg-[#FFF9F6]">
         <CardHeader>
-          <CardTitle>Acciones</CardTitle>
-          <CardDescription>Acciones disponibles para la base de datos</CardDescription>
+          <CardTitle>Acciones de la Base de Datos</CardTitle>
+          <CardDescription>Ejecuta acciones para verificar el estado de la conexión.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={handleTestConnection} style={{backgroundColor: '#FF8550', color: 'white'}}>Probar conexión</Button>
