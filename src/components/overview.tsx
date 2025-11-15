@@ -30,24 +30,26 @@ export function Overview({ type = 'Barra' }: { type: 'Barra' | 'Círculo' | 'Lí
 
   if (type === 'Círculo') {
     return (
-      <ChartContainer config={chartConfig} className="min-h-[200px] w-full flex items-center justify-center">
-        <PieChart width={200} height={200}>
-          <Pie
-            data={overviewData}
-            cx={100}
-            cy={100}
-            labelLine={false}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="total"
-            nameKey="name"
-          >
-            {overviewData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip content={<ChartTooltipContent />} />
-        </PieChart>
+      <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+        <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+            <Pie
+                data={overviewData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={100}
+                fill="#8884d8"
+                dataKey="total"
+                nameKey="name"
+            >
+                {overviewData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+            </Pie>
+            <Tooltip content={<ChartTooltipContent hideLabel />} />
+            </PieChart>
+        </ResponsiveContainer>
       </ChartContainer>
     );
   }
