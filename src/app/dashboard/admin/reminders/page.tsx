@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -106,7 +105,7 @@ const templates: ReminderTemplate[] = [
 const history: ReminderLog[] = [
     { id: '1', businessName: 'Café El Sol', ruleName: 'Aviso 7 días antes', sentAt: Timestamp.fromDate(new Date('2024-07-20T10:00:00')), status: 'sent' },
     { id: '2', businessName: 'Burger Hub', ruleName: 'Aviso de pago vencido', sentAt: Timestamp.fromDate(new Date('2024-07-19T14:30:00')), status: 'opened' },
-    { id: '3', name: 'Pizzería La Nostra', ruleName: 'Último aviso', sentAt: Timestamp.fromDate(new Date('2024-07-18T09:00:00')), status: 'failed' },
+    { id: '3', businessName: 'Pizzería La Nostra', ruleName: 'Último aviso', sentAt: Timestamp.fromDate(new Date('2024-07-18T09:00:00')), status: 'failed' },
 ];
 
 
