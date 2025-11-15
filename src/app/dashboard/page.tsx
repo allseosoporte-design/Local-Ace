@@ -79,9 +79,8 @@ export default function DashboardPage() {
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
-          <CardContent className="space-y-4 pt-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold tracking-tight">Resumen General</h2>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="text-2xl font-semibold tracking-tight">Resumen General</CardTitle>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm">
                   <BarChart className="h-4 w-4 mr-2" />
@@ -104,7 +103,8 @@ export default function DashboardPage() {
                   Descargar PDF
                 </Button>
               </div>
-            </div>
+          </CardHeader>
+          <CardContent>
             <Overview />
           </CardContent>
         </Card>
