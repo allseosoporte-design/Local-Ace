@@ -14,8 +14,7 @@ service cloud.firestore {
 
     // Allow read access for super admins, and write access for super admins
     match /subscriptionPlans/{planId} {
-      allow get, list: if isSuperAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow read, write: if isSuperAdmin();
     }
     
     match /businesses/{businessId} {

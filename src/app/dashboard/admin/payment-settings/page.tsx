@@ -15,15 +15,16 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { Save, Loader2 } from 'lucide-react';
+import { Save, Loader2, AlertTriangle } from 'lucide-react';
 import { PaymentPlanForm } from '@/components/payment-plan-form';
 import type { PlanPaymentSettings } from '@/types/payment-settings';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, orderBy, doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
 import Link from 'next/link';
+import { getIdTokenResult } from 'firebase/auth';
 
 const initialQRData = {
   enabled: false,
@@ -60,21 +61,42 @@ type SettingsByPlan = Record<string, PlanPaymentSettings>;
 export default function AdminPaymentSettingsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
+
   const [settings, setSettings] = useState<SettingsByPlan>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        try {
+          const tokenResult = await getIdTokenResult(user);
+          if (tokenResult.claims.isSuperAdmin) {
+            setIsSuperAdmin(true);
+          }
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+        }
+      }
+    };
+    if (!isUserLoading) {
+        checkAdmin();
+    }
+  }, [user, isUserLoading]);
 
   const plansQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !isSuperAdmin) return null;
     return query(collection(firestore, 'subscriptionPlans'), orderBy('order'));
-  }, [firestore]);
+  }, [firestore, isSuperAdmin]);
 
   const { data: plans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
 
   useEffect(() => {
     const fetchAllSettings = async () => {
       if (!plans || !firestore) {
-        setIsLoadingSettings(false);
+        if (!isLoadingPlans) setIsLoadingSettings(false);
         return;
       }
 
@@ -112,10 +134,10 @@ export default function AdminPaymentSettingsPage() {
       setIsLoadingSettings(false);
     };
 
-    if (!isLoadingPlans) {
+    if (!isLoadingPlans && isSuperAdmin) {
       fetchAllSettings();
     }
-  }, [plans, isLoadingPlans, firestore]);
+  }, [plans, isLoadingPlans, firestore, isSuperAdmin]);
 
   const handleSettingsChange = (planId: string, newSettings: PlanPaymentSettings) => {
     setSettings(prev => ({
@@ -144,14 +166,29 @@ export default function AdminPaymentSettingsPage() {
     }
   }
   
-  const isLoading = isLoadingPlans || isLoadingSettings;
+  const isLoading = isUserLoading || isLoadingPlans || (isSuperAdmin && isLoadingSettings);
 
   if (isLoading) {
     return (
       <div className='flex items-center justify-center h-64'>
         <Loader2 className='h-8 w-8 animate-spin' />
+        <p className="ml-2 text-muted-foreground">Verificando permisos y cargando datos...</p>
       </div>
     );
+  }
+
+  if (!isSuperAdmin) {
+     return (
+        <Card className="bg-destructive/10 border-destructive">
+            <CardHeader className="flex flex-row items-center gap-4">
+                <AlertTriangle className="h-8 w-8 text-destructive" />
+                <div>
+                    <CardTitle className="text-destructive">Acceso Denegado</CardTitle>
+                    <CardDescription className="text-destructive/80">No tienes permisos de Super Administrador para ver esta sección.</CardDescription>
+                </div>
+            </CardHeader>
+        </Card>
+     );
   }
   
   if (!plans || plans.length === 0) {
