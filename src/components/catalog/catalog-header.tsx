@@ -10,6 +10,10 @@ import {
 } from 'lucide-react';
 import type { CatalogHeaderConfigData, CarouselItemData } from '@/types/catalog';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { useDoc, useFirestore } from '@/firebase';
+import { useMemo } from 'react';
+import { doc } from 'firebase/firestore';
+import { Skeleton } from '../ui/skeleton';
 
 const socialIconMap = {
   tiktok: (
@@ -39,7 +43,34 @@ const defaultCarouselItems: CarouselItemData[] = [
     }
   ];
 
-export const CatalogHeader = ({ config }: { config: CatalogHeaderConfigData }) => {
+export const CatalogHeader = ({ businessId }: { businessId: string }) => {
+  const firestore = useFirestore();
+
+  const headerConfigRef = useMemo(() => {
+    if (!firestore || !businessId) return null;
+    return doc(firestore, `businesses/${businessId}/catalogConfig/header`);
+  }, [firestore, businessId]);
+
+  const { data: config, isLoading } = useDoc<CatalogHeaderConfigData>(headerConfigRef);
+
+  if (isLoading) {
+      return (
+          <header className="relative animate-pulse">
+              <Skeleton className="h-48 md:h-64 w-full bg-muted" />
+              <div className="container mx-auto px-4 -mt-16 md:-mt-20 relative z-10">
+                  <Skeleton className="h-32 w-full bg-card shadow-lg" />
+              </div>
+              <div className="container mx-auto px-4 mt-8">
+                  <Skeleton className="h-40 md:h-56 w-full bg-muted" />
+              </div>
+          </header>
+      );
+  }
+
+  if (!config) {
+      return null; // O un header por defecto si no hay configuración
+  }
+
   const carouselItems = (config.carouselItems && config.carouselItems.length > 0) ? config.carouselItems : defaultCarouselItems;
 
   return (
@@ -51,6 +82,7 @@ export const CatalogHeader = ({ config }: { config: CatalogHeaderConfigData }) =
             alt="Banner del catálogo"
             fill
             className="object-cover"
+            priority
           />
         )}
         <div className="absolute inset-0 bg-black/40" />
@@ -92,10 +124,12 @@ export const CatalogHeader = ({ config }: { config: CatalogHeaderConfigData }) =
             {carouselItems.map((item, index) => (
               <CarouselItem key={index}>
                 <div className="relative h-40 md:h-56 rounded-lg overflow-hidden">
-                  <Image src={item.imageUrl} alt={item.slogan} fill className="object-cover" data-ai-hint={item.imageHint} />
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <h2 className="text-2xl md:text-4xl font-bold text-white tracking-tight">{item.slogan}</h2>
-                  </div>
+                  <Image src={item.imageUrl} alt={item.slogan || `Carousel image ${index + 1}`} fill className="object-cover" data-ai-hint={item.imageHint} />
+                  {item.slogan && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <h2 className="text-2xl md:text-4xl font-bold text-white tracking-tight">{item.slogan}</h2>
+                    </div>
+                  )}
                 </div>
               </CarouselItem>
             ))}

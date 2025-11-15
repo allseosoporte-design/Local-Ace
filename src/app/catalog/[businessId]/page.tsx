@@ -12,10 +12,9 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { HomeNav } from '@/components/home-nav';
-import { useFirestore, useCollection, useDoc } from '@/firebase';
+import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, doc, updateDoc, increment } from 'firebase/firestore';
 import type { Product } from '@/types/product';
-import type { CatalogHeaderConfigData } from '@/types/catalog';
 import { Loader2 } from 'lucide-react';
 import { ProductViewModal } from '@/components/catalog/product-view-modal';
 import { CartButton } from '@/components/cart/cart-button';
@@ -119,11 +118,6 @@ export default function CatalogPageComponent({ params }: { params: { businessId:
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const headerConfigRef = useMemo(() => {
-    if (!firestore || !businessId) return null;
-    return doc(firestore, `businesses/${businessId}/catalogConfig/header`);
-  }, [firestore, businessId]);
-
   const productsQuery = useMemo(() => {
     if (!firestore || !businessId) return null;
     return query(
@@ -133,24 +127,17 @@ export default function CatalogPageComponent({ params }: { params: { businessId:
   }, [firestore, businessId]);
 
   const { data: products, isLoading: isLoadingProducts } = useCollection<Product>(productsQuery);
-  const { data: headerConfig, isLoading: isLoadingHeader } = useDoc<CatalogHeaderConfigData>(headerConfigRef);
   
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setIsModalOpen(true);
   }
 
-  const isLoading = isLoadingProducts || isLoadingHeader;
-
   return (
     <>
       <div className="flex flex-col min-h-screen bg-muted/40">
         <HomeNav />
-        {isLoadingHeader ? (
-          <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>
-        ) : (
-          headerConfig && <CatalogHeader config={headerConfig} />
-        )}
+        <CatalogHeader businessId={businessId} />
         <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
           {isLoadingProducts ? (
             <div className="flex justify-center items-center h-64">
