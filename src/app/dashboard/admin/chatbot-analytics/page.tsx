@@ -29,30 +29,31 @@ import { Bar, BarChart, CartesianGrid, XAxis, PieChart, Pie, Cell } from "rechar
 
 
 const chartData = [
-  { month: "January", desktop: 186 },
-  { month: "February", desktop: 305 },
-  { month: "March", desktop: 237 },
-  { month: "April", desktop: 73 },
-  { month: "May", desktop: 209 },
-  { month: "June", desktop: 214 },
+  { month: "Enero", desktop: 186 },
+  { month: "Febrero", desktop: 305 },
+  { month: "Marzo", desktop: 237 },
+  { month: "Abril", desktop: 73 },
+  { month: "Mayo", desktop: 209 },
+  { month: "Junio", desktop: 214 },
 ]
 
 const chartConfig = {
   desktop: {
-    label: "Desktop",
+    label: "Conversaciones",
     color: "hsl(var(--primary))",
   },
 }
 
 const pieChartData = [
-  { name: 'AI', value: 65, color: '#4285F4' },
-  { name: 'FAQ', value: 35, color: '#34A853' },
+  { name: 'IA', value: 65, color: 'hsl(var(--primary))' },
+  { name: 'FAQ', value: 35, color: 'hsl(var(--accent))' },
 ];
 
 const conversations = [
-    { id: 1, user: 'John Doe', email: 'john.d@example.com', date: '2024-07-28', status: 'Resolved' },
-    { id: 2, user: 'Jane Smith', email: 'jane.s@example.com', date: '2024-07-28', status: 'Open' },
-    { id: 3, user: 'Peter Jones', email: 'peter.j@example.com', date: '2024-07-27', status: 'Resolved' },
+    { id: 1, user: 'John Doe', email: 'john.d@example.com', date: '2024-07-28', status: 'Resuelta' },
+    { id: 2, user: 'Jane Smith', email: 'jane.s@example.com', date: '2024-07-28', status: 'Abierta' },
+    { id: 3, user: 'Peter Jones', email: 'peter.j@example.com', date: '2024-07-27', status: 'Resuelta' },
+    { id: 4, user: 'Ana García', email: 'ana.g@example.com', date: '2024-07-27', status: 'Resuelta' },
 ];
 
 export default function ChatbotAnalyticsPage() {
@@ -60,10 +61,10 @@ export default function ChatbotAnalyticsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          Chatbot Analytics
+          Análisis del Chatbot
         </h1>
         <p className="text-muted-foreground">
-          Métricas y estadísticas de uso de tu chatbot.
+          Métricas y estadísticas de uso de tu asistente virtual.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -73,8 +74,8 @@ export default function ChatbotAnalyticsPage() {
             <MessageCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1.24K</div>
-            <p className="text-xs text-red-500">-15% hoy</p>
+            <div className="text-2xl font-bold">1,245</div>
+            <p className="text-xs text-muted-foreground">-15% desde ayer</p>
           </CardContent>
         </Card>
         <Card>
@@ -84,7 +85,7 @@ export default function ChatbotAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">8.2</div>
-             <p className="text-xs text-green-500">+2.5%</p>
+             <p className="text-xs text-green-500">+2.5% esta semana</p>
           </CardContent>
         </Card>
         <Card>
@@ -99,12 +100,12 @@ export default function ChatbotAnalyticsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Uso de IA</CardTitle>
+            <CardTitle className="text-sm font-medium">Uso de IA vs. FAQ</CardTitle>
             <Percent className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">65%</div>
-            <p className="text-xs text-muted-foreground">vs 35% de FAQs</p>
+            <p className="text-xs text-muted-foreground">de respuestas generadas por IA</p>
           </CardContent>
         </Card>
       </div>
@@ -115,7 +116,7 @@ export default function ChatbotAnalyticsPage() {
             <CardTitle>Conversaciones por Día</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
-             <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+             <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
               <BarChart accessibilityLayer data={chartData}>
                  <CartesianGrid vertical={false} />
                 <XAxis
@@ -123,6 +124,7 @@ export default function ChatbotAnalyticsPage() {
                   tickLine={false}
                   tickMargin={10}
                   axisLine={false}
+                  stroke="hsl(var(--muted-foreground))"
                 />
                 <ChartTooltip
                   cursor={false}
@@ -136,9 +138,10 @@ export default function ChatbotAnalyticsPage() {
          <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Distribución de Respuestas</CardTitle>
+             <CardDescription>Comparativa entre respuestas de la IA y las FAQs.</CardDescription>
           </CardHeader>
           <CardContent>
-             <ChartContainer config={{}} className="min-h-[200px] w-full">
+             <ChartContainer config={{}} className="min-h-[250px] w-full flex items-center justify-center">
                 <PieChart>
                   <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
                      {pieChartData.map((entry, index) => (
@@ -161,8 +164,8 @@ export default function ChatbotAnalyticsPage() {
             <TabsContent value="overview">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Resumen de Interacciones</CardTitle>
-                        <CardDescription>Visualiza las conversaciones recientes.</CardDescription>
+                        <CardTitle>Conversaciones Recientes</CardTitle>
+                        <CardDescription>Visualiza las últimas interacciones.</CardDescription>
                     </CardHeader>
                     <CardContent>
                          <Table>
@@ -181,7 +184,7 @@ export default function ChatbotAnalyticsPage() {
                                         <TableCell>{c.email}</TableCell>
                                         <TableCell>{c.date}</TableCell>
                                         <TableCell>
-                                             <Badge variant={c.status === 'Resolved' ? 'default' : 'secondary'}>{c.status}</Badge>
+                                             <Badge variant={c.status === 'Resuelta' ? 'default' : 'secondary'}>{c.status}</Badge>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -193,14 +196,14 @@ export default function ChatbotAnalyticsPage() {
              <TabsContent value="conversations">
                 <Card>
                      <CardContent className='pt-6'>
-                       <p className='text-muted-foreground text-center'>No hay datos de conversaciones aún.</p>
+                       <p className='text-muted-foreground text-center'>El historial detallado de conversaciones estará disponible pronto.</p>
                      </CardContent>
                 </Card>
              </TabsContent>
              <TabsContent value="faq">
                 <Card>
                     <CardContent className='pt-6'>
-                       <p className='text-muted-foreground text-center'>No hay preguntas frecuentes aún.</p>
+                       <p className='text-muted-foreground text-center'>El análisis de preguntas más frecuentes estará disponible pronto.</p>
                      </CardContent>
                 </Card>
              </TabsContent>
