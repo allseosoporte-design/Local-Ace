@@ -32,6 +32,7 @@ const mockConfig: ChatbotConfig = {
     systemPrompt: 'Eres un asistente amigable y profesional para el SaaS Local Leap.',
     temperature: 0.7,
     maxTokens: 150,
+    llmIntegrations: [],
 };
 
 export default function ChatbotWidget() {
@@ -86,32 +87,27 @@ export default function ChatbotWidget() {
       faq: null,
     };
 
-    // Palabras comunes a ignorar
-    const stopWords = new Set(['que', 'es', 'el', 'la', 'de', 'en', 'y', 'a', 'un', 'una', 'para', 'con', 'por', 'mi', 'tu', 'su', 'como', 'ahora', 'tiene', 'tienes', 'hay']);
+    const stopWords = new Set(['que', 'es', 'el', 'la', 'de', 'en', 'y', 'a', 'un', 'una', 'para', 'con', 'por', 'mi', 'tu', 'su', 'como', 'ahora', 'tiene', 'tienes', 'hay', 'dime', 'para', 'que', 'sirve', 'esta', 'aplicacion', 'mi', 'negocio']);
 
     for (const faq of config.faqs) {
       let currentScore = 0;
       const questionLower = faq.question.toLowerCase();
 
-      // Coincidencia exacta
       if (questionLower === inputLower) {
         return faq.answer;
       }
 
-      // Coincidencia de frases clave completas (keywords multi-palabra)
       for (const keyword of faq.keywords) {
         const keywordLower = keyword.toLowerCase();
         if (keywordLower.includes(' ') && inputLower.includes(keywordLower)) {
-          currentScore += 100; // Mucho peso para frases exactas
+          currentScore += 100;
         }
       }
       
-      // Filtrar palabras significativas del input
       const inputWords = inputLower.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
       
-      if (inputWords.length === 0) continue; // Skip si solo hay stopwords
+      if (inputWords.length === 0) continue;
 
-      // Keywords de una sola palabra
       for (const keyword of faq.keywords) {
         const keywordLower = keyword.toLowerCase();
         if (!keywordLower.includes(' ') && inputWords.includes(keywordLower)) {
@@ -124,7 +120,6 @@ export default function ChatbotWidget() {
       }
     }
     
-    // Threshold más alto: solo responde si hay una coincidencia clara
     return bestMatch.score >= 80 ? bestMatch.faq!.answer : null;
   };
   
@@ -156,7 +151,7 @@ export default function ChatbotWidget() {
       setTimeout(() => {
         setMessages(prev => [...prev, botMessage]);
         setIsTyping(false);
-      }, 500); // Simular un pequeño retraso
+      }, 500);
     } else if (config.aiEnabled) {
       try {
         const result = await generateChatbotResponse({
