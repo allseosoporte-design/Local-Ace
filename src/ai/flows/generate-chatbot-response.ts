@@ -9,27 +9,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getSubscriptionPlans } from '@/services/subscription-service';
-
-// Define the tool for Genkit to use
-const getSubscriptionPlansTool = ai.defineTool(
-  {
-    name: 'getSubscriptionPlans',
-    description: 'Use this tool to get information about subscription plans, including pricing, features, and billing periods.',
-    outputSchema: z.array(z.object({
-        name: z.string(),
-        price: z.number(),
-        billingPeriod: z.string(),
-        features: z.array(z.string()),
-        currency: z.string(),
-        description: z.string(),
-    }))
-  },
-  async () => {
-    return await getSubscriptionPlans();
-  }
-);
-
 
 const MessageSchema = z.object({
     text: z.string(),
@@ -39,7 +18,7 @@ const MessageSchema = z.object({
 const GenerateChatbotResponseInputSchema = z.object({
   history: z.array(MessageSchema).describe("The conversation history."),
   question: z.string().describe("The user's latest question."),
-  systemPrompt: z.string().describe("The system prompt to guide the AI's personality."),
+  systemPrompt: z.string().describe("The system prompt to guide the AI's personality and provide it with contextual data like subscription plans."),
   temperature: z.number().optional().describe("The creativity of the response."),
   maxTokens: z.number().optional().describe("The maximum length of the response.")
 });
@@ -54,21 +33,16 @@ export type GenerateChatbotResponseOutput = z.infer<
   typeof GenerateChatbotResponseOutputSchema
 >;
 
+// The prompt no longer needs a tool because the plan data will be passed in the systemPrompt.
 const prompt = ai.definePrompt({
     name: 'chatbotPrompt',
-    tools: [getSubscriptionPlansTool],
     input: {
       schema: z.object({
         systemPrompt: z.string(),
         prompt: z.string()
       })
     },
-    system: `{{systemPrompt}}
-    
-    IMPORTANT: If the user asks about subscription plans, pricing, costs, or features of the plans, you MUST use the 'getSubscriptionPlans' tool to fetch the current data before answering.
-    If the tool returns an empty list, inform the user that there are currently no plans defined and they should check back later.
-    Base your answer ONLY on the information provided by the tool.
-    `,
+    system: `{{systemPrompt}}`,
     output: { schema: GenerateChatbotResponseOutputSchema },
 });
 

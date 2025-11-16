@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useFirestore, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, useDoc, useCollection } from '@/firebase';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 import type { ChatbotConfig, FAQ } from '@/types/chatbot';
+import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { generateChatbotResponse } from '@/ai/flows/generate-chatbot-response';
 
 interface Message {
@@ -40,6 +41,13 @@ export default function ChatbotWidget() {
   const configDocRef = doc(firestore, 'chatbot/config');
   const { data: loadedConfig, isLoading: isLoadingConfig } = useDoc<ChatbotConfig>(configDocRef);
   
+  const plansQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'subscriptionPlans'), orderBy('order', 'asc'));
+  }, [firestore]);
+  const { data: plans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
+
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -154,10 +162,20 @@ export default function ChatbotWidget() {
       }, 500);
     } else if (config.aiEnabled) {
       try {
+        
+        let planInfo = "No hay información de planes de suscripción disponible en este momento.";
+        if (plans && plans.length > 0) {
+            planInfo = "Aquí están los planes de suscripción disponibles:\n" + plans.map(p => 
+                `- Plan: ${p.name}\n  Precio: $${p.price.toLocaleString('es-CO')} ${p.currency} / ${p.billingPeriod === 'monthly' ? 'mes' : 'año'}\n  Descripción: ${p.description}\n  Características: ${p.features.join(', ')}`
+            ).join('\n\n');
+        }
+
+        const fullSystemPrompt = `${config.systemPrompt}\n\nDATA CONTEXT:\n${planInfo}\n\nIMPORTANT: Base your answer about subscriptions ONLY on the DATA CONTEXT provided. Do not use any other knowledge.`;
+
         const result = await generateChatbotResponse({
             history: newMessages.map(m => ({ text: m.text, sender: m.sender })),
             question: currentInput,
-            systemPrompt: config.systemPrompt || 'You are a helpful assistant.',
+            systemPrompt: fullSystemPrompt,
             temperature: config.temperature,
             maxTokens: config.maxTokens
         });
@@ -200,7 +218,7 @@ export default function ChatbotWidget() {
     }
   };
   
-  if (isLoadingConfig) {
+  if (isLoadingConfig || isLoadingPlans) {
     return null;
   }
   
