@@ -1,9 +1,20 @@
 
+
 export interface FAQ {
   id: string;
   question: string;
   answer: string;
   keywords: string[];
+}
+
+export interface LLMIntegration {
+  id: string;
+  provider: 'google' | 'openai' | 'huggingface' | 'mistral';
+  apiKey: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  enabled: boolean;
 }
 
 export interface ChatbotConfig {
@@ -20,4 +31,5 @@ export interface ChatbotConfig {
   systemPrompt: string;
   temperature: number;
   maxTokens: number;
+  llmIntegrations: LLMIntegration[];
 }

@@ -42,8 +42,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import type { ChatbotConfig, FAQ } from '@/types/chatbot';
+import type { ChatbotConfig, FAQ, LLMIntegration } from '@/types/chatbot';
 import { v4 as uuidv4 } from 'uuid';
+import { LLMApiIntegration } from '@/components/chatbot/llm-api-integration';
 
 const FAQItem = ({ faq, onUpdate, onDelete }: { faq: FAQ, onUpdate: (updatedFaq: FAQ) => void, onDelete: () => void }) => (
   <div className="p-4 border rounded-lg bg-background space-y-4">
@@ -387,6 +388,7 @@ const defaultConfig: ChatbotConfig = {
     systemPrompt: 'Eres un asistente amigable y profesional para el SaaS Local Leap.',
     temperature: 0.7,
     maxTokens: 150,
+    llmIntegrations: [],
 };
 
 export default function ChatbotConfigPage() {
@@ -405,7 +407,12 @@ export default function ChatbotConfigPage() {
 
   useEffect(() => {
     if (loadedConfig) {
-      setConfig(loadedConfig);
+      setConfig({
+        ...defaultConfig,
+        ...loadedConfig,
+        faqs: loadedConfig.faqs && loadedConfig.faqs.length > 0 ? loadedConfig.faqs : defaultConfig.faqs,
+        llmIntegrations: loadedConfig.llmIntegrations || [],
+      });
     } else if (!isLoadingConfig && !error) {
       const seedDatabase = async () => {
         if (configDocRef) {
@@ -685,16 +692,10 @@ export default function ChatbotConfigPage() {
                  </CardContent>
             </Card>
 
-            <Card className="mt-6">
-                <CardHeader>
-                    <CardTitle>Integración APIs de Modelos de Lenguaje</CardTitle>
-                    <CardDescription>Conecta tu chatbot a diferentes proveedores de modelos de lenguaje externos para expandir sus capacidades.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Placeholder for API integrations */}
-                    <p className="text-muted-foreground text-center col-span-full">Las integraciones de API estarán disponibles en futuras versiones.</p>
-                </CardContent>
-            </Card>
+            <LLMApiIntegration
+                integrations={config.llmIntegrations}
+                setIntegrations={(integrations) => handleConfigChange('llmIntegrations', integrations)}
+            />
         </TabsContent>
       </Tabs>
     </div>
