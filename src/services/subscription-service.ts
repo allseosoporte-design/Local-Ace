@@ -40,34 +40,32 @@ interface SubscriptionPlan {
 export async function getSubscriptionPlans(): Promise<Omit<SubscriptionPlan, 'id' | 'createdAt' | 'updatedAt' | 'isActive' | 'isPopular' | 'order'>[]> {
   try {
     const plansRef = db.collection('subscriptionPlans');
-    // The security rules now allow public read, so we don't need a privileged read here.
-    // However, keeping the admin SDK is fine as it's a backend service.
-    // We still filter for active plans.
-    const snapshot = await plansRef.where('isActive', '==', true).orderBy('order').get();
+    const snapshot = await plansRef.where('isActive', '==', true).get();
 
     if (snapshot.empty) {
       console.log('No active subscription plans found.');
       return [];
     }
 
-    const plans = snapshot.docs.map(doc => {
-        const data = doc.data() as SubscriptionPlan;
-        // Return only the fields relevant for the AI tool
-        return {
-            name: data.name,
-            price: data.price,
-            billingPeriod: data.billingPeriod,
-            features: data.features,
-            currency: data.currency,
-            description: data.description,
-        };
-    });
+    const plans = snapshot.docs
+        .map(doc => {
+            const data = doc.data() as SubscriptionPlan;
+            return {
+                name: data.name,
+                price: data.price,
+                billingPeriod: data.billingPeriod,
+                features: data.features,
+                currency: data.currency,
+                description: data.description,
+                order: data.order // Incluimos order temporalmente para ordenar
+            };
+        })
+        .sort((a, b) => a.order - b.order) // Ordenamos en memoria
+        .map(({ order, ...plan }) => plan); // Removemos order del resultado final
 
     return plans;
   } catch (error) {
     console.error("Error fetching subscription plans:", error);
-    // In case of an error, return an empty array to prevent the AI from failing.
-    // The AI will then inform the user that it couldn't retrieve the plans.
     return [];
   }
 }
