@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ShareCatalog } from '@/components/dashboard/catalog/share-catalog';
 import { CatalogHeaderConfig } from '@/components/dashboard/catalog/catalog-header-config';
+import { GenerateQRCode } from '@/components/dashboard/catalog/generate-qr-code';
 
 export default function CatalogPage() {
   const { user, isUserLoading } = useUser();
@@ -187,6 +188,8 @@ export default function CatalogPage() {
         </Card>
         
         <ShareCatalog />
+        
+        <GenerateQRCode />
 
       </div>
       <ProductModal
