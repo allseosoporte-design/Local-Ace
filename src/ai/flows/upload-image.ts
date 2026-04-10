@@ -12,6 +12,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 /**
  * Inicializa la aplicación de administración de Firebase de forma segura.
+ * Evita el error de propiedades internas no definidas en entornos Next.js.
  */
 function getAdminApp(): App {
   const apps = getApps();
@@ -35,6 +36,7 @@ function getAdminApp(): App {
 const getCloudinaryConfig = async (): Promise<ConfigOptions> => {
   // 1. Intentar desde variables de entorno (Prioridad alta)
   if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+    console.log('[Cloudinary]: Usando credenciales de variables de entorno (.env)');
     return {
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
@@ -44,17 +46,17 @@ const getCloudinaryConfig = async (): Promise<ConfigOptions> => {
   }
 
   // 2. Intentar desde Firestore (Configuración dinámica)
-  console.log('[Cloudinary]: Buscando configuración persistente en Firestore...');
+  console.log('[Cloudinary]: Buscando configuración persistente en Firestore (adminConfig/global)...');
   try {
     const app = getAdminApp();
     const db = getFirestore(app);
-    // IMPORTANTE: La ruta debe coincidir con la guardada en el panel de admin
     const docRef = db.collection('adminConfig').doc('global');
     const docSnap = await docRef.get();
     
     if (docSnap.exists) {
       const data = docSnap.data();
       if (data?.cloudinaryCloudName && data?.cloudinaryApiKey && data?.cloudinaryApiSecret) {
+        console.log('[Cloudinary]: Credenciales recuperadas exitosamente de Firestore.');
         return {
           cloud_name: data.cloudinaryCloudName,
           api_key: data.cloudinaryApiKey,
@@ -62,7 +64,7 @@ const getCloudinaryConfig = async (): Promise<ConfigOptions> => {
           secure: true,
         };
       } else {
-        console.warn('[Cloudinary]: Documento adminConfig/global existe pero faltan campos de Cloudinary.');
+        console.warn('[Cloudinary]: El documento en Firestore existe pero faltan campos (cloudinaryCloudName, etc).');
       }
     } else {
       console.warn('[Cloudinary]: No existe el documento adminConfig/global en Firestore.');
@@ -110,6 +112,7 @@ const uploadImageFlow = ai.defineFlow(
         throw new Error('La imagen es demasiado grande. El límite es de 10MB.');
       }
 
+      console.log(`[Cloudinary]: Iniciando carga en carpeta "${input.folder || 'default'}"...`);
       const result = await cloudinary.uploader.upload(input.fileAsDataUrl, {
         folder: input.folder || 'local-leap-uploads',
         resource_type: 'auto',
@@ -119,6 +122,7 @@ const uploadImageFlow = ai.defineFlow(
         throw new Error('Cloudinary no devolvió una URL segura.');
       }
 
+      console.log('[Cloudinary]: Carga exitosa:', result.secure_url);
       return {
         imageUrl: result.secure_url,
         publicId: result.public_id,
@@ -129,7 +133,7 @@ const uploadImageFlow = ai.defineFlow(
         : 'Ocurrió un error inesperado durante el proceso de carga.';
       
       console.error('[Upload Flow Error]:', errorMessage);
-      throw new Error(`Error en el servicio de imágenes: ${errorMessage}`);
+      throw new Error(`Fallo en el servicio de carga: ${errorMessage}`);
     }
   }
 );
