@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, use } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -112,8 +111,8 @@ function ProductCard({ product, onProductSelect }: { product: Product, onProduct
   );
 }
 
-export default function CatalogPageComponent({ params }: { params: { businessId: string } }) {
-  const { businessId } = params;
+export default function CatalogPageComponent({ params }: { params: Promise<{ businessId: string }> }) {
+  const { businessId } = use(params);
   const firestore = useFirestore();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
