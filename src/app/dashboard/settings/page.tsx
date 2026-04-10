@@ -144,14 +144,15 @@ export default function SettingsPage() {
     if (!user || !firestore) return;
     
     setIsUploading(true);
-    toast({ title: "Guardando perfil..." });
+    const toastId = toast({ title: "Guardando perfil...", description: "Subiendo imagen y actualizando datos." });
 
     try {
       let newPhotoUrl = user.photoURL;
       const file = fileInputRef.current?.files?.[0];
 
-      // Si hay un nuevo archivo y una previsualización de data URL
-      if (file && avatarPreview && avatarPreview.startsWith('data:')) {
+      // 1. Cargar imagen si hay una nueva previsualización en base64
+      if (avatarPreview && avatarPreview.startsWith('data:')) {
+        console.log('[Settings]: Iniciando carga de imagen...');
         const result = await uploadImage({
           fileAsDataUrl: avatarPreview,
           folder: `avatars/${user.uid}`
@@ -160,28 +161,30 @@ export default function SettingsPage() {
         setAvatarPreview(newPhotoUrl); 
       }
       
-      // Actualizar perfil de Firebase Auth si hay cambios
-      if (user.displayName !== displayName || user.photoURL !== newPhotoUrl) {
-          await updateProfile(user, {
-            displayName: displayName,
-            photoURL: newPhotoUrl,
-          });
-      }
+      // 2. Actualizar perfil de Firebase Auth
+      await updateProfile(user, {
+        displayName: displayName,
+        photoURL: newPhotoUrl,
+      });
 
-      // Actualizar el documento del negocio en Firestore
+      // 3. Actualizar el documento del negocio en Firestore
       const businessRef = doc(firestore, 'businesses', user.uid);
       await updateDoc(businessRef, {
           name: displayName,
           updatedAt: serverTimestamp()
       });
 
-      await user.reload(); // Recargar datos del usuario para reflejar cambios
+      await user.reload();
 
-      toast({ title: "¡Perfil guardado!", description: "Tu información ha sido actualizada." });
+      toast({ title: "¡Perfil guardado!", description: "Tu información ha sido actualizada exitosamente." });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving profile:", error);
-      toast({ variant: 'destructive', title: "Error", description: "No se pudo guardar el perfil." });
+      toast({ 
+        variant: 'destructive', 
+        title: "Error al guardar", 
+        description: error.message || "No se pudo guardar el perfil. Verifique la configuración de Cloudinary en el Panel Admin." 
+      });
     } finally {
       setIsUploading(false);
     }
@@ -237,9 +240,9 @@ export default function SettingsPage() {
                 className="hidden"
                 accept="image/*"
               />
-              <Button variant="outline" onClick={handleUploadClick}>
+              <Button variant="outline" onClick={handleUploadClick} disabled={isUploading}>
                 <Upload className="mr-2 h-4 w-4" />
-                Cambiar Foto
+                {isUploading ? 'Subiendo...' : 'Cambiar Foto'}
               </Button>
             </div>
           </div>
@@ -329,5 +332,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

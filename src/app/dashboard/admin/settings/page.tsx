@@ -72,7 +72,7 @@ export default function AdminSettingsPage() {
 
       toast({
         title: 'Configuración guardada',
-        description: 'Los ajustes globales de la plataforma han sido actualizados.',
+        description: 'Los ajustes globales de la plataforma han sido actualizados en la base de datos.',
       });
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -101,7 +101,7 @@ export default function AdminSettingsPage() {
           Configuración de Administrador
         </h1>
         <p className="text-muted-foreground">
-          Gestiona la configuración global de la plataforma y las integraciones.
+          Gestiona la configuración global de la plataforma y las integraciones. Los valores guardados aquí se usarán si no están definidos en el entorno.
         </p>
       </div>
 
@@ -136,7 +136,7 @@ export default function AdminSettingsPage() {
           <CardHeader>
             <CardTitle>Integraciones</CardTitle>
             <CardDescription>
-              Gestiona las claves de API para los servicios de la plataforma.
+              Gestiona las claves de API para los servicios de la plataforma. Estas claves se almacenan de forma segura en Firestore.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

@@ -1,76 +1,79 @@
 'use server';
 /**
  * @fileOverview Flow para la carga segura de imágenes a Cloudinary.
+ * Recupera la configuración dinámicamente de Firestore si no existe en .env.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { v2 as cloudinary, type ConfigOptions } from 'cloudinary';
-import * as admin from 'firebase-admin';
+import { getApps, initializeApp, cert, type App } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 /**
- * Inicialización segura de Firebase Admin SDK.
- * Se asume que serviceAccountKey.json existe en la raíz.
+ * Obtiene la instancia de Firestore de Admin de forma segura.
+ * Evita el error 'INTERNAL' al usar importaciones modulares.
  */
-const initializeAdmin = () => {
-  if (admin.apps.length === 0) {
+function getAdminDb() {
+  let app: App;
+  const apps = getApps();
+  if (apps.length === 0) {
     try {
-      // Intentamos importar de forma dinámica para evitar problemas de bundling
       const serviceAccount = require('../../../serviceAccountKey.json');
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+      app = initializeApp({
+        credential: cert(serviceAccount)
       });
     } catch (e) {
-      console.warn('Firebase Admin no se pudo inicializar con serviceAccountKey.json. Usando credenciales por defecto.');
-      admin.initializeApp();
+      console.warn('[Firebase Admin]: Falló carga de serviceAccountKey.json, usando defaults.');
+      app = initializeApp();
     }
+  } else {
+    app = apps[0];
   }
-  return admin.firestore();
-};
+  return getFirestore(app);
+}
 
 /**
  * Recupera la configuración de Cloudinary.
- * Primero intenta desde process.env, luego desde Firestore.
+ * Primero intenta desde process.env, luego desde Firestore adminConfig/global.
  */
 const getCloudinaryConfig = async (): Promise<ConfigOptions> => {
   // 1. Intentar desde variables de entorno
-  let config: ConfigOptions = {
+  const envConfig: ConfigOptions = {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
     secure: true,
   };
 
-  // 2. Si faltan variables de entorno, intentar desde Firestore (adminConfig/global)
-  if (!config.cloud_name || !config.api_key || !config.api_secret) {
-    console.log('Variables de entorno de Cloudinary faltantes. Intentando recuperar desde Firestore...');
-    const db = initializeAdmin();
-    try {
-      const docSnap = await db.collection('adminConfig').doc('global').get();
-      if (docSnap.exists) {
-        const data = docSnap.data();
-        if (data) {
-          config = {
-            cloud_name: data.cloudinaryCloudName || config.cloud_name,
-            api_key: data.cloudinaryApiKey || config.api_key,
-            api_secret: data.cloudinaryApiSecret || config.api_secret,
-            secure: true,
-          };
-        }
+  if (envConfig.cloud_name && envConfig.api_key && envConfig.api_secret) {
+    return envConfig;
+  }
+
+  // 2. Intentar desde Firestore (Configuración persistente en BD)
+  console.log('[Cloudinary]: Buscando configuración en Firestore...');
+  try {
+    const db = getAdminDb();
+    const docSnap = await db.collection('adminConfig').doc('global').get();
+    
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      if (data?.cloudinaryCloudName && data?.cloudinaryApiKey && data?.cloudinaryApiSecret) {
+        return {
+          cloud_name: data.cloudinaryCloudName,
+          api_key: data.cloudinaryApiKey,
+          api_secret: data.cloudinaryApiSecret,
+          secure: true,
+        };
       }
-    } catch (e) {
-      console.error('Error al intentar recuperar configuración desde Firestore:', e);
     }
+  } catch (e) {
+    console.error('[Cloudinary]: Error leyendo config de Firestore:', e);
   }
 
-  // 3. Validación final
-  if (!config.cloud_name || !config.api_key || !config.api_secret) {
-    throw new Error(
-      'Configuración de Cloudinary incompleta. Por favor, asegúrese de configurar las credenciales en el Panel de Administrador -> Configuración.'
-    );
-  }
-
-  return config;
+  throw new Error(
+    'Configuración de Cloudinary incompleta. Por favor, asegúrese de configurar las credenciales en el Panel de Administrador -> Configuración.'
+  );
 };
 
 const UploadImageInputSchema = z.object({
@@ -81,15 +84,13 @@ const UploadImageInputSchema = z.object({
     ),
   folder: z.string().optional().describe('Carpeta de destino opcional en Cloudinary.'),
 });
-export type UploadImageInput = z.infer<typeof UploadImageInputSchema>;
 
 const UploadImageOutputSchema = z.object({
   imageUrl: z.string().describe('URL segura de la imagen cargada.'),
   publicId: z.string().describe('ID público de la imagen en Cloudinary.'),
 });
-export type UploadImageOutput = z.infer<typeof UploadImageOutputSchema>;
 
-export async function uploadImage(input: UploadImageInput): Promise<UploadImageOutput> {
+export async function uploadImage(input: z.infer<typeof UploadImageInputSchema>): Promise<z.infer<typeof UploadImageOutputSchema>> {
   return uploadImageFlow(input);
 }
 
@@ -110,7 +111,7 @@ const uploadImageFlow = ai.defineFlow(
       });
 
       if (!result.secure_url) {
-        throw new Error('La respuesta de Cloudinary no contiene una URL segura (secure_url).');
+        throw new Error('La respuesta de Cloudinary no contiene una URL segura.');
       }
 
       return {
