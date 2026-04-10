@@ -67,9 +67,9 @@ export function PaymentOptionsDisplay({ settings, isLoading, selectedValue, onVa
     );
   }
   
-  if (!settings || Object.keys(settings).length === 0) {
+  if (!settings || typeof settings !== 'object') {
     return (
-        <div className="text-center py-4 space-y-2 border rounded-md border-dashed">
+        <div className="text-center py-4 space-y-2 border rounded-md border-dashed border-muted-foreground/30 bg-muted/5">
             <p className="text-sm text-muted-foreground italic">No hay métodos de pago configurados.</p>
             <p className="text-xs text-muted-foreground">El comercio aún no ha establecido sus preferencias de cobro.</p>
         </div>
@@ -78,19 +78,21 @@ export function PaymentOptionsDisplay({ settings, isLoading, selectedValue, onVa
 
   const enabledMethods = Object.entries(settings)
     .map(([key, value]) => {
-      // Handle boolean for cashOnDelivery
+      // Manejar el booleano para pago contra entrega
       if (key === 'cashOnDelivery' && value === true) {
         const config = paymentMethodConfig[key];
         return config ? { key, ...config, details: null } : null;
       }
       
-      // Handle objects with 'enabled' property (QR and API methods)
+      // Manejar objetos con propiedad 'enabled' (Métodos QR y APIs)
       if (typeof value === 'object' && value !== null && 'enabled' in value && value.enabled) {
          const config = paymentMethodConfig[key as keyof typeof paymentMethodConfig];
-         // Validación extra: si es un método QR, debe tener algo de información
+         
+         // Validación robusta para métodos QR
          if (config && (key === 'nequi' || key === 'daviplata' || key === 'bancolombia')) {
              const qrValue = value as any;
-             if (!qrValue.accountNumber && !qrValue.qrImageUrl) return null;
+             // Se muestra si tiene al menos un dato válido
+             if (!qrValue.accountNumber && !qrValue.qrImageUrl && !qrValue.phone) return null;
          }
          return config ? { key, ...config, details: value } : null;
       }
@@ -101,8 +103,8 @@ export function PaymentOptionsDisplay({ settings, isLoading, selectedValue, onVa
   if (enabledMethods.length === 0) {
     return (
       <div className="text-center py-4 space-y-2 border rounded-md border-dashed border-primary/20 bg-primary/5">
-        <p className="text-sm text-primary font-medium italic">No hay métodos de pago habilitados por el comercio.</p>
-        <p className="text-xs text-muted-foreground">Por favor, contacta al vendedor para acordar el pago por fuera de la plataforma.</p>
+        <p className="text-sm text-primary font-medium italic">No hay métodos de pago habilitados.</p>
+        <p className="text-xs text-muted-foreground">Por favor, contacta al vendedor para acordar el pago.</p>
       </div>
     );
   }

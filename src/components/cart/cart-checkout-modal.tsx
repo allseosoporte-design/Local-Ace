@@ -40,18 +40,19 @@ import type { PlanPaymentSettings } from '@/types/payment-settings';
 import { PaymentOptionsDisplay } from './payment-options-display';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import type { QRFormData } from '../qr-form';
+import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
 
 const DetailsCard = ({ method, methodName }: { method: QRFormData | undefined, methodName: string }) => {
     if (!method || !method.enabled) {
         return null;
     }
 
-    // Hide for cash on delivery
+    // Ocultar para pago contra entrega
     if (methodName === 'cashOnDelivery') {
         return null;
     }
     
-    // Only show if there's something to show (QR or account details)
+    // Solo mostrar si hay algo que mostrar
     if (!method.qrImageUrl && (!method.holderName || !method.accountNumber)) {
         return null;
     }
@@ -118,7 +119,7 @@ export function CartCheckoutModal() {
 
   const firestore = useFirestore();
 
-  // Extraemos el businessId de forma segura
+  // Extraemos el businessId del primer item del carrito
   const businessId = useMemo(() => {
     if (state.items && state.items.length > 0) {
       return state.items[0].businessId;
@@ -126,20 +127,20 @@ export function CartCheckoutModal() {
     return null;
   }, [state.items]);
 
-  // Cargamos la configuración de pago basándonos en el businessId
+  // Referencia al documento de configuración de pagos del negocio
   const settingsDocRef = useMemo(() => {
     if (!firestore || !businessId) return null;
-    // Referenciamos siempre el documento del usuario/negocio
     return doc(firestore, 'paymentSettings', businessId);
   }, [firestore, businessId]);
 
   const { data: paymentSettings, isLoading: isLoadingSettings, error: settingsError } = useDoc<PlanPaymentSettings>(settingsDocRef);
 
+  // LOG DE DEBUG PARA EL DESARROLLADOR (OCULTO AL USUARIO)
   useEffect(() => {
-    if (settingsError) {
-        console.error("[Checkout]: Error loading payment settings:", settingsError);
+    if (isOpen && businessId) {
+        console.log(`[Checkout]: Cargando pagos para el negocio ${businessId}`);
     }
-  }, [settingsError]);
+  }, [isOpen, businessId]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -154,12 +155,12 @@ export function CartCheckoutModal() {
     const orderSummary = state.items.map(item => `${item.quantity} x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join('\n');
     const message = `*¡Nuevo Pedido!* 🎉\n\n*Cliente:* ${customerName}\n*Teléfono:* ${customerPhone}\n*Dirección:* ${customerAddress}\n\n*Productos:*\n${orderSummary}\n\n*Método de Pago:* ${selectedPaymentMethod}\n*Total:* ${formatCurrency(totalPrice)}`;
     
-    // Obtenemos un número de WhatsApp válido de la configuración
+    // Fallback de número de WhatsApp
     const whatsappNumber = 
         paymentSettings?.bancolombia?.phone || 
         paymentSettings?.nequi?.phone || 
         paymentSettings?.daviplata?.phone || 
-        '';
+        '346383138464218'; // Número por defecto si no hay configurado
 
     const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\+/g, '').replace(/\s/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
