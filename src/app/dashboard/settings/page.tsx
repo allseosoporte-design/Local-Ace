@@ -68,6 +68,11 @@ export default function SettingsPage() {
   const firestore = useFirestore();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState('');
+  const [stateProv, setStateProv] = useState('');
+  const [city, setCity] = useState('');
+  
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.photoURL || null);
@@ -83,6 +88,27 @@ export default function SettingsPage() {
       setAvatarPreview(user.photoURL || null);
     }
   }, [user]);
+
+  // Cargar datos adicionales del negocio desde Firestore
+  useEffect(() => {
+    const loadBusinessData = async () => {
+      if (!user || !firestore) return;
+      try {
+        const businessRef = doc(firestore, 'businesses', user.uid);
+        const docSnap = await getDoc(businessRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setPhone(data.phoneNumber || '');
+          setCountry(data.country || '');
+          setStateProv(data.state || '');
+          setCity(data.city || '');
+        }
+      } catch (error) {
+        console.error("Error loading business data:", error);
+      }
+    };
+    loadBusinessData();
+  }, [user, firestore]);
 
   const settingsDocRef = useMemo(() => {
       if (!firestore || !user) return null;
@@ -145,7 +171,7 @@ export default function SettingsPage() {
     if (!user || !firestore) return;
     
     setIsSavingProfile(true);
-    const toastId = toast({ title: "Actualizando perfil...", description: "Por favor, espera un momento." });
+    toast({ title: "Actualizando perfil...", description: "Por favor, espera un momento." });
 
     try {
       let photoURL = user.photoURL;
@@ -172,10 +198,14 @@ export default function SettingsPage() {
         photoURL: photoURL,
       });
 
-      // 3. Actualizar el documento del negocio en Firestore
+      // 3. Actualizar el documento del negocio en Firestore con los nuevos campos
       const businessRef = doc(firestore, 'businesses', user.uid);
       await updateDoc(businessRef, {
           name: displayName,
+          phoneNumber: phone,
+          country: country,
+          state: stateProv,
+          city: city,
           updatedAt: serverTimestamp()
       });
 
@@ -271,6 +301,49 @@ export default function SettingsPage() {
             <Label htmlFor="email">Correo Electrónico</Label>
             <Input id="email" type="email" value={user?.email || ""} disabled className="bg-muted" />
             <p className="text-xs text-muted-foreground italic">El correo electrónico no se puede cambiar por seguridad.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Teléfono</Label>
+              <Input 
+                id="phone" 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value)} 
+                placeholder="Ej: +57 300 1234567"
+                disabled={isSavingProfile}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="country">País</Label>
+              <Input 
+                id="country" 
+                value={country} 
+                onChange={(e) => setCountry(e.target.value)} 
+                placeholder="Ej: Colombia"
+                disabled={isSavingProfile}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="state">Departamento / Estado</Label>
+              <Input 
+                id="state" 
+                value={stateProv} 
+                onChange={(e) => setStateProv(e.target.value)} 
+                placeholder="Ej: Antioquia"
+                disabled={isSavingProfile}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="city">Ciudad</Label>
+              <Input 
+                id="city" 
+                value={city} 
+                onChange={(e) => setCity(e.target.value)} 
+                placeholder="Ej: Medellín"
+                disabled={isSavingProfile}
+              />
+            </div>
           </div>
         </CardContent>
         <CardFooter>
