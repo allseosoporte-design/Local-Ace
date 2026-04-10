@@ -41,18 +41,22 @@ import { PaymentOptionsDisplay } from './payment-options-display';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import type { QRFormData } from '../qr-form';
 import { SUPER_ADMIN_BUSINESS_ID } from '@/lib/constants';
+import { useToast } from '@/hooks/use-toast';
+
+interface BusinessProfile {
+  phoneNumber?: string;
+  name?: string;
+}
 
 const DetailsCard = ({ method, methodName }: { method: QRFormData | undefined, methodName: string }) => {
     if (!method || !method.enabled) {
         return null;
     }
 
-    // Ocultar para pago contra entrega
     if (methodName === 'cashOnDelivery') {
         return null;
     }
     
-    // Solo mostrar si hay algo que mostrar
     if (!method.qrImageUrl && (!method.holderName || !method.accountNumber)) {
         return null;
     }
@@ -88,7 +92,6 @@ const DetailsCard = ({ method, methodName }: { method: QRFormData | undefined, m
     )
 }
 
-
 const WhatsAppIcon = () => (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -100,9 +103,9 @@ const WhatsAppIcon = () => (
     </svg>
 );
 
-
 export function CartCheckoutModal() {
   const { isOpen, onClose } = useCartModal();
+  const { toast } = useToast();
   const {
     state,
     removeItem,
@@ -119,26 +122,29 @@ export function CartCheckoutModal() {
 
   const firestore = useFirestore();
 
-  // Extraemos el businessId del primer item del carrito
   const businessId = useMemo(() => {
     if (state.items && state.items.length > 0) {
       return state.items[0].businessId || SUPER_ADMIN_BUSINESS_ID;
     }
-    return SUPER_ADMIN_BUSINESS_ID; // Fallback al admin principal
+    return SUPER_ADMIN_BUSINESS_ID;
   }, [state.items]);
 
-  // Referencia al documento de configuración de pagos del negocio
   const settingsDocRef = useMemo(() => {
     if (!firestore || !businessId) return null;
     return doc(firestore, 'paymentSettings', businessId);
   }, [firestore, businessId]);
 
-  const { data: paymentSettings, isLoading: isLoadingSettings } = useDoc<PlanPaymentSettings>(settingsDocRef);
+  const businessDocRef = useMemo(() => {
+    if (!firestore || !businessId) return null;
+    return doc(firestore, 'businesses', businessId);
+  }, [firestore, businessId]);
 
-  // LOG DE DEBUG PARA EL DESARROLLADOR
+  const { data: paymentSettings, isLoading: isLoadingSettings } = useDoc<PlanPaymentSettings>(settingsDocRef);
+  const { data: businessProfile, isLoading: isLoadingBusiness } = useDoc<BusinessProfile>(businessDocRef);
+
   useEffect(() => {
     if (isOpen) {
-        console.log(`[Checkout]: Cargando pagos para el negocio ${businessId}`);
+        console.log(`[Checkout]: Iniciando checkout para negocio: ${businessId}`);
     }
   }, [isOpen, businessId]);
 
@@ -152,17 +158,38 @@ export function CartCheckoutModal() {
   };
   
   const handleCheckout = () => {
+    if (!customerName || !customerPhone || !customerAddress || !selectedPaymentMethod) {
+        toast({
+            variant: 'destructive',
+            title: 'Campos incompletos',
+            description: 'Por favor, rellena todos tus datos y selecciona un método de pago.'
+        });
+        return;
+    }
+
     const orderSummary = state.items.map(item => `${item.quantity} x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join('\n');
     const message = `*¡Nuevo Pedido!* 🎉\n\n*Cliente:* ${customerName}\n*Teléfono:* ${customerPhone}\n*Dirección:* ${customerAddress}\n\n*Productos:*\n${orderSummary}\n\n*Método de Pago:* ${selectedPaymentMethod}\n*Total:* ${formatCurrency(totalPrice)}`;
     
-    // Fallback de número de WhatsApp dinámico
-    const whatsappNumber = 
+    // Obtener número de WhatsApp priorizando el perfil del negocio
+    const rawTargetPhone = 
+        businessProfile?.phoneNumber || 
         paymentSettings?.bancolombia?.phone || 
         paymentSettings?.nequi?.phone || 
-        paymentSettings?.daviplata?.phone || 
-        '346383138464218';
+        paymentSettings?.daviplata?.phone;
 
-    const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\+/g, '').replace(/\s/g, '')}?text=${encodeURIComponent(message)}`;
+    if (!rawTargetPhone) {
+        toast({
+            variant: 'destructive',
+            title: 'Error de contacto',
+            description: 'El negocio no tiene configurado un número de teléfono para recibir pedidos. Por favor, contacta a soporte.'
+        });
+        return;
+    }
+
+    // Limpiar el número de cualquier carácter no numérico para la URL de WhatsApp
+    const cleanTargetPhone = rawTargetPhone.replace(/\D/g, '');
+
+    const whatsappUrl = `https://wa.me/${cleanTargetPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     
     clearCart();
@@ -346,10 +373,10 @@ export function CartCheckoutModal() {
               <Button 
                 onClick={handleCheckout} 
                 className="sm:flex-[2] bg-[#25D366] hover:bg-[#25D366]/90 text-white font-bold"
-                disabled={!customerName || !customerPhone || !customerAddress || !selectedPaymentMethod}
+                disabled={!customerName || !customerPhone || !customerAddress || !selectedPaymentMethod || isLoadingBusiness}
               >
-                <WhatsAppIcon />
-                <span className="ml-2">Enviar Pedido</span>
+                {isLoadingBusiness ? <Loader2 className="animate-spin h-5 w-5" /> : <WhatsAppIcon />}
+                <span className="ml-2">{isLoadingBusiness ? 'Cargando...' : 'Enviar Pedido'}</span>
               </Button>
             </div>
           ) : (
