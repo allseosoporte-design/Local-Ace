@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,9 +16,10 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Info } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function AdminSettingsPage() {
   const { toast } = useToast();
@@ -29,9 +31,9 @@ export default function AdminSettingsPage() {
   // Settings State
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [googleApiKey, setGoogleApiKey] = useState('');
-  const [cloudinaryCloudName, setCloudinaryCloudName] = useState('');
-  const [cloudinaryApiKey, setCloudinaryApiKey] = useState('');
-  const [cloudinaryApiSecret, setCloudinaryApiSecret] = useState('');
+  const [cloudinaryCloudName, setCloudinaryCloudName] = useState('defgl3hjt');
+  const [cloudinaryApiKey, setCloudinaryApiKey] = useState('346383138464218');
+  const [cloudinaryApiSecret, setCloudinaryApiSecret] = useState('3igu6wHKuRxuf4NMho4vjdFSqu8');
 
   // Load settings on mount
   useEffect(() => {
@@ -44,9 +46,9 @@ export default function AdminSettingsPage() {
           const data = docSnap.data();
           setMaintenanceMode(data.maintenanceMode || false);
           setGoogleApiKey(data.googleApiKey || '');
-          setCloudinaryCloudName(data.cloudinaryCloudName || '');
-          setCloudinaryApiKey(data.cloudinaryApiKey || '');
-          setCloudinaryApiSecret(data.cloudinaryApiSecret || '');
+          if (data.cloudinaryCloudName) setCloudinaryCloudName(data.cloudinaryCloudName);
+          if (data.cloudinaryApiKey) setCloudinaryApiKey(data.cloudinaryApiKey);
+          if (data.cloudinaryApiSecret) setCloudinaryApiSecret(data.cloudinaryApiSecret);
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -72,14 +74,14 @@ export default function AdminSettingsPage() {
 
       toast({
         title: 'Configuración guardada',
-        description: 'Los ajustes globales de la plataforma han sido actualizados en la base de datos.',
+        description: 'Los ajustes globales se han actualizado en Firestore.',
       });
     } catch (error) {
       console.error("Error saving settings:", error);
       toast({
         variant: 'destructive',
         title: 'Error al guardar',
-        description: 'No se pudieron guardar los ajustes en la base de datos.',
+        description: 'No se pudieron guardar los ajustes.',
       });
     } finally {
       setIsSaving(false);
@@ -101,24 +103,33 @@ export default function AdminSettingsPage() {
           Configuración de Administrador
         </h1>
         <p className="text-muted-foreground">
-          Gestiona la configuración global de la plataforma y las integraciones. Los valores guardados aquí se usarán si no están definidos en el entorno.
+          Gestiona las claves de API y el estado global de la plataforma.
         </p>
       </div>
+
+      {!cloudinaryCloudName && (
+        <Alert variant="default" className="bg-blue-50 border-blue-200">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">Acción requerida</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            Por favor, ingresa tu <strong>Cloud Name</strong> de Cloudinary abajo para habilitar la subida de imágenes.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
         <Card>
           <CardHeader>
             <CardTitle>Configuración General</CardTitle>
-            <CardDescription>Ajustes generales de la aplicación.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div>
                 <Label htmlFor="maintenance-mode" className="font-semibold">
                   Modo Mantenimiento
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Desactiva temporalmente el acceso público a la plataforma.
+                  Desactiva el acceso a usuarios no administradores.
                 </p>
               </div>
               <Switch
@@ -130,18 +141,16 @@ export default function AdminSettingsPage() {
           </CardContent>
         </Card>
 
-        <Separator className="my-6" />
-
-        <Card>
+        <Card className="mt-6">
           <CardHeader>
             <CardTitle>Integraciones</CardTitle>
             <CardDescription>
-              Gestiona las claves de API para los servicios de la plataforma. Estas claves se almacenan de forma segura en Firestore.
+              Claves para Google Gemini y Cloudinary.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="google-api-key">Clave de API de Google (Gemini)</Label>
+              <Label htmlFor="google-api-key">Google Gemini API Key</Label>
               <Input
                 id="google-api-key"
                 type="password"
@@ -152,43 +161,44 @@ export default function AdminSettingsPage() {
             </div>
 
             <div className="pt-4 border-t space-y-4">
-              <h3 className="text-sm font-semibold">Configuración de Cloudinary</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h3 className="text-sm font-semibold">Cloudinary (Imágenes)</h3>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="cloudinary-cloud-name">Cloud Name</Label>
+                  <Label htmlFor="cloudinary-cloud-name" className="text-blue-600 font-bold">Cloud Name (Obligatorio)</Label>
                   <Input
                     id="cloudinary-cloud-name"
                     value={cloudinaryCloudName}
                     onChange={(e) => setCloudinaryCloudName(e.target.value)}
-                    placeholder="Tu Cloud Name"
+                    placeholder="Ej: dxxxxxxx"
+                    className={!cloudinaryCloudName ? "border-blue-400 bg-blue-50" : ""}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cloudinary-api-key">API Key</Label>
-                  <Input
-                    id="cloudinary-api-key"
-                    value={cloudinaryApiKey}
-                    onChange={(e) => setCloudinaryApiKey(e.target.value)}
-                    placeholder="API Key de Cloudinary"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cloudinary-api-key">API Key</Label>
+                    <Input
+                      id="cloudinary-api-key"
+                      value={cloudinaryApiKey}
+                      onChange={(e) => setCloudinaryApiKey(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cloudinary-api-secret">API Secret</Label>
+                    <Input
+                      id="cloudinary-api-secret"
+                      type="password"
+                      value={cloudinaryApiSecret}
+                      onChange={(e) => setCloudinaryApiSecret(e.target.value)}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cloudinary-api-secret">API Secret</Label>
-                <Input
-                  id="cloudinary-api-secret"
-                  type="password"
-                  value={cloudinaryApiSecret}
-                  onChange={(e) => setCloudinaryApiSecret(e.target.value)}
-                  placeholder="API Secret de Cloudinary"
-                />
               </div>
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isSaving}>
+            <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Guardar Toda la Configuración
+              Guardar Configuración
             </Button>
           </CardFooter>
         </Card>
