@@ -151,6 +151,7 @@ export default function AdminPaymentSettingsPage() {
           if (firstPlanSettings) {
               const adminBusinessRef = doc(firestore, 'paymentSettings', SUPER_ADMIN_BUSINESS_ID);
               batch.set(adminBusinessRef, { ...firstPlanSettings, updatedAt: serverTimestamp() }, { merge: true });
+              console.log(`[Sync]: Guardando configuración en ${SUPER_ADMIN_BUSINESS_ID}`);
           }
       }
       

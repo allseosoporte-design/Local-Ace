@@ -122,9 +122,9 @@ export function CartCheckoutModal() {
   // Extraemos el businessId del primer item del carrito
   const businessId = useMemo(() => {
     if (state.items && state.items.length > 0) {
-      return state.items[0].businessId;
+      return state.items[0].businessId || SUPER_ADMIN_BUSINESS_ID;
     }
-    return null;
+    return SUPER_ADMIN_BUSINESS_ID; // Fallback al admin principal
   }, [state.items]);
 
   // Referencia al documento de configuración de pagos del negocio
@@ -133,11 +133,11 @@ export function CartCheckoutModal() {
     return doc(firestore, 'paymentSettings', businessId);
   }, [firestore, businessId]);
 
-  const { data: paymentSettings, isLoading: isLoadingSettings, error: settingsError } = useDoc<PlanPaymentSettings>(settingsDocRef);
+  const { data: paymentSettings, isLoading: isLoadingSettings } = useDoc<PlanPaymentSettings>(settingsDocRef);
 
-  // LOG DE DEBUG PARA EL DESARROLLADOR (OCULTO AL USUARIO)
+  // LOG DE DEBUG PARA EL DESARROLLADOR
   useEffect(() => {
-    if (isOpen && businessId) {
+    if (isOpen) {
         console.log(`[Checkout]: Cargando pagos para el negocio ${businessId}`);
     }
   }, [isOpen, businessId]);
@@ -155,12 +155,12 @@ export function CartCheckoutModal() {
     const orderSummary = state.items.map(item => `${item.quantity} x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join('\n');
     const message = `*¡Nuevo Pedido!* 🎉\n\n*Cliente:* ${customerName}\n*Teléfono:* ${customerPhone}\n*Dirección:* ${customerAddress}\n\n*Productos:*\n${orderSummary}\n\n*Método de Pago:* ${selectedPaymentMethod}\n*Total:* ${formatCurrency(totalPrice)}`;
     
-    // Fallback de número de WhatsApp
+    // Fallback de número de WhatsApp dinámico
     const whatsappNumber = 
         paymentSettings?.bancolombia?.phone || 
         paymentSettings?.nequi?.phone || 
         paymentSettings?.daviplata?.phone || 
-        '346383138464218'; // Número por defecto si no hay configurado
+        '346383138464218';
 
     const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\+/g, '').replace(/\s/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
