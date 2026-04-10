@@ -10,13 +10,38 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { v2 as cloudinary } from 'cloudinary';
+import 'dotenv/config';
 
-// Configure Cloudinary with credentials from environment variables for security.
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+/**
+ * Interface representing the required Cloudinary credentials.
+ */
+interface CloudinaryCredentials {
+  cloud_name: string;
+  api_key: string;
+  api_secret: string;
+}
+
+/**
+ * Validates that Cloudinary environment variables are present and returns them.
+ * Throws a descriptive error if any credential is missing.
+ */
+function getValidatedConfig(): CloudinaryCredentials {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new Error(
+      'Cloudinary configuration is incomplete. Please ensure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are defined in your .env file.'
+    );
+  }
+
+  return {
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
+  };
+}
 
 const UploadImageInputSchema = z.object({
   fileAsDataUrl: z
@@ -34,11 +59,12 @@ const UploadImageOutputSchema = z.object({
 });
 export type UploadImageOutput = z.infer<typeof UploadImageOutputSchema>;
 
-
+/**
+ * Public function to invoke the upload image flow.
+ */
 export async function uploadImage(input: UploadImageInput): Promise<UploadImageOutput> {
   return uploadImageFlow(input);
 }
-
 
 const uploadImageFlow = ai.defineFlow(
   {
@@ -48,22 +74,28 @@ const uploadImageFlow = ai.defineFlow(
   },
   async (input) => {
     try {
+      // Validate and apply configuration within the execution context
+      const credentials = getValidatedConfig();
+      cloudinary.config(credentials);
+
       const uploadResult = await cloudinary.uploader.upload(input.fileAsDataUrl, {
         folder: input.folder || 'local-leap-uploads',
       });
 
       if (!uploadResult.secure_url) {
-        throw new Error('Cloudinary upload failed: No secure_url returned.');
+        throw new Error('Cloudinary upload failed: No secure_url was returned from the server.');
       }
 
       return {
         imageUrl: uploadResult.secure_url,
         publicId: uploadResult.public_id,
       };
-    } catch (error: any) {
-      console.error('Error uploading image to Cloudinary:', error);
-      // Throw a structured error that can be handled by the client.
-      throw new Error(`Failed to upload image. Reason: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during the image upload process.';
+      console.error('[Cloudinary Upload Error]:', errorMessage);
+      
+      // Throw a clean error message for the UI/caller
+      throw new Error(`Failed to upload image. Reason: ${errorMessage}`);
     }
   }
 );
