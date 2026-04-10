@@ -12,6 +12,10 @@ service cloud.firestore {
       allow read, create, update: if request.auth != null && request.auth.uid == userId;
     }
 
+    match /adminConfig/{document=**} {
+      allow read, write: if isSuperAdmin();
+    }
+
     // Allow read access for everyone, and write access for super admins
     match /subscriptionPlans/{planId} {
       allow list, get: if true;

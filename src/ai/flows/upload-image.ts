@@ -1,34 +1,72 @@
 'use server';
 /**
  * @fileOverview Flow para la carga segura de imágenes a Cloudinary.
- * 
- * - uploadImage: Función principal para invocar el proceso de carga.
- * - UploadImageInput: Interfaz de entrada (Data URL y carpeta opcional).
- * - UploadImageOutput: Interfaz de salida (URL segura e ID público).
- * 
- * Este flow maneja la configuración dinámica de Cloudinary para asegurar que
- * las credenciales se lean correctamente en el entorno de servidor de Next.js.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { v2 as cloudinary, type ConfigOptions } from 'cloudinary';
+import * as admin from 'firebase-admin';
 
 /**
- * Valida y retorna las credenciales de Cloudinary desde las variables de entorno.
- * Next.js carga automáticamente el archivo .env en process.env.
+ * Inicialización segura de Firebase Admin SDK.
+ * Se asume que serviceAccountKey.json existe en la raíz.
  */
-const getCloudinaryConfig = (): ConfigOptions => {
-  const config: ConfigOptions = {
+const initializeAdmin = () => {
+  if (admin.apps.length === 0) {
+    try {
+      // Intentamos importar de forma dinámica para evitar problemas de bundling
+      const serviceAccount = require('../../../serviceAccountKey.json');
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+    } catch (e) {
+      console.warn('Firebase Admin no se pudo inicializar con serviceAccountKey.json. Usando credenciales por defecto.');
+      admin.initializeApp();
+    }
+  }
+  return admin.firestore();
+};
+
+/**
+ * Recupera la configuración de Cloudinary.
+ * Primero intenta desde process.env, luego desde Firestore.
+ */
+const getCloudinaryConfig = async (): Promise<ConfigOptions> => {
+  // 1. Intentar desde variables de entorno
+  let config: ConfigOptions = {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
     secure: true,
   };
 
+  // 2. Si faltan variables de entorno, intentar desde Firestore (adminConfig/global)
+  if (!config.cloud_name || !config.api_key || !config.api_secret) {
+    console.log('Variables de entorno de Cloudinary faltantes. Intentando recuperar desde Firestore...');
+    const db = initializeAdmin();
+    try {
+      const docSnap = await db.collection('adminConfig').doc('global').get();
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        if (data) {
+          config = {
+            cloud_name: data.cloudinaryCloudName || config.cloud_name,
+            api_key: data.cloudinaryApiKey || config.api_key,
+            api_secret: data.cloudinaryApiSecret || config.api_secret,
+            secure: true,
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Error al intentar recuperar configuración desde Firestore:', e);
+    }
+  }
+
+  // 3. Validación final
   if (!config.cloud_name || !config.api_key || !config.api_secret) {
     throw new Error(
-      'Configuración de Cloudinary incompleta. Por favor, asegúrese de que CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET estén definidos en su entorno o archivo .env.'
+      'Configuración de Cloudinary incompleta. Por favor, asegúrese de configurar las credenciales en el Panel de Administrador -> Configuración.'
     );
   }
 
@@ -51,9 +89,6 @@ const UploadImageOutputSchema = z.object({
 });
 export type UploadImageOutput = z.infer<typeof UploadImageOutputSchema>;
 
-/**
- * Función exportada para ser llamada desde Server Actions o componentes de cliente.
- */
 export async function uploadImage(input: UploadImageInput): Promise<UploadImageOutput> {
   return uploadImageFlow(input);
 }
@@ -66,8 +101,8 @@ const uploadImageFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      // Aplicar configuración dinámicamente en cada ejecución para asegurar consistencia
-      cloudinary.config(getCloudinaryConfig());
+      const config = await getCloudinaryConfig();
+      cloudinary.config(config);
 
       const result = await cloudinary.uploader.upload(input.fileAsDataUrl, {
         folder: input.folder || 'local-leap-uploads',
@@ -83,13 +118,11 @@ const uploadImageFlow = ai.defineFlow(
         publicId: result.public_id,
       };
     } catch (error: unknown) {
-      // Gestión estricta de errores para producción
       const errorMessage = error instanceof Error 
         ? error.message 
         : 'Ocurrió un error inesperado durante la carga a Cloudinary.';
       
       console.error('[Cloudinary Upload Error]:', errorMessage);
-      
       throw new Error(`Fallo en el servicio de carga: ${errorMessage}`);
     }
   }
