@@ -1,13 +1,12 @@
 'use client';
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { useFirestore, useCollection, useDoc } from '@/firebase';
-import { doc, onSnapshot, collection, query, orderBy } from 'firebase/firestore';
+import { useFirestore, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { EditorLandingPreview, type LandingPageData, type HeaderConfig, type FooterConfig } from '@/components/editor-landing-preview';
 import { Loader2 } from 'lucide-react';
 import type { FormConfigData } from '@/components/dashboard/landing/FormEditor';
-import type { SubscriptionPlan } from '@/types/subscription-plan';
 
 const defaultFooter: FooterConfig = {
     enabled: true,
@@ -81,23 +80,8 @@ export default function PublicLandingPage() {
     return doc(firestore, `businesses/${businessId}/landingPages`, 'form');
   }, [firestore, businessId]);
 
-  const plansQuery = useMemo(() => {
-    if (!firestore) return null;
-    return query(
-      collection(firestore, 'subscriptionPlans'),
-      orderBy('order', 'asc')
-    );
-  }, [firestore]);
-
-
   const { data: landingData, isLoading: isLandingLoading, error: landingError } = useDoc<LandingPageData>(landingPageRef);
   const { data: formConfig, isLoading: isFormLoading } = useDoc<FormConfigData>(formConfigRef);
-  const { data: allPlans, isLoading: arePlansLoading } = useCollection<SubscriptionPlan>(plansQuery);
-
-  const plans = useMemo(() => {
-    if (!allPlans) return [];
-    return allPlans.filter(plan => plan.isActive === true);
-  }, [allPlans]);
 
   const displayData = useMemo(() => {
     if (isLandingLoading) return null; // Espera a que termine de cargar
@@ -124,7 +108,7 @@ export default function PublicLandingPage() {
 
   }, [landingData, isLandingLoading, landingError]);
   
-  const isLoading = isLandingLoading || isFormLoading || arePlansLoading;
+  const isLoading = isLandingLoading || isFormLoading;
 
   if (isLoading) {
     return (
@@ -171,7 +155,6 @@ export default function PublicLandingPage() {
           data={displayData} 
           formConfig={formConfig || undefined}
           businessId={businessId}
-          plans={plans}
         />
       </main>
     </div>
