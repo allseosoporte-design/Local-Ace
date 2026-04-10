@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Dialog,
@@ -95,7 +95,7 @@ const WhatsAppIcon = () => (
       fill="currentColor"
       className="h-5 w-5"
     >
-      <path d="M16.6 14.2c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.6.7-.8.9-.1.1-.3.2-.5.1-.2-.1-.9-.3-1.8-1.1-.7-.6-1.1-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.2.4-.4.1-.1.2-.2.3-.4.1-.1.1-.3 0-.4-.1-.1-.6-1.4-.8-2-.2-.5-.4-.5-.5-.5h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 1.9s.8 2.2 1 2.3c.1.1 1.5.7 3.5 2.6.5.4 1.2.7 1.6.9.7.3 1.3.3 1.8.2.5-.2 1.5-1 1.7-1.9.3-.9.3-1.6.2-1.8-.1-.3-.3-.4-.5-.5z M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z" />
+      <path d="M16.6 14.2c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.6.7-.8.9-.1.1-.3.2-.5.1-.2-.1-.9-.3-1.8-1.1-.7-.6-1.1-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.2.4-.4.1-.1.2-.2.4-.4.1-.1.2-.2.3-.4.1-.1.1-.3 0-.4-.1-.1-.6-1.4-.8-2-.2-.5-.4-.5-.5-.5h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 1.9s.8 2.2 1 2.3c.1.1 1.5.7 3.5 2.6.5.4 1.2.7 1.6.9.7.3 1.3.3 1.8.2.5-.2 1.5-1 1.7-1.9.3-.9.3-1.6.2-1.8-.1-.3-.3-.4-.5-.5z M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z" />
     </svg>
 );
 
@@ -118,20 +118,28 @@ export function CartCheckoutModal() {
 
   const firestore = useFirestore();
 
+  // Extraemos el businessId de forma segura
   const businessId = useMemo(() => {
-    if (state.items.length > 0) {
+    if (state.items && state.items.length > 0) {
       return state.items[0].businessId;
     }
     return null;
   }, [state.items]);
 
+  // Cargamos la configuración de pago basándonos en el businessId
   const settingsDocRef = useMemo(() => {
-    if (!firestore || !businessId || !isOpen) return null;
+    if (!firestore || !businessId) return null;
+    // Referenciamos siempre el documento del usuario/negocio
     return doc(firestore, 'paymentSettings', businessId);
-  }, [firestore, businessId, isOpen]);
+  }, [firestore, businessId]);
 
-  const { data: paymentSettings, isLoading: isLoadingSettings } = useDoc<PlanPaymentSettings>(settingsDocRef);
+  const { data: paymentSettings, isLoading: isLoadingSettings, error: settingsError } = useDoc<PlanPaymentSettings>(settingsDocRef);
 
+  useEffect(() => {
+    if (settingsError) {
+        console.error("[Checkout]: Error loading payment settings:", settingsError);
+    }
+  }, [settingsError]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -153,7 +161,7 @@ export function CartCheckoutModal() {
         paymentSettings?.daviplata?.phone || 
         '';
 
-    const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\+/g, '')}?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\+/g, '').replace(/\s/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     
     clearCart();
@@ -171,7 +179,10 @@ export function CartCheckoutModal() {
         'bancolombia': 'bancolombia',
         'pago contra entrega': 'cashOnDelivery',
         'cashondelivery': 'cashOnDelivery',
-        'wompi': 'wompi'
+        'wompi': 'wompi',
+        'stripe': 'stripe',
+        'mercado pago': 'mercadoPago',
+        'paypal': 'paypal'
     };
 
     const key = methodKeyMap[normalizedMethod];
@@ -296,7 +307,7 @@ export function CartCheckoutModal() {
                   </AccordionTrigger>
                   <AccordionContent className="pt-2 pb-4">
                     <PaymentOptionsDisplay 
-                      settings={paymentSettings} 
+                      settings={paymentSettings || null} 
                       isLoading={isLoadingSettings}
                       selectedValue={selectedPaymentMethod}
                       onValueChange={setSelectedPaymentMethod}

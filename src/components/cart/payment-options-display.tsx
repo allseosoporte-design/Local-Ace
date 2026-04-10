@@ -67,8 +67,13 @@ export function PaymentOptionsDisplay({ settings, isLoading, selectedValue, onVa
     );
   }
   
-  if (!settings) {
-    return <p className="text-sm text-center text-muted-foreground py-4">No hay métodos de pago configurados.</p>;
+  if (!settings || Object.keys(settings).length === 0) {
+    return (
+        <div className="text-center py-4 space-y-2 border rounded-md border-dashed">
+            <p className="text-sm text-muted-foreground italic">No hay métodos de pago configurados.</p>
+            <p className="text-xs text-muted-foreground">El comercio aún no ha establecido sus preferencias de cobro.</p>
+        </div>
+    );
   }
 
   const enabledMethods = Object.entries(settings)
@@ -82,6 +87,11 @@ export function PaymentOptionsDisplay({ settings, isLoading, selectedValue, onVa
       // Handle objects with 'enabled' property (QR and API methods)
       if (typeof value === 'object' && value !== null && 'enabled' in value && value.enabled) {
          const config = paymentMethodConfig[key as keyof typeof paymentMethodConfig];
+         // Validación extra: si es un método QR, debe tener algo de información
+         if (config && (key === 'nequi' || key === 'daviplata' || key === 'bancolombia')) {
+             const qrValue = value as any;
+             if (!qrValue.accountNumber && !qrValue.qrImageUrl) return null;
+         }
          return config ? { key, ...config, details: value } : null;
       }
       return null;
@@ -90,9 +100,9 @@ export function PaymentOptionsDisplay({ settings, isLoading, selectedValue, onVa
 
   if (enabledMethods.length === 0) {
     return (
-      <div className="text-center py-4 space-y-2">
-        <p className="text-sm text-muted-foreground italic">No hay métodos de pago habilitados por el comercio.</p>
-        <p className="text-xs text-muted-foreground">Por favor, contacta al vendedor para acordar el pago.</p>
+      <div className="text-center py-4 space-y-2 border rounded-md border-dashed border-primary/20 bg-primary/5">
+        <p className="text-sm text-primary font-medium italic">No hay métodos de pago habilitados por el comercio.</p>
+        <p className="text-xs text-muted-foreground">Por favor, contacta al vendedor para acordar el pago por fuera de la plataforma.</p>
       </div>
     );
   }
