@@ -87,9 +87,7 @@ service cloud.firestore {
     }
     
     match /products/{productId} {
-      allow read: if resource.data.businessId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' || 
-                     (request.auth != null && request.auth.uid == resource.data.businessId) || 
-                     isSuperAdmin();
+      allow read: if true;
       allow write: if request.auth != null && (request.auth.uid == request.resource.data.businessId || isSuperAdmin());
     }
 
@@ -110,9 +108,8 @@ service cloud.firestore {
     }
     
     match /paymentSettings/{userId} {
-      allow read: if userId == 'DzH9Kc6eYqOih5Y705ebM0SzfZf2' || 
-                     (request.auth != null && request.auth.uid == userId) ||
-                     isSuperAdmin();
+      // IMPORTANTE: Permitir lectura pública para que los clientes vean las opciones de pago en el catálogo
+      allow read: if true;
       allow write: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
     }
 

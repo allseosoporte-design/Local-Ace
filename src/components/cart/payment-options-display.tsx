@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -11,6 +10,7 @@ import {
   StripeIcon,
   MercadoPagoIcon,
   PayPalIcon,
+  WompiIcon,
 } from '@/components/icons/payment-methods';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -47,9 +47,13 @@ const paymentMethodConfig = {
     label: 'Stripe',
     icon: <StripeIcon />,
   },
-   paypal: {
+  paypal: {
     label: 'PayPal',
     icon: <PayPalIcon />,
+  },
+  wompi: {
+    label: 'Wompi',
+    icon: <WompiIcon />,
   }
 };
 
@@ -64,47 +68,62 @@ export function PaymentOptionsDisplay({ settings, isLoading, selectedValue, onVa
   }
   
   if (!settings) {
-    return <p className="text-sm text-center text-muted-foreground">No hay métodos de pago configurados.</p>;
+    return <p className="text-sm text-center text-muted-foreground py-4">No hay métodos de pago configurados.</p>;
   }
 
   const enabledMethods = Object.entries(settings)
     .map(([key, value]) => {
       // Handle boolean for cashOnDelivery
-      if (typeof value === 'boolean' && value === true && key === 'cashOnDelivery') {
+      if (key === 'cashOnDelivery' && value === true) {
         const config = paymentMethodConfig[key];
         return config ? { key, ...config, details: null } : null;
       }
-      // Handle objects with 'enabled' property
-      if (typeof value === 'object' && value && 'enabled' in value && value.enabled) {
+      
+      // Handle objects with 'enabled' property (QR and API methods)
+      if (typeof value === 'object' && value !== null && 'enabled' in value && value.enabled) {
          const config = paymentMethodConfig[key as keyof typeof paymentMethodConfig];
          return config ? { key, ...config, details: value } : null;
       }
       return null;
     })
-    .filter(Boolean);
+    .filter((method): method is NonNullable<typeof method> => method !== null);
 
   if (enabledMethods.length === 0) {
-    return <p className="text-sm text-center text-muted-foreground">No hay métodos de pago habilitados.</p>;
+    return (
+      <div className="text-center py-4 space-y-2">
+        <p className="text-sm text-muted-foreground italic">No hay métodos de pago habilitados por el comercio.</p>
+        <p className="text-xs text-muted-foreground">Por favor, contacta al vendedor para acordar el pago.</p>
+      </div>
+    );
   }
 
 
   return (
     <RadioGroup value={selectedValue ?? undefined} onValueChange={onValueChange} className="space-y-3">
         {enabledMethods.map((method) => (
-            method && (
-            <Label key={method.key} htmlFor={method.key} className="p-3 border rounded-md bg-background flex items-center gap-4 cursor-pointer hover:bg-muted/50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-300">
+            <Label 
+              key={method.key} 
+              htmlFor={method.key} 
+              className="p-3 border rounded-md bg-background flex items-center gap-4 cursor-pointer hover:bg-muted/50 has-[:checked]:bg-primary/5 has-[:checked]:border-primary transition-colors"
+            >
                 <RadioGroupItem value={method.label} id={method.key} />
                 <div className="flex items-center gap-3 flex-1">
-                    {method.icon}
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                      {method.icon}
+                    </div>
                     <span className="font-medium text-sm">{method.label}</span>
                 </div>
-                {method.details?.qrImageUrl && (
-                    <div className="w-12 h-12 relative ml-auto">
-                        <Image src={method.details.qrImageUrl} alt={`${method.label} QR`} layout='fill' objectFit='contain' />
+                {method.details && 'qrImageUrl' in method.details && method.details.qrImageUrl && (
+                    <div className="w-10 h-10 relative ml-auto border rounded bg-white p-0.5">
+                        <Image 
+                          src={method.details.qrImageUrl} 
+                          alt={`${method.label} QR`} 
+                          fill 
+                          className="object-contain" 
+                        />
                     </div>
                 )}
             </Label>
-            )
         ))}
     </RadioGroup>
   );

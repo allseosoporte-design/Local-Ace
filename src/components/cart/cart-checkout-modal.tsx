@@ -57,30 +57,30 @@ const DetailsCard = ({ method, methodName }: { method: QRFormData | undefined, m
     }
 
     return (
-        <Card className="mt-4 bg-white animate-in fade-in-50">
-            <CardHeader>
-                <CardTitle className='text-base'>Paga a la siguiente cuenta:</CardTitle>
+        <Card className="mt-4 bg-white animate-in fade-in-50 border-primary/20 shadow-sm">
+            <CardHeader className='pb-2'>
+                <CardTitle className='text-sm font-semibold text-primary'>Datos para transferencia:</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-center">
                 {method.holderName && method.accountNumber && (
-                    <div className='text-left space-y-2'>
-                        <p><span className='font-semibold'>Titular:</span> {method.holderName}</p>
-                        <p><span className='font-semibold'>Cuenta:</span> {method.accountNumber}</p>
+                    <div className='text-left space-y-1 bg-muted/30 p-2 rounded-md border border-dashed border-muted-foreground/20'>
+                        <p className='text-xs'><span className='font-bold'>Titular:</span> {method.holderName}</p>
+                        <p className='text-xs'><span className='font-bold'>Cuenta/Celular:</span> {method.accountNumber}</p>
                     </div>
                 )}
                 {method.qrImageUrl && (
-                    <>
-                        <p className='font-semibold text-center mt-2'>O escanea el código QR:</p>
-                        <div className="relative w-[200px] h-[200px] mx-auto">
+                    <div className="space-y-2">
+                        <p className='text-[10px] font-medium text-muted-foreground uppercase tracking-wider'>Escanea el código QR</p>
+                        <div className="relative w-40 h-40 mx-auto border-2 border-primary/10 rounded-lg overflow-hidden p-1 bg-white">
                             <Image
                                 src={method.qrImageUrl}
                                 alt={`Código QR de ${methodName}`}
-                                width={200}
-                                height={200}
-                                className="rounded-md object-contain"
+                                width={160}
+                                height={160}
+                                className="object-contain w-full h-full"
                             />
                         </div>
-                    </>
+                    </div>
                 )}
             </CardContent>
         </Card>
@@ -146,7 +146,14 @@ export function CartCheckoutModal() {
     const orderSummary = state.items.map(item => `${item.quantity} x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join('\n');
     const message = `*¡Nuevo Pedido!* 🎉\n\n*Cliente:* ${customerName}\n*Teléfono:* ${customerPhone}\n*Dirección:* ${customerAddress}\n\n*Productos:*\n${orderSummary}\n\n*Método de Pago:* ${selectedPaymentMethod}\n*Total:* ${formatCurrency(totalPrice)}`;
     
-    const whatsappUrl = `https://wa.me/${paymentSettings?.bancolombia.phone || ''}?text=${encodeURIComponent(message)}`;
+    // Obtenemos un número de WhatsApp válido de la configuración
+    const whatsappNumber = 
+        paymentSettings?.bancolombia?.phone || 
+        paymentSettings?.nequi?.phone || 
+        paymentSettings?.daviplata?.phone || 
+        '';
+
+    const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\+/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     
     clearCart();
@@ -156,24 +163,20 @@ export function CartCheckoutModal() {
   const selectedMethodDetails = useMemo(() => {
     if (!selectedPaymentMethod || !paymentSettings) return undefined;
 
-    // Normalizar el nombre del método seleccionado a minúsculas
     const normalizedMethod = selectedPaymentMethod.toLowerCase().trim();
 
-    // Mapeo directo a las claves de paymentSettings
     const methodKeyMap: { [key: string]: keyof PlanPaymentSettings } = {
         'nequi': 'nequi',
         'daviplata': 'daviplata',
         'bancolombia': 'bancolombia',
         'pago contra entrega': 'cashOnDelivery',
-        'cashondelivery': 'cashOnDelivery'
+        'cashondelivery': 'cashOnDelivery',
+        'wompi': 'wompi'
     };
 
     const key = methodKeyMap[normalizedMethod];
 
-    if (!key) return undefined;
-
-    // Para cashOnDelivery no mostrar detalles
-    if (key === 'cashOnDelivery') return undefined;
+    if (!key || key === 'cashOnDelivery') return undefined;
 
     const methodData = paymentSettings[key];
     
@@ -191,101 +194,107 @@ export function CartCheckoutModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-xl">
+        <DialogHeader className="p-6 bg-primary text-primary-foreground">
+          <DialogTitle className="flex items-center gap-2 text-xl">
             <ShoppingCart className="h-6 w-6" />
             Tu Carrito
           </DialogTitle>
-          <DialogDescription>
-            Revisa tus productos y completa la información para finalizar tu
-            pedido.
+          <DialogDescription className="text-primary-foreground/80">
+            Completa tu información para finalizar tu pedido.
           </DialogDescription>
         </DialogHeader>
 
         {totalItems > 0 ? (
-          <>
-            <ScrollArea className="max-h-[60vh] pr-4">
+          <ScrollArea className="max-h-[70vh] p-6">
+            <div className="space-y-6">
               <div className="space-y-4">
                 {state.items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4">
-                    <Image
-                      src={item.imageUrls[0]}
-                      alt={item.name}
-                      width={64}
-                      height={64}
-                      className="rounded-md object-cover"
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium">{item.name}</p>
+                  <div key={item.id} className="flex items-center gap-4 group">
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border">
+                        <Image
+                        src={item.imageUrls[0]}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                        />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{item.name}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-6 w-6"
-                          onClick={() =>
-                            updateQuantity(item.id, item.quantity - 1)
-                          }
+                          className="h-7 w-7 rounded-full"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         >
-                          <Minus className="h-4 w-4" />
+                          <Minus className="h-3 w-3" />
                         </Button>
-                        <span>{item.quantity}</span>
+                        <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-6 w-6"
-                          onClick={() =>
-                            updateQuantity(item.id, item.quantity + 1)
-                          }
+                          className="h-7 w-7 rounded-full"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
                     <div className="text-right">
-                       <p className="font-semibold">{formatCurrency(item.price * item.quantity)}</p>
-                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => removeItem(item.id)}><Trash2 className="h-4 w-4"/></Button>
+                       <p className="font-bold text-sm">{formatCurrency(item.price * item.quantity)}</p>
+                       <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors" 
+                        onClick={() => removeItem(item.id)}
+                       >
+                        <Trash2 className="h-4 w-4"/>
+                       </Button>
                     </div>
                   </div>
                 ))}
               </div>
-              <Separator className='my-4' />
-              <div className="flex justify-between font-semibold">
-                <span>Total</span>
-                <span>{formatCurrency(totalPrice)}</span>
+
+              <Separator />
+              
+              <div className="flex justify-between items-center py-2">
+                <span className="text-lg font-bold">Total a Pagar</span>
+                <span className="text-2xl font-black text-primary">{formatCurrency(totalPrice)}</span>
               </div>
 
               <Accordion type="single" collapsible defaultValue="customer-info" className="w-full">
-                <AccordionItem value="customer-info">
-                  <AccordionTrigger>
-                      <div className="flex items-center gap-2">
-                          <User className="h-5 w-5" />
-                          Información del Cliente
+                <AccordionItem value="customer-info" className="border rounded-lg px-4 mb-3">
+                  <AccordionTrigger className="hover:no-underline py-3">
+                      <div className="flex items-center gap-3">
+                          <User className="h-5 w-5 text-primary" />
+                          <span className="font-semibold">Tus Datos</span>
                       </div>
                   </AccordionTrigger>
-                  <AccordionContent className="space-y-4 pt-2">
+                  <AccordionContent className="space-y-4 pt-2 pb-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Nombre Completo</Label>
-                      <Input id="name" placeholder="John Doe" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
+                      <Input id="name" placeholder="Ej: Juan Pérez" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
                     </div>
                      <div className="space-y-2">
-                      <Label htmlFor="phone">Teléfono</Label>
+                      <Label htmlFor="phone">WhatsApp de contacto</Label>
                       <Input id="phone" type="tel" placeholder="3001234567" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="address">Dirección de Entrega</Label>
-                      <Textarea id="address" placeholder="Calle 123 #45-67, Apto 89" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} required />
+                      <Textarea id="address" placeholder="Calle, Barrio, Apartamento..." value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} required />
                     </div>
                   </AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="payment-options">
-                  <AccordionTrigger>
-                      <div className="flex items-center gap-2">
-                          <Wallet className="h-5 w-5"/>
-                          Opciones de Pago
+
+                <AccordionItem value="payment-options" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline py-3">
+                      <div className="flex items-center gap-3">
+                          <Wallet className="h-5 w-5 text-primary"/>
+                          <span className="font-semibold">Método de Pago</span>
                       </div>
                   </AccordionTrigger>
-                  <AccordionContent className="pt-4">
+                  <AccordionContent className="pt-2 pb-4">
                     <PaymentOptionsDisplay 
                       settings={paymentSettings} 
                       isLoading={isLoadingSettings}
@@ -301,31 +310,41 @@ export function CartCheckoutModal() {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
-            </ScrollArea>
-          </>
+            </div>
+          </ScrollArea>
         ) : (
-          <div className="flex flex-col items-center justify-center h-48 text-center">
-            <ShoppingCart className="h-12 w-12 text-muted-foreground" />
-            <p className="mt-4 text-muted-foreground">Tu carrito está vacío</p>
+          <div className="flex flex-col items-center justify-center h-64 text-center p-6">
+            <div className="bg-muted h-20 w-20 rounded-full flex items-center justify-center mb-4">
+                <ShoppingCart className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground font-medium">Tu carrito está vacío</p>
+            <DialogClose asChild>
+                <Button variant="link" className="mt-2">Seguir comprando</Button>
+            </DialogClose>
           </div>
         )}
 
-        <DialogFooter>
-          {totalItems > 0 && (
-            <div className="w-full flex justify-between gap-2">
-               <Button variant="outline" onClick={clearCart}>
+        <DialogFooter className="p-6 bg-muted/30 border-t">
+          {totalItems > 0 ? (
+            <div className="w-full flex flex-col sm:flex-row gap-3">
+               <Button variant="outline" onClick={clearCart} className="sm:flex-1 border-destructive text-destructive hover:bg-destructive/10">
                 <Trash2 className="mr-2 h-4 w-4" />
-                Vaciar Carrito
+                Vaciar
               </Button>
-              <Button onClick={handleCheckout} disabled={!customerName || !customerPhone || !customerAddress || !selectedPaymentMethod}>
+              <Button 
+                onClick={handleCheckout} 
+                className="sm:flex-[2] bg-[#25D366] hover:bg-[#25D366]/90 text-white font-bold"
+                disabled={!customerName || !customerPhone || !customerAddress || !selectedPaymentMethod}
+              >
                 <WhatsAppIcon />
-                <span className="ml-2">Pedir por WhatsApp</span>
+                <span className="ml-2">Enviar Pedido</span>
               </Button>
             </div>
+          ) : (
+            <DialogClose asChild>
+              <Button variant="secondary" className="w-full">Cerrar</Button>
+            </DialogClose>
           )}
-          <DialogClose asChild>
-            <Button variant="ghost" className={totalItems === 0 ? 'w-full' : 'hidden'}>Cerrar</Button>
-          </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>
