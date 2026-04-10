@@ -11,50 +11,46 @@ import { getApps, initializeApp, cert, type App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 /**
- * Obtiene la instancia de Firestore de Admin de forma segura.
- * Evita el error 'INTERNAL' al usar importaciones modulares.
+ * Inicializa la aplicación de administración de Firebase de forma segura.
  */
-function getAdminDb() {
-  let app: App;
+function getAdminApp(): App {
   const apps = getApps();
-  if (apps.length === 0) {
-    try {
-      const serviceAccount = require('../../../serviceAccountKey.json');
-      app = initializeApp({
-        credential: cert(serviceAccount)
-      });
-    } catch (e) {
-      console.warn('[Firebase Admin]: Falló carga de serviceAccountKey.json, usando defaults.');
-      app = initializeApp();
-    }
-  } else {
-    app = apps[0];
+  if (apps.length > 0) return apps[0];
+
+  try {
+    // Intentar cargar desde el archivo de la raíz (ruta relativa al tiempo de ejecución)
+    const serviceAccount = require('../../../serviceAccountKey.json');
+    return initializeApp({
+      credential: cert(serviceAccount),
+    });
+  } catch (error) {
+    console.warn('[Firebase Admin]: No se encontró serviceAccountKey.json, intentando inicialización por defecto.');
+    return initializeApp();
   }
-  return getFirestore(app);
 }
 
 /**
- * Recupera la configuración de Cloudinary.
- * Primero intenta desde process.env, luego desde Firestore adminConfig/global.
+ * Recupera la configuración de Cloudinary desde el entorno o la base de datos.
  */
 const getCloudinaryConfig = async (): Promise<ConfigOptions> => {
-  // 1. Intentar desde variables de entorno
-  const envConfig: ConfigOptions = {
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-    secure: true,
-  };
-
-  if (envConfig.cloud_name && envConfig.api_key && envConfig.api_secret) {
-    return envConfig;
+  // 1. Intentar desde variables de entorno (Prioridad alta)
+  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+    return {
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+      secure: true,
+    };
   }
 
-  // 2. Intentar desde Firestore (Configuración persistente en BD)
-  console.log('[Cloudinary]: Buscando configuración en Firestore...');
+  // 2. Intentar desde Firestore (Configuración dinámica)
+  console.log('[Cloudinary]: Buscando configuración persistente en Firestore...');
   try {
-    const db = getAdminDb();
-    const docSnap = await db.collection('adminConfig').doc('global').get();
+    const app = getAdminApp();
+    const db = getFirestore(app);
+    // IMPORTANTE: La ruta debe coincidir con la guardada en el panel de admin
+    const docRef = db.collection('adminConfig').doc('global');
+    const docSnap = await docRef.get();
     
     if (docSnap.exists) {
       const data = docSnap.data();
@@ -65,14 +61,18 @@ const getCloudinaryConfig = async (): Promise<ConfigOptions> => {
           api_secret: data.cloudinaryApiSecret,
           secure: true,
         };
+      } else {
+        console.warn('[Cloudinary]: Documento adminConfig/global existe pero faltan campos de Cloudinary.');
       }
+    } else {
+      console.warn('[Cloudinary]: No existe el documento adminConfig/global en Firestore.');
     }
   } catch (e) {
-    console.error('[Cloudinary]: Error leyendo config de Firestore:', e);
+    console.error('[Cloudinary]: Error crítico leyendo configuración de Firestore:', e);
   }
 
   throw new Error(
-    'Configuración de Cloudinary incompleta. Por favor, asegúrese de configurar las credenciales en el Panel de Administrador -> Configuración.'
+    'Configuración de Cloudinary no encontrada. Por favor, configure las credenciales en el Panel de Administrador -> Configuración.'
   );
 };
 
@@ -105,13 +105,18 @@ const uploadImageFlow = ai.defineFlow(
       const config = await getCloudinaryConfig();
       cloudinary.config(config);
 
+      // Validar que la cadena base64 no sea demasiado grande para un flow (limite aprox 10MB)
+      if (input.fileAsDataUrl.length > 10 * 1024 * 1024) {
+        throw new Error('La imagen es demasiado grande. El límite es de 10MB.');
+      }
+
       const result = await cloudinary.uploader.upload(input.fileAsDataUrl, {
         folder: input.folder || 'local-leap-uploads',
         resource_type: 'auto',
       });
 
       if (!result.secure_url) {
-        throw new Error('La respuesta de Cloudinary no contiene una URL segura.');
+        throw new Error('Cloudinary no devolvió una URL segura.');
       }
 
       return {
@@ -121,10 +126,10 @@ const uploadImageFlow = ai.defineFlow(
     } catch (error: unknown) {
       const errorMessage = error instanceof Error 
         ? error.message 
-        : 'Ocurrió un error inesperado durante la carga a Cloudinary.';
+        : 'Ocurrió un error inesperado durante el proceso de carga.';
       
-      console.error('[Cloudinary Upload Error]:', errorMessage);
-      throw new Error(`Fallo en el servicio de carga: ${errorMessage}`);
+      console.error('[Upload Flow Error]:', errorMessage);
+      throw new Error(`Error en el servicio de imágenes: ${errorMessage}`);
     }
   }
 );

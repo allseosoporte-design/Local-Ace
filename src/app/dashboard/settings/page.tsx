@@ -68,6 +68,7 @@ export default function SettingsPage() {
   const firestore = useFirestore();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.photoURL || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,7 +92,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadSettings = async () => {
         if (!settingsDocRef) {
-            setIsLoadingPayments(false);
+            if (!isUserLoading) setIsLoadingPayments(false);
             return;
         };
         setIsLoadingPayments(true);
@@ -123,7 +124,7 @@ export default function SettingsPage() {
         }
     };
     loadSettings();
-  }, [settingsDocRef]);
+  }, [settingsDocRef, isUserLoading]);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -143,28 +144,32 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     if (!user || !firestore) return;
     
-    setIsUploading(true);
-    const toastId = toast({ title: "Guardando perfil...", description: "Subiendo imagen y actualizando datos." });
+    setIsSavingProfile(true);
+    const toastId = toast({ title: "Actualizando perfil...", description: "Por favor, espera un momento." });
 
     try {
-      let newPhotoUrl = user.photoURL;
-      const file = fileInputRef.current?.files?.[0];
+      let photoURL = user.photoURL;
 
       // 1. Cargar imagen si hay una nueva previsualización en base64
       if (avatarPreview && avatarPreview.startsWith('data:')) {
-        console.log('[Settings]: Iniciando carga de imagen...');
-        const result = await uploadImage({
-          fileAsDataUrl: avatarPreview,
-          folder: `avatars/${user.uid}`
-        });
-        newPhotoUrl = result.imageUrl;
-        setAvatarPreview(newPhotoUrl); 
+        setIsUploading(true);
+        try {
+          const result = await uploadImage({
+            fileAsDataUrl: avatarPreview,
+            folder: `avatars/${user.uid}`
+          });
+          photoURL = result.imageUrl;
+        } catch (uploadError: any) {
+          throw new Error(uploadError.message || "Error al subir la imagen a Cloudinary.");
+        } finally {
+          setIsUploading(false);
+        }
       }
       
       // 2. Actualizar perfil de Firebase Auth
       await updateProfile(user, {
         displayName: displayName,
-        photoURL: newPhotoUrl,
+        photoURL: photoURL,
       });
 
       // 3. Actualizar el documento del negocio en Firestore
@@ -174,19 +179,24 @@ export default function SettingsPage() {
           updatedAt: serverTimestamp()
       });
 
+      // 4. Forzar recarga del usuario para actualizar el estado global
       await user.reload();
+      setAvatarPreview(photoURL);
 
-      toast({ title: "¡Perfil guardado!", description: "Tu información ha sido actualizada exitosamente." });
+      toast({ 
+        title: "¡Perfil guardado!", 
+        description: "Tu información ha sido actualizada exitosamente." 
+      });
 
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast({ 
         variant: 'destructive', 
         title: "Error al guardar", 
-        description: error.message || "No se pudo guardar el perfil. Verifique la configuración de Cloudinary en el Panel Admin." 
+        description: error.message || "Ocurrió un error inesperado al actualizar el perfil." 
       });
     } finally {
-      setIsUploading(false);
+      setIsSavingProfile(false);
     }
   };
 
@@ -229,9 +239,9 @@ export default function SettingsPage() {
           <div className="space-y-2 flex flex-col items-center sm:items-start">
             <Label>Avatar</Label>
             <div className='flex items-center gap-4'>
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={avatarPreview || undefined} alt="Avatar" />
-                <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
+              <Avatar className="h-20 w-20 border-2">
+                <AvatarImage src={avatarPreview || undefined} alt="Avatar" className="object-cover" />
+                <AvatarFallback className="text-xl">{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
                <input
                 type="file"
@@ -240,8 +250,8 @@ export default function SettingsPage() {
                 className="hidden"
                 accept="image/*"
               />
-              <Button variant="outline" onClick={handleUploadClick} disabled={isUploading}>
-                <Upload className="mr-2 h-4 w-4" />
+              <Button variant="outline" onClick={handleUploadClick} disabled={isSavingProfile || isUploading}>
+                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 {isUploading ? 'Subiendo...' : 'Cambiar Foto'}
               </Button>
             </div>
@@ -249,17 +259,24 @@ export default function SettingsPage() {
 
           <div className="space-y-2">
             <Label htmlFor="name">Nombre Completo</Label>
-            <Input id="name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+            <Input 
+              id="name" 
+              value={displayName} 
+              onChange={(e) => setDisplayName(e.target.value)} 
+              placeholder="Introduce tu nombre o el de tu negocio"
+              disabled={isSavingProfile}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Correo Electrónico</Label>
-            <Input id="email" type="email" value={user?.email || ""} disabled />
+            <Input id="email" type="email" value={user?.email || ""} disabled className="bg-muted" />
+            <p className="text-xs text-muted-foreground italic">El correo electrónico no se puede cambiar por seguridad.</p>
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSaveProfile} disabled={isUploading}>
-             {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Guardar Perfil
+          <Button onClick={handleSaveProfile} disabled={isSavingProfile || isUploading}>
+             {isSavingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {isSavingProfile ? 'Guardando...' : 'Guardar Perfil'}
           </Button>
         </CardFooter>
       </Card>
@@ -274,11 +291,11 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="business-name">Nombre del Negocio</Label>
-            <Input id="business-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+            <Input id="business-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} disabled={isSavingProfile} />
           </div>
            <div className="space-y-2">
             <Label htmlFor="language">Idioma</Label>
-            <Select defaultValue="es">
+            <Select defaultValue="es" disabled={isSavingProfile}>
               <SelectTrigger id="language">
                 <SelectValue placeholder="Seleccionar idioma" />
               </SelectTrigger>
@@ -296,12 +313,12 @@ export default function SettingsPage() {
                 Para que las agencias ofrezcan esta plataforma bajo su propia marca.
               </p>
             </div>
-            <Switch id="white-label" />
+            <Switch id="white-label" disabled={isSavingProfile} />
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSaveProfile} disabled={isUploading}>
-            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          <Button onClick={handleSaveProfile} disabled={isSavingProfile || isUploading}>
+            {isSavingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Guardar Configuración del Negocio
             </Button>
         </CardFooter>
@@ -322,7 +339,7 @@ export default function SettingsPage() {
             />
         </CardContent>
         <CardFooter>
-            <Button size="lg" onClick={handleSavePaymentSettings} disabled={isSavingPayments || isLoadingPayments}>
+            <Button size="lg" onClick={handleSavePaymentSettings} disabled={isSavingPayments || isLoadingPayments || isSavingProfile}>
                 {isSavingPayments ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Guardar Métodos de Pago
             </Button>
