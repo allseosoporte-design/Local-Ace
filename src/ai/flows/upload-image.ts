@@ -1,66 +1,58 @@
 'use server';
 /**
- * @fileOverview A flow to handle secure image uploads to Cloudinary.
- *
- * - uploadImage - A function that securely uploads an image file to Cloudinary.
- * - UploadImageInput - The input type for the uploadImage function.
- * - UploadImageOutput - The return type for the uploadImage function.
+ * @fileOverview Flow para la carga segura de imágenes a Cloudinary.
+ * 
+ * - uploadImage: Función principal para invocar el proceso de carga.
+ * - UploadImageInput: Interfaz de entrada (Data URL y carpeta opcional).
+ * - UploadImageOutput: Interfaz de salida (URL segura e ID público).
+ * 
+ * Este flow maneja la configuración dinámica de Cloudinary para asegurar que
+ * las credenciales se lean correctamente en el entorno de servidor de Next.js.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { v2 as cloudinary } from 'cloudinary';
-import 'dotenv/config';
+import { v2 as cloudinary, type ConfigOptions } from 'cloudinary';
 
 /**
- * Interface representing the required Cloudinary credentials.
+ * Valida y retorna las credenciales de Cloudinary desde las variables de entorno.
+ * Next.js carga automáticamente el archivo .env en process.env.
  */
-interface CloudinaryCredentials {
-  cloud_name: string;
-  api_key: string;
-  api_secret: string;
-}
+const getCloudinaryConfig = (): ConfigOptions => {
+  const config: ConfigOptions = {
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  };
 
-/**
- * Validates that Cloudinary environment variables are present and returns them.
- * Throws a descriptive error if any credential is missing.
- */
-function getValidatedConfig(): CloudinaryCredentials {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
-
-  if (!cloudName || !apiKey || !apiSecret) {
+  if (!config.cloud_name || !config.api_key || !config.api_secret) {
     throw new Error(
-      'Cloudinary configuration is incomplete. Please ensure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are defined in your .env file.'
+      'Configuración de Cloudinary incompleta. Por favor, asegúrese de que CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET estén definidos en su entorno o archivo .env.'
     );
   }
 
-  return {
-    cloud_name: cloudName,
-    api_key: apiKey,
-    api_secret: apiSecret,
-  };
-}
+  return config;
+};
 
 const UploadImageInputSchema = z.object({
   fileAsDataUrl: z
     .string()
     .describe(
-      "The image file encoded as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "Imagen codificada en data URI (base64). Formato esperado: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  folder: z.string().optional().describe('An optional folder name in Cloudinary to store the image.'),
+  folder: z.string().optional().describe('Carpeta de destino opcional en Cloudinary.'),
 });
 export type UploadImageInput = z.infer<typeof UploadImageInputSchema>;
 
 const UploadImageOutputSchema = z.object({
-  imageUrl: z.string().describe('The secure URL of the uploaded image.'),
-  publicId: z.string().describe('The public ID of the image in Cloudinary.'),
+  imageUrl: z.string().describe('URL segura de la imagen cargada.'),
+  publicId: z.string().describe('ID público de la imagen en Cloudinary.'),
 });
 export type UploadImageOutput = z.infer<typeof UploadImageOutputSchema>;
 
 /**
- * Public function to invoke the upload image flow.
+ * Función exportada para ser llamada desde Server Actions o componentes de cliente.
  */
 export async function uploadImage(input: UploadImageInput): Promise<UploadImageOutput> {
   return uploadImageFlow(input);
@@ -74,28 +66,31 @@ const uploadImageFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      // Validate and apply configuration within the execution context
-      const credentials = getValidatedConfig();
-      cloudinary.config(credentials);
+      // Aplicar configuración dinámicamente en cada ejecución para asegurar consistencia
+      cloudinary.config(getCloudinaryConfig());
 
-      const uploadResult = await cloudinary.uploader.upload(input.fileAsDataUrl, {
+      const result = await cloudinary.uploader.upload(input.fileAsDataUrl, {
         folder: input.folder || 'local-leap-uploads',
+        resource_type: 'auto',
       });
 
-      if (!uploadResult.secure_url) {
-        throw new Error('Cloudinary upload failed: No secure_url was returned from the server.');
+      if (!result.secure_url) {
+        throw new Error('La respuesta de Cloudinary no contiene una URL segura (secure_url).');
       }
 
       return {
-        imageUrl: uploadResult.secure_url,
-        publicId: uploadResult.public_id,
+        imageUrl: result.secure_url,
+        publicId: result.public_id,
       };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during the image upload process.';
+      // Gestión estricta de errores para producción
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Ocurrió un error inesperado durante la carga a Cloudinary.';
+      
       console.error('[Cloudinary Upload Error]:', errorMessage);
       
-      // Throw a clean error message for the UI/caller
-      throw new Error(`Failed to upload image. Reason: ${errorMessage}`);
+      throw new Error(`Fallo en el servicio de carga: ${errorMessage}`);
     }
   }
 );
