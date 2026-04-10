@@ -12,6 +12,7 @@ import { useUser, useFirestore, useDoc } from "@/firebase";
 import { Loader2, Save, AlertCircle } from "lucide-react";
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { ShareLandingPage } from "@/components/dashboard/landing/share-landing-page";
+import { GenerateQRCode } from "@/components/dashboard/landing/generate-qr-code";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { EditorNavigation } from "@/components/dashboard/landing/EditorNavigation";
@@ -214,6 +215,7 @@ export default function LandingPageBuilder() {
                   <TabsContent value="hero" className="space-y-6">
                       <EditorLandingForm data={landingData!} setData={setLandingData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
                       <ShareLandingPage />
+                      <GenerateQRCode />
                   </TabsContent>
                    <TabsContent value="navigation">
                       <EditorNavigation data={landingData!} setData={setLandingData as React.Dispatch<React.SetStateAction<LandingPageData>>} />
