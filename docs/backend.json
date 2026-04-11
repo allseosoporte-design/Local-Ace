@@ -185,119 +185,6 @@
         "date"
       ]
     },
-    "InternalFeedback": {
-      "title": "InternalFeedback",
-      "type": "object",
-      "description": "Represents internal feedback collected from customers who left a negative review.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the InternalFeedback entity."
-        },
-        "businessId": {
-          "type": "string",
-          "description": "The ID of the business this feedback belongs to."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the customer providing feedback."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address of the customer providing feedback.",
-          "format": "email"
-        },
-        "message": {
-          "type": "string",
-          "description": "The message provided by the customer."
-        }
-      },
-      "required": [
-        "id",
-        "businessId",
-        "name",
-        "email",
-        "message"
-      ]
-    },
-    "AutomatedPost": {
-      "title": "AutomatedPost",
-      "type": "object",
-      "description": "Represents an automated post scheduled for a Google My Business profile.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the AutomatedPost entity."
-        },
-        "googleMyBusinessProfileId": {
-          "type": "string",
-          "description": "Reference to GoogleMyBusinessProfile. (Relationship: GoogleMyBusinessProfile 1:N AutomatedPost)"
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the post."
-        },
-        "content": {
-          "type": "string",
-          "description": "The content of the post."
-        },
-        "scheduledDate": {
-          "type": "string",
-          "description": "The date and time the post is scheduled to be published.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The status of the post (e.g., scheduled, published, failed)."
-        }
-      },
-      "required": [
-        "id",
-        "googleMyBusinessProfileId",
-        "title",
-        "content",
-        "scheduledDate",
-        "status"
-      ]
-    },
-    "LandingPage": {
-      "title": "LandingPage",
-      "type": "object",
-      "description": "Represents a landing page created for a business.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the LandingPage entity."
-        },
-        "businessId": {
-          "type": "string",
-          "description": "Reference to Business. (Relationship: Business 1:N LandingPage)"
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the landing page."
-        },
-        "content": {
-          "type": "string",
-          "description": "The HTML or markdown content of the landing page."
-        },
-        "design": {
-          "type": "string",
-          "description": "JSON data representing the design and layout of the landing page."
-        },
-        "url": {
-          "type": "string",
-          "description": "The URL of the landing page.",
-          "format": "uri"
-        }
-      },
-      "required": [
-        "id",
-        "businessId",
-        "title",
-        "content"
-      ]
-    },
     "SubscriptionPlan": {
       "title": "SubscriptionPlan",
       "type": "object",
@@ -348,129 +235,6 @@
         "name",
         "price"
       ]
-    },
-    "PaymentSettings": {
-      "title": "PaymentSettings",
-      "description": "Stores the payment method configurations for a business.",
-      "type": "object",
-      "properties": {
-        "cashOnDelivery": {
-          "type": "boolean"
-        },
-        "nequi": {
-          "$ref": "#/entities/PaymentMethod"
-        },
-        "daviplata": {
-          "$ref": "#/entities/PaymentMethod"
-        },
-        "bancolombia": {
-          "$ref": "#/entities/PaymentMethod"
-        },
-        "stripe": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            },
-            "publicKey": {
-              "type": "string"
-            },
-            "secretKey": {
-              "type": "string"
-            }
-          }
-        },
-        "mercadoPago": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            },
-            "accessToken": {
-              "type": "string"
-            },
-            "publicKey": {
-              "type": "string"
-            },
-            "mode": {
-              "type": "string",
-              "enum": [
-                "production",
-                "sandbox"
-              ]
-            },
-            "instructions": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "PaymentMethod": {
-      "title": "PaymentMethod",
-      "description": "Defines the structure for QR-based payment methods.",
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "qrImageUrl": {
-          "type": "string",
-          "format": "uri"
-        },
-        "accountNumber": {
-          "type": "string"
-        },
-        "holderName": {
-          "type": "string"
-        },
-        "idDocument": {
-          "type": "string"
-        },
-        "phone": {
-          "type": "string"
-        },
-        "isMainQR": {
-          "type": "boolean"
-        },
-        "instructions": {
-          "type": "string"
-        }
-      }
-    },
-    "CatalogHeaderConfig": {
-      "title": "CatalogHeaderConfig",
-      "type": "object",
-      "description": "Configuration for the public catalog header.",
-      "properties": {
-        "bannerUrl": {
-          "type": "string",
-          "format": "uri"
-        },
-        "businessName": {
-          "type": "string"
-        },
-        "address": {
-          "type": "string"
-        },
-        "phone": {
-          "type": "string"
-        },
-        "email": {
-          "type": "string",
-          "format": "email"
-        },
-        "socialLinks": {
-          "type": "object",
-          "properties": {
-            "tiktok": { "type": "string", "format": "uri" },
-            "instagram": { "type": "string", "format": "uri" },
-            "facebook": { "type": "string", "format": "uri" },
-            "whatsapp": { "type": "string" },
-            "twitter": { "type": "string", "format": "uri" }
-          }
-        }
-      }
     }
   },
   "auth": {
@@ -482,75 +246,19 @@
   "firestore": {
     "/products/{productId}": {
       "schema": "Product",
-      "description": "Stores all products for all businesses. Security rules will enforce that a business can only access its own products.",
-      "access": ["public-read", "owner-write", "superadmin-read", "superadmin-write"]
+      "description": "Stores all products for all businesses."
     },
     "/users/{userId}": {
       "schema": "UserProfile",
-      "description": "Stores user profile information, linking auth ID to business ID. Users can read their own profile."
+      "description": "Stores user profile information."
     },
     "/businesses/{businessId}": {
       "schema": "Business",
-      "description": "Stores business information.  Root collection for all business-related data. Businesses can manage their Google My Business profiles, landing pages, etc.",
-      "access": ["owner-read", "owner-write", "superadmin-read", "superadmin-write"]
-    },
-    "/businesses/{businessId}/catalogConfig/header": {
-      "schema": "CatalogHeaderConfig",
-      "description": "Stores the configuration for the catalog header of a business.",
-      "access": ["public-read", "owner-read", "owner-write"]
-    },
-    "/businesses/{businessId}/contactForms/{formId}": {
-      "description": "Stores the configuration for a business's contact form.",
-      "access": [
-        "public-read",
-        "owner-write"
-      ]
-    },
-    "/businesses/{businessId}/contactSubmissions/{submissionId}": {
-      "description": "Stores submissions from the public contact form.",
-      "access": [
-        "public-create",
-        "owner-read",
-        "owner-delete"
-      ]
-    },
-    "/googleMyBusinessProfiles/{googleMyBusinessProfileId}": {
-      "schema": "GoogleMyBusinessProfile",
-      "description": "Stores Google My Business profile information. Includes the businessId to ensure authorization independence for access control."
-    },
-    "/googleMyBusinessProfiles/{googleMyBusinessProfileId}/reviews/{reviewId}": {
-      "schema": "Review",
-      "description": "Stores customer reviews for a Google My Business profile.  Located as a subcollection to ensure efficient querying of reviews associated with a profile.  Includes fields for filtering (isFiltered) and internal feedback."
-    },
-    "/internalFeedback/{internalFeedbackId}": {
-      "schema": "Review",
-      "description": "Stores internal feedback collected from customers who left negative reviews. Now a root collection for simplified querying."
-    },
-    "/googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}": {
-      "schema": "AutomatedPost",
-      "description": "Stores automated posts scheduled for a Google My Business profile. Located as a subcollection to ensure efficient querying of posts associated with a profile."
-    },
-    "/businesses/{businessId}/landingPages/{landingPageId}": {
-      "schema": "LandingPage",
-      "description": "Stores landing pages created for a business. Located as a subcollection to ensure efficient querying of landing pages associated with a business.",
-      "access": [
-        "public-read",
-        "owner-write"
-      ]
+      "description": "Stores business information."
     },
     "/subscriptionPlans/{planId}": {
       "schema": "SubscriptionPlan",
-      "description": "Stores subscription plan definitions managed by the super admin."
-    },
-    "/subscriptions/{subscriptionId}": {
-      "description": "Stores active subscription records for business owners, linking a business to a plan and expiration date."
-    },
-    "/paymentSettings/{userId}": {
-      "schema": {
-        "$ref": "#/entities/PaymentSettings"
-      },
-      "description": "Stores payment settings for a user. The settings for the super admin (ID: DzH9Kc6eYqOih5Y705ebM0SzfZf2) are public-read for the catalog, while all other user settings are private.",
-      "access": ["public-read", "owner-write"]
+      "description": "Defines the available subscription plans managed by Super Admins."
     }
   }
 }
