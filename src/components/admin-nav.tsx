@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
-import { Users, CreditCard, User, Settings, Wallet, BellRing, MessageSquare, ShieldCheck, Wrench, Database, Archive, BarChart3, Bell } from "lucide-react";
+import { Users, CreditCard, User, Settings, Wallet, BellRing, MessageSquare, ShieldCheck, Wrench, Database, Archive, BarChart3, Bell, ShoppingCart } from "lucide-react";
 import { EditorLandingIcon } from "./icons/editor-landing";
 import { PaymentIcon } from "./icons/payment";
 
@@ -30,6 +30,11 @@ const links = [
     href: "/dashboard/admin/payment-settings",
     label: "Configuración de Pagos",
     icon: <PaymentIcon />,
+  },
+  {
+    href: "/dashboard/admin/hotmart",
+    label: "Integración Hotmart",
+    icon: <ShoppingCart className="text-orange-500" />,
   },
   {
     href: "/dashboard/admin/reminders",
