@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "Product": {
@@ -235,6 +234,28 @@
         "name",
         "price"
       ]
+    },
+    "HotmartPlanMapping": {
+      "title": "HotmartPlanMapping",
+      "type": "object",
+      "description": "Mapping between Hotmart offers and SaaS plans.",
+      "properties": {
+        "offerId": { "type": "string" },
+        "offerName": { "type": "string" },
+        "internalPlanId": { "type": "string" },
+        "active": { "type": "boolean" }
+      }
+    },
+    "HotmartEventLog": {
+      "title": "HotmartEventLog",
+      "type": "object",
+      "description": "Audit log for Hotmart webhook events.",
+      "properties": {
+        "email": { "type": "string" },
+        "event": { "type": "string" },
+        "status": { "type": "string" },
+        "processed": { "type": "boolean" }
+      }
     }
   },
   "auth": {
@@ -259,6 +280,14 @@
     "/subscriptionPlans/{planId}": {
       "schema": "SubscriptionPlan",
       "description": "Defines the available subscription plans managed by Super Admins."
+    },
+    "/hotmartPlanMappings/{mappingId}": {
+      "schema": "HotmartPlanMapping",
+      "description": "Links Hotmart offers to internal plans."
+    },
+    "/hotmartEventLogs/{logId}": {
+      "schema": "HotmartEventLog",
+      "description": "Logs all incoming webhooks from Hotmart."
     }
   }
 }
