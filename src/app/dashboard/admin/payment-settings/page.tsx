@@ -136,7 +136,6 @@ export default function AdminPaymentSettingsPage() {
     try {
       const batch = writeBatch(firestore);
       
-      // Guardar configuraciones por plan
       for (const plan of plans) {
         const planSettings = settings[plan.id];
         if (planSettings) {
@@ -145,13 +144,11 @@ export default function AdminPaymentSettingsPage() {
         }
       }
 
-      // SINCRONIZACIÓN CRÍTICA: Guardar los métodos del primer plan como predeterminados del catálogo principal
       if (plans.length > 0) {
           const firstPlanSettings = settings[plans[0].id];
           if (firstPlanSettings) {
               const adminBusinessRef = doc(firestore, 'paymentSettings', SUPER_ADMIN_BUSINESS_ID);
               batch.set(adminBusinessRef, { ...firstPlanSettings, updatedAt: serverTimestamp() }, { merge: true });
-              console.log(`[Sync]: Guardando configuración en ${SUPER_ADMIN_BUSINESS_ID}`);
           }
       }
       
@@ -235,8 +232,11 @@ export default function AdminPaymentSettingsPage() {
       <Card>
         <CardContent className="p-0">
           <Tabs defaultValue={plans?.[0]?.id} className="w-full">
-            <TabsList className="grid w-full h-14 rounded-t-lg rounded-b-none grid-cols-3">
-              {plans?.slice(0, 3).map(plan => (
+            <TabsList 
+              className="grid w-full h-14 rounded-t-lg rounded-b-none border-b"
+              style={{ gridTemplateColumns: `repeat(${plans?.length || 1}, 1fr)` }}
+            >
+              {plans?.map(plan => (
                 <TabsTrigger key={plan.id} value={plan.id} className="h-full">{plan.name}</TabsTrigger>
               ))}
             </TabsList>
@@ -244,7 +244,7 @@ export default function AdminPaymentSettingsPage() {
               <TabsContent key={plan.id} value={plan.id}>
                 <PaymentPlanForm 
                     isLoading={isLoadingSettings} 
-                    settings={settings[plan.id] || initialPlanSettings} 
+                    settings={settings[plan.id]?.nequi ? settings[plan.id] : initialPlanSettings} 
                     setSettings={(newSettings) => handleSettingsChange(plan.id, newSettings)} 
                 />
               </TabsContent>

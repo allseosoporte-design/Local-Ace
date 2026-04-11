@@ -50,11 +50,11 @@ const StripeForm = ({ data, setData }: any) => (
         <CardContent className="space-y-4">
             <div className="space-y-2">
                 <Label htmlFor="stripe-publicKey">Public Key</Label>
-                <Input id="stripe-publicKey" value={data.publicKey} onChange={(e) => setData({ ...data, publicKey: e.target.value })} placeholder="pk_test_..."/>
+                <Input id="stripe-publicKey" value={data?.publicKey || ''} onChange={(e) => setData({ ...data, publicKey: e.target.value })} placeholder="pk_test_..."/>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="stripe-secretKey">Secret Key</Label>
-                <Input id="stripe-secretKey" type="password" value={data.secretKey} onChange={(e) => setData({ ...data, secretKey: e.target.value })} placeholder="sk_test_..."/>
+                <Input id="stripe-secretKey" type="password" value={data?.secretKey || ''} onChange={(e) => setData({ ...data, secretKey: e.target.value })} placeholder="sk_test_..."/>
             </div>
         </CardContent>
     </Card>
@@ -66,15 +66,15 @@ const MercadoPagoForm = ({ data, setData }: any) => (
         <CardContent className="space-y-4">
              <div className="space-y-2">
                 <Label htmlFor="mp-publicKey">Public Key</Label>
-                <Input id="mp-publicKey" value={data.publicKey} onChange={(e) => setData({ ...data, publicKey: e.target.value })} placeholder="APP_USR-..."/>
+                <Input id="mp-publicKey" value={data?.publicKey || ''} onChange={(e) => setData({ ...data, publicKey: e.target.value })} placeholder="APP_USR-..."/>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="mp-accessToken">Access Token</Label>
-                <Input id="mp-accessToken" type="password" value={data.accessToken} onChange={(e) => setData({ ...data, accessToken: e.target.value })} placeholder="APP_USR-..."/>
+                <Input id="mp-accessToken" type="password" value={data?.accessToken || ''} onChange={(e) => setData({ ...data, accessToken: e.target.value })} placeholder="APP_USR-..."/>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="mp-mode">Modo</Label>
-                <Select value={data.mode} onValueChange={(value) => setData({ ...data, mode: value })}>
+                <Select value={data?.mode || 'sandbox'} onValueChange={(value) => setData({ ...data, mode: value })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="production">Producción</SelectItem>
@@ -92,15 +92,15 @@ const PayPalForm = ({ data, setData }: any) => (
         <CardContent className="space-y-4">
              <div className="space-y-2">
                 <Label htmlFor="paypal-clientId">Client ID</Label>
-                <Input id="paypal-clientId" value={data.clientId} onChange={(e) => setData({ ...data, clientId: e.target.value })} placeholder="Abc..."/>
+                <Input id="paypal-clientId" value={data?.clientId || ''} onChange={(e) => setData({ ...data, clientId: e.target.value })} placeholder="Abc..."/>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="paypal-clientSecret">Client Secret</Label>
-                <Input id="paypal-clientSecret" type="password" value={data.clientSecret} onChange={(e) => setData({ ...data, clientSecret: e.target.value })} placeholder="Efg..."/>
+                <Input id="paypal-clientSecret" type="password" value={data?.clientSecret || ''} onChange={(e) => setData({ ...data, clientSecret: e.target.value })} placeholder="Efg..."/>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="paypal-mode">Modo</Label>
-                <Select value={data.mode} onValueChange={(value) => setData({ ...data, mode: value })}>
+                <Select value={data?.mode || 'sandbox'} onValueChange={(value) => setData({ ...data, mode: value })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="production">Producción</SelectItem>
@@ -118,15 +118,15 @@ const WompiForm = ({ data, setData }: any) => (
         <CardContent className="space-y-4">
              <div className="space-y-2">
                 <Label htmlFor="wompi-publicKey">Public Key</Label>
-                <Input id="wompi-publicKey" value={data.publicKey} onChange={(e) => setData({ ...data, publicKey: e.target.value })} placeholder="pub_..."/>
+                <Input id="wompi-publicKey" value={data?.publicKey || ''} onChange={(e) => setData({ ...data, publicKey: e.target.value })} placeholder="pub_..."/>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="wompi-privateKey">Private Key</Label>
-                <Input id="wompi-privateKey" type="password" value={data.privateKey} onChange={(e) => setData({ ...data, privateKey: e.target.value })} placeholder="prv_..."/>
+                <Input id="wompi-privateKey" type="password" value={data?.privateKey || ''} onChange={(e) => setData({ ...data, privateKey: e.target.value })} placeholder="prv_..."/>
             </div>
              <div className="space-y-2">
                 <Label htmlFor="wompi-mode">Modo</Label>
-                <Select value={data.mode} onValueChange={(value) => setData({ ...data, mode: value })}>
+                <Select value={data?.mode || 'sandbox'} onValueChange={(value) => setData({ ...data, mode: value })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="production">Producción</SelectItem>
@@ -152,7 +152,7 @@ export function PaymentPlanForm({
   const [selectedMethod, setSelectedMethod] =
     useState<keyof PlanPaymentSettings>('nequi');
 
-  if (isLoading) {
+  if (isLoading || !settings) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
@@ -164,23 +164,17 @@ export function PaymentPlanForm({
     method: 'nequi' | 'daviplata' | 'bancolombia',
     data: any
   ) => {
-    setSettings((prev) => ({ ...prev, [method]: data }));
+    setSettings((prev) => ({ 
+      ...prev, 
+      [method]: { ...(prev?.[method] || {}), ...data } 
+    }));
   };
 
-  const handleStripeDataChange = (data: any) => {
-    setSettings(prev => ({...prev, stripe: data}));
-  }
-
-  const handleMercadoPagoDataChange = (data: any) => {
-    setSettings(prev => ({...prev, mercadoPago: data}));
-  }
-  
-  const handlePayPalDataChange = (data: any) => {
-    setSettings(prev => ({...prev, paypal: data}));
-  }
-
-  const handleWompiDataChange = (data: any) => {
-    setSettings(prev => ({...prev, wompi: data}));
+  const handleGatewayDataChange = (method: keyof PlanPaymentSettings, data: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [method]: { ...(prev?.[method] as object || {}), ...data }
+    }));
   }
 
   return (
@@ -198,11 +192,11 @@ export function PaymentPlanForm({
           icon={<NequiIcon />}
         >
           <Switch
-            checked={settings.nequi.enabled}
+            checked={settings?.nequi?.enabled ?? false}
             onCheckedChange={(checked) =>
               setSettings((p) => ({
                 ...p,
-                nequi: { ...p.nequi, enabled: checked },
+                nequi: { ...(p?.nequi || {}), enabled: checked },
               }))
             }
           />
@@ -213,11 +207,11 @@ export function PaymentPlanForm({
           icon={<DaviplataIcon />}
         >
           <Switch
-            checked={settings.daviplata.enabled}
+            checked={settings?.daviplata?.enabled ?? false}
             onCheckedChange={(checked) =>
               setSettings((p) => ({
                 ...p,
-                daviplata: { ...p.daviplata, enabled: checked },
+                daviplata: { ...(p?.daviplata || {}), enabled: checked },
               }))
             }
           />
@@ -228,11 +222,11 @@ export function PaymentPlanForm({
           icon={<BancolombiaIcon />}
         >
           <Switch
-            checked={settings.bancolombia.enabled}
+            checked={settings?.bancolombia?.enabled ?? false}
             onCheckedChange={(checked) =>
               setSettings((p) => ({
                 ...p,
-                bancolombia: { ...p.bancolombia, enabled: checked },
+                bancolombia: { ...(p?.bancolombia || {}), enabled: checked },
               }))
             }
           />
@@ -244,11 +238,11 @@ export function PaymentPlanForm({
           icon={<WompiIcon />}
         >
           <Switch
-            checked={settings.wompi.enabled}
+            checked={settings?.wompi?.enabled ?? false}
             onCheckedChange={(checked) =>
               setSettings((p) => ({
                 ...p,
-                wompi: { ...p.wompi, enabled: checked },
+                wompi: { ...(p?.wompi || {}), enabled: checked },
               }))
             }
           />
@@ -260,11 +254,11 @@ export function PaymentPlanForm({
           icon={<StripeIcon />}
         >
           <Switch
-            checked={settings.stripe.enabled}
+            checked={settings?.stripe?.enabled ?? false}
             onCheckedChange={(checked) =>
               setSettings((p) => ({
                 ...p,
-                stripe: { ...p.stripe, enabled: checked },
+                stripe: { ...(p?.stripe || {}), enabled: checked },
               }))
             }
           />
@@ -276,11 +270,11 @@ export function PaymentPlanForm({
           icon={<MercadoPagoIcon />}
         >
           <Switch
-            checked={settings.mercadoPago.enabled}
+            checked={settings?.mercadoPago?.enabled ?? false}
             onCheckedChange={(checked) =>
               setSettings((p) => ({
                 ...p,
-                mercadoPago: { ...p.mercadoPago, enabled: checked },
+                mercadoPago: { ...(p?.mercadoPago || {}), enabled: checked },
               }))
             }
           />
@@ -292,11 +286,11 @@ export function PaymentPlanForm({
           icon={<PayPalIcon />}
         >
            <Switch
-            checked={settings.paypal.enabled}
+            checked={settings?.paypal?.enabled ?? false}
             onCheckedChange={(checked) =>
               setSettings((p) => ({
                 ...p,
-                paypal: { ...p.paypal, enabled: checked },
+                paypal: { ...(p?.paypal || {}), enabled: checked },
               }))
             }
           />
@@ -308,7 +302,7 @@ export function PaymentPlanForm({
           icon={<Wallet className="h-6 w-6" />}
         >
           <Switch
-            checked={settings.cashOnDelivery}
+            checked={settings?.cashOnDelivery ?? false}
             onCheckedChange={(checked) =>
               setSettings((p) => ({ ...p, cashOnDelivery: checked }))
             }
@@ -316,38 +310,38 @@ export function PaymentPlanForm({
         </PaymentMethodSelector>
       </RadioGroup>
 
-      {selectedMethod === 'nequi' && settings.nequi.enabled && (
+      {selectedMethod === 'nequi' && settings?.nequi?.enabled && (
         <QRForm
           methodName="Nequi"
           data={settings.nequi}
           setData={(data) => handleQRDataChange('nequi', data)}
         />
       )}
-      {selectedMethod === 'daviplata' && settings.daviplata.enabled && (
+      {selectedMethod === 'daviplata' && settings?.daviplata?.enabled && (
         <QRForm
           methodName="Daviplata"
           data={settings.daviplata}
           setData={(data) => handleQRDataChange('daviplata', data)}
         />
       )}
-      {selectedMethod === 'bancolombia' && settings.bancolombia.enabled && (
+      {selectedMethod === 'bancolombia' && settings?.bancolombia?.enabled && (
         <QRForm
           methodName="Bancolombia"
           data={settings.bancolombia}
           setData={(data) => handleQRDataChange('bancolombia', data)}
         />
       )}
-       {selectedMethod === 'stripe' && settings.stripe.enabled && (
-        <StripeForm data={settings.stripe} setData={handleStripeDataChange} />
+       {selectedMethod === 'stripe' && settings?.stripe?.enabled && (
+        <StripeForm data={settings.stripe} setData={(d: any) => handleGatewayDataChange('stripe', d)} />
       )}
-      {selectedMethod === 'mercadoPago' && settings.mercadoPago.enabled && (
-        <MercadoPagoForm data={settings.mercadoPago} setData={handleMercadoPagoDataChange} />
+      {selectedMethod === 'mercadoPago' && settings?.mercadoPago?.enabled && (
+        <MercadoPagoForm data={settings.mercadoPago} setData={(d: any) => handleGatewayDataChange('mercadoPago', d)} />
       )}
-      {selectedMethod === 'paypal' && settings.paypal.enabled && (
-        <PayPalForm data={settings.paypal} setData={handlePayPalDataChange} />
+      {selectedMethod === 'paypal' && settings?.paypal?.enabled && (
+        <PayPalForm data={settings.paypal} setData={(d: any) => handleGatewayDataChange('paypal', d)} />
       )}
-      {selectedMethod === 'wompi' && settings.wompi.enabled && (
-        <WompiForm data={settings.wompi} setData={handleWompiDataChange} />
+      {selectedMethod === 'wompi' && settings?.wompi?.enabled && (
+        <WompiForm data={settings.wompi} setData={(d: any) => handleGatewayDataChange('wompi', d)} />
       )}
     </div>
   );
