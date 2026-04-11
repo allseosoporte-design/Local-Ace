@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState } from 'react';
 import { Loader2, Wallet } from 'lucide-react';
-import { QRForm } from '@/components/qr-form';
+import { QRForm, type QRFormData } from '@/components/qr-form';
 import {
   NequiIcon,
   BancolombiaIcon,
@@ -12,7 +13,13 @@ import {
   PayPalIcon,
   WompiIcon,
 } from '@/components/icons/payment-methods';
-import type { PlanPaymentSettings } from '@/types/payment-settings';
+import type { 
+    PlanPaymentSettings, 
+    StripeData, 
+    MercadoPagoData, 
+    PayPalData, 
+    WompiData 
+} from '@/types/payment-settings';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from './ui/switch';
@@ -20,17 +27,19 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
+interface PaymentMethodSelectorProps {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  children?: React.ReactNode;
+}
+
 const PaymentMethodSelector = ({
   icon,
   title,
   value,
   children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: string;
-  children?: React.ReactNode;
-}) => (
+}: PaymentMethodSelectorProps) => (
   <Label
     htmlFor={value}
     className="p-4 border rounded-md bg-white flex items-center gap-4 cursor-pointer hover:bg-muted/50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-300 transition-all"
@@ -44,7 +53,12 @@ const PaymentMethodSelector = ({
   </Label>
 );
 
-const StripeForm = ({ data, setData }: any) => (
+interface GatewayFormProps<T> {
+    data: T;
+    setData: (data: T) => void;
+}
+
+const StripeForm = ({ data, setData }: GatewayFormProps<StripeData>) => (
     <Card className="mt-4 bg-white animate-in fade-in-50">
         <CardHeader><CardTitle className="text-base">Configuración de Stripe</CardTitle></CardHeader>
         <CardContent className="space-y-4">
@@ -60,7 +74,7 @@ const StripeForm = ({ data, setData }: any) => (
     </Card>
 );
 
-const MercadoPagoForm = ({ data, setData }: any) => (
+const MercadoPagoForm = ({ data, setData }: GatewayFormProps<MercadoPagoData>) => (
     <Card className="mt-4 bg-white animate-in fade-in-50">
         <CardHeader><CardTitle className="text-base">Configuración de Mercado Pago</CardTitle></CardHeader>
         <CardContent className="space-y-4">
@@ -74,7 +88,7 @@ const MercadoPagoForm = ({ data, setData }: any) => (
             </div>
             <div className="space-y-2">
                 <Label htmlFor="mp-mode">Modo</Label>
-                <Select value={data?.mode || 'sandbox'} onValueChange={(value) => setData({ ...data, mode: value })}>
+                <Select value={data?.mode || 'sandbox'} onValueChange={(value: 'production' | 'sandbox') => setData({ ...data, mode: value })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="production">Producción</SelectItem>
@@ -86,7 +100,7 @@ const MercadoPagoForm = ({ data, setData }: any) => (
     </Card>
 );
 
-const PayPalForm = ({ data, setData }: any) => (
+const PayPalForm = ({ data, setData }: GatewayFormProps<PayPalData>) => (
     <Card className="mt-4 bg-white animate-in fade-in-50">
         <CardHeader><CardTitle className="text-base">Configuración de PayPal</CardTitle></CardHeader>
         <CardContent className="space-y-4">
@@ -100,7 +114,7 @@ const PayPalForm = ({ data, setData }: any) => (
             </div>
             <div className="space-y-2">
                 <Label htmlFor="paypal-mode">Modo</Label>
-                <Select value={data?.mode || 'sandbox'} onValueChange={(value) => setData({ ...data, mode: value })}>
+                <Select value={data?.mode || 'sandbox'} onValueChange={(value: 'production' | 'sandbox') => setData({ ...data, mode: value })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="production">Producción</SelectItem>
@@ -112,7 +126,7 @@ const PayPalForm = ({ data, setData }: any) => (
     </Card>
 );
 
-const WompiForm = ({ data, setData }: any) => (
+const WompiForm = ({ data, setData }: GatewayFormProps<WompiData>) => (
     <Card className="mt-4 bg-white animate-in fade-in-50">
         <CardHeader><CardTitle className="text-base">Configuración de Wompi</CardTitle></CardHeader>
         <CardContent className="space-y-4">
@@ -126,7 +140,7 @@ const WompiForm = ({ data, setData }: any) => (
             </div>
              <div className="space-y-2">
                 <Label htmlFor="wompi-mode">Modo</Label>
-                <Select value={data?.mode || 'sandbox'} onValueChange={(value) => setData({ ...data, mode: value })}>
+                <Select value={data?.mode || 'sandbox'} onValueChange={(value: 'production' | 'sandbox') => setData({ ...data, mode: value })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="production">Producción</SelectItem>
@@ -162,7 +176,7 @@ export function PaymentPlanForm({
 
   const handleQRDataChange = (
     method: 'nequi' | 'daviplata' | 'bancolombia',
-    data: any
+    data: Partial<QRFormData>
   ) => {
     setSettings((prev) => ({ 
       ...prev, 
@@ -170,7 +184,10 @@ export function PaymentPlanForm({
     }));
   };
 
-  const handleGatewayDataChange = (method: keyof PlanPaymentSettings, data: any) => {
+  const handleGatewayDataChange = <K extends 'stripe' | 'mercadoPago' | 'paypal' | 'wompi'>(
+    method: K, 
+    data: Partial<PlanPaymentSettings[K]>
+  ) => {
     setSettings(prev => ({
       ...prev,
       [method]: { ...(prev?.[method] as object || {}), ...data }
@@ -332,16 +349,16 @@ export function PaymentPlanForm({
         />
       )}
        {selectedMethod === 'stripe' && settings?.stripe?.enabled && (
-        <StripeForm data={settings.stripe} setData={(d: any) => handleGatewayDataChange('stripe', d)} />
+        <StripeForm data={settings.stripe} setData={(d) => handleGatewayDataChange('stripe', d)} />
       )}
       {selectedMethod === 'mercadoPago' && settings?.mercadoPago?.enabled && (
-        <MercadoPagoForm data={settings.mercadoPago} setData={(d: any) => handleGatewayDataChange('mercadoPago', d)} />
+        <MercadoPagoForm data={settings.mercadoPago} setData={(d) => handleGatewayDataChange('mercadoPago', d)} />
       )}
       {selectedMethod === 'paypal' && settings?.paypal?.enabled && (
-        <PayPalForm data={settings.paypal} setData={(d: any) => handleGatewayDataChange('paypal', d)} />
+        <PayPalForm data={settings.paypal} setData={(d) => handleGatewayDataChange('paypal', d)} />
       )}
       {selectedMethod === 'wompi' && settings?.wompi?.enabled && (
-        <WompiForm data={settings.wompi} setData={(d: any) => handleGatewayDataChange('wompi', d)} />
+        <WompiForm data={settings.wompi} setData={(d) => handleGatewayDataChange('wompi', d)} />
       )}
     </div>
   );

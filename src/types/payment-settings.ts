@@ -1,13 +1,13 @@
 
 import type { QRFormData } from "@/components/qr-form";
 
-interface StripeData {
+export interface StripeData {
     enabled: boolean;
     publicKey: string;
     secretKey: string;
 }
 
-interface MercadoPagoData {
+export interface MercadoPagoData {
     enabled: boolean;
     accessToken: string;
     publicKey: string;
@@ -15,14 +15,14 @@ interface MercadoPagoData {
     instructions: string;
 }
 
-interface PayPalData {
+export interface PayPalData {
     enabled: boolean;
     clientId: string;
     clientSecret: string;
     mode: 'production' | 'sandbox';
 }
 
-interface WompiData {
+export interface WompiData {
     enabled: boolean;
     publicKey: string;
     privateKey: string;

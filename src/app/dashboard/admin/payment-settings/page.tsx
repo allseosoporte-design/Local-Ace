@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -123,11 +124,21 @@ export default function AdminPaymentSettingsPage() {
     fetchAllSettings();
   }, [plans, isLoadingPlans, firestore]);
 
-  const handleSettingsChange = (planId: string, newSettings: PlanPaymentSettings) => {
-    setSettings(prev => ({
-      ...prev,
-      [planId]: newSettings,
-    }));
+  /**
+   * Genera un despachador de estado compatible con actualizaciones funcionales
+   * para un plan específico.
+   */
+  const createPlanDispatcher = (planId: string): React.Dispatch<React.SetStateAction<PlanPaymentSettings>> => {
+    return (update) => {
+      setSettings(prev => {
+        const current = prev[planId] || initialPlanSettings;
+        const next = typeof update === 'function' ? update(current) : update;
+        return {
+          ...prev,
+          [planId]: next
+        };
+      });
+    };
   };
 
   const handleSaveAll = async () => {
@@ -244,8 +255,8 @@ export default function AdminPaymentSettingsPage() {
               <TabsContent key={plan.id} value={plan.id}>
                 <PaymentPlanForm 
                     isLoading={isLoadingSettings} 
-                    settings={settings[plan.id]?.nequi ? settings[plan.id] : initialPlanSettings} 
-                    setSettings={(newSettings) => handleSettingsChange(plan.id, newSettings)} 
+                    settings={settings[plan.id] || initialPlanSettings} 
+                    setSettings={createPlanDispatcher(plan.id)} 
                 />
               </TabsContent>
             ))}
