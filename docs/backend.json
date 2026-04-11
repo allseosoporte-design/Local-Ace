@@ -298,14 +298,14 @@
         "content"
       ]
     },
-    "Subscription": {
-      "title": "Subscription",
+    "SubscriptionPlan": {
+      "title": "SubscriptionPlan",
       "type": "object",
-      "description": "Represents a subscription plan for a business.",
+      "description": "Represents a subscription plan definition available in the platform.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Subscription entity."
+          "description": "Unique identifier for the SubscriptionPlan entity."
         },
         "name": {
           "type": "string",
@@ -315,12 +315,32 @@
           "type": "number",
           "description": "The price of the subscription plan."
         },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the price (e.g., COP, USD)."
+        },
+        "billingPeriod": {
+          "type": "string",
+          "description": "The billing cycle (monthly or yearly)."
+        },
         "features": {
           "type": "array",
           "description": "A list of features included in the subscription plan.",
           "items": {
             "type": "string"
           }
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of the plan."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the plan is currently available for purchase."
+        },
+        "isPopular": {
+          "type": "boolean",
+          "description": "Whether to highlight this plan as the most popular option."
         }
       },
       "required": [
@@ -503,7 +523,7 @@
       "description": "Stores customer reviews for a Google My Business profile.  Located as a subcollection to ensure efficient querying of reviews associated with a profile.  Includes fields for filtering (isFiltered) and internal feedback."
     },
     "/internalFeedback/{internalFeedbackId}": {
-      "schema": "InternalFeedback",
+      "schema": "Review",
       "description": "Stores internal feedback collected from customers who left negative reviews. Now a root collection for simplified querying."
     },
     "/googleMyBusinessProfiles/{googleMyBusinessProfileId}/automatedPosts/{automatedPostId}": {
@@ -518,9 +538,12 @@
         "owner-write"
       ]
     },
+    "/subscriptionPlans/{planId}": {
+      "schema": "SubscriptionPlan",
+      "description": "Stores subscription plan definitions managed by the super admin."
+    },
     "/subscriptions/{subscriptionId}": {
-      "schema": "Subscription",
-      "description": "Stores subscription plan information."
+      "description": "Stores active subscription records for business owners, linking a business to a plan and expiration date."
     },
     "/paymentSettings/{userId}": {
       "schema": {
