@@ -227,6 +227,11 @@
         "isPopular": {
           "type": "boolean",
           "description": "Whether to highlight this plan as the most popular option."
+        },
+        "checkoutUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "External payment link (e.g., Hotmart HotLink)."
         }
       },
       "required": [
@@ -243,6 +248,7 @@
         "offerId": { "type": "string" },
         "offerName": { "type": "string" },
         "internalPlanId": { "type": "string" },
+        "hotlinkUrl": { "type": "string", "format": "uri" },
         "active": { "type": "boolean" }
       }
     },

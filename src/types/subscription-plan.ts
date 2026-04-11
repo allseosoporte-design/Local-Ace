@@ -11,6 +11,7 @@ export type SubscriptionPlan = {
   order: number;
   isActive: boolean;
   isPopular: boolean;
+  checkoutUrl?: string; // Link de Hotmart para el checkout directo
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };

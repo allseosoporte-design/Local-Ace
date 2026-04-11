@@ -1,4 +1,3 @@
-
 import { Timestamp } from "firebase/firestore";
 
 export interface HotmartConfig {
@@ -12,6 +11,7 @@ export interface HotmartPlanMapping {
   offerId: string;
   offerName: string;
   internalPlanId: string;
+  hotlinkUrl: string; // Link de divulgación (HotLink)
   active: boolean;
   createdAt?: Timestamp;
 }
