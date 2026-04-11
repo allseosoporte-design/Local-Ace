@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, BarChart, CheckCircle, Star, Loader2 } from 'lucide-react';
+import { PlusCircle, BarChart, CheckCircle, Star, Loader2, ShieldAlert } from 'lucide-react';
 import { collection, query, doc, writeBatch, deleteDoc, addDoc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { PlanModal, type PlanFormData } from '@/components/plan-modal';
@@ -24,6 +25,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { getIdTokenResult } from 'firebase/auth';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function SubscriptionPlansPage() {
   const firestore = useFirestore();
@@ -37,19 +39,27 @@ export default function SubscriptionPlansPage() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAdmin = async () => {
       if (user) {
         try {
+          // Forzamos la actualización del token para asegurar que los claims estén vigentes
           const tokenResult = await getIdTokenResult(user, true);
           const claims = tokenResult.claims;
+          
           if (claims.isSuperAdmin === true || user.email === 'allseosoporte@gmail.com') {
             setIsSuperAdmin(true);
+            setAuthError(null);
+          } else {
+            setIsSuperAdmin(false);
+            setAuthError("No tienes el rol de Super Administrador activo en tu sesión.");
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error fetching token claims:", error);
           setIsSuperAdmin(false);
+          setAuthError(`Error de autenticación: ${error.message}`);
         } finally {
           setIsCheckingAdmin(false);
         }
@@ -60,7 +70,6 @@ export default function SubscriptionPlansPage() {
     checkAdmin();
   }, [user, isUserLoading]);
 
-  // Query simplificada - se ejecuta siempre que firestore esté disponible
   const plansQuery = useMemo(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'subscriptionPlans'), orderBy('order', 'asc'));
@@ -107,9 +116,12 @@ export default function SubscriptionPlansPage() {
     try {
       await deleteDoc(doc(firestore, 'subscriptionPlans', planToDelete.id));
       toast({ title: 'Plan eliminado', description: 'El plan ha sido eliminado exitosamente.' });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar el plan.' });
+      const message = error.code === 'permission-denied' 
+        ? "Permisos insuficientes en la base de datos." 
+        : error.message;
+      toast({ variant: 'destructive', title: 'Error al eliminar', description: message });
     } finally {
       setIsAlertOpen(false);
       setPlanToDelete(null);
@@ -132,9 +144,12 @@ export default function SubscriptionPlansPage() {
         toast({ title: 'Plan creado', description: 'El nuevo plan ha sido añadido.' });
       }
       setIsModalOpen(false);
-    } catch (error) {
-       console.error(error);
-       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el plan.' });
+    } catch (error: any) {
+       console.error("Error saving plan:", error);
+       const message = error.code === 'permission-denied' 
+        ? "No tienes permiso para escribir en la base de datos. Verifica tu rol de admin." 
+        : error.message;
+       toast({ variant: 'destructive', title: 'Error al guardar', description: message });
     }
   };
 
@@ -166,9 +181,9 @@ export default function SubscriptionPlansPage() {
       
       await batch.commit();
       toast({ title: 'Plan reordenado', description: 'El orden de los planes ha sido actualizado.' });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo reordenar el plan.' });
+      toast({ variant: 'destructive', title: 'Error de reordenamiento', description: error.message });
     }
   };
 
@@ -184,11 +199,21 @@ export default function SubscriptionPlansPage() {
               Administra los planes que se muestran en la página principal.
             </p>
           </div>
-          <Button onClick={handleCreate} disabled={!isSuperAdmin}>
+          <Button onClick={handleCreate} disabled={!isSuperAdmin || showLoading}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Crear Plan
           </Button>
         </div>
+
+        {authError && !showLoading && (
+          <Alert variant="destructive">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>Error de Autorización</AlertTitle>
+            <AlertDescription>
+              {authError} Intenta cerrar sesión y volver a entrar para refrescar tus credenciales de administrador.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -238,9 +263,9 @@ export default function SubscriptionPlansPage() {
             />
           ))}
         </div>
-        {!showLoading && (!isSuperAdmin || plans?.length === 0) && (
+        {!showLoading && (!isSuperAdmin || plans?.length === 0) && !authError && (
             <div className="col-span-full text-center py-12 text-muted-foreground">
-              <p>No se encontraron planes o no tienes permisos para verlos.</p>
+              <p>No se encontraron planes en la base de datos.</p>
             </div>
           )}
       </div>
