@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { useFirestore, useUser } from "@/firebase";
 import { cn } from "@/lib/utils";
 import type { ColumnDef } from "@tanstack/react-table";
+import RichTextEditor from "@/components/editor/RichTextEditor";
 
 export type Review = {
   id: string;
@@ -222,18 +223,19 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
       </Dialog>
       
       <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Borrador de respuesta para {customerName}</DialogTitle>
             <DialogDescription>
               Revisa y edita la respuesta generada por la IA antes de enviarla.
             </DialogDescription>
           </DialogHeader>
-          <Textarea 
-            value={draftResponse}
-            onChange={(e) => setDraftResponse(e.target.value)}
-            className="min-h-[150px] bg-background mt-4"
-          />
+          <div className="mt-4">
+            <RichTextEditor 
+              value={draftResponse}
+              onChange={setDraftResponse}
+            />
+          </div>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setIsAiDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSendResponse}>Enviar Respuesta</Button>
