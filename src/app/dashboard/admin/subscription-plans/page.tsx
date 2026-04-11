@@ -45,16 +45,17 @@ export default function SubscriptionPlansPage() {
     const checkAdmin = async () => {
       if (user) {
         try {
-          // Forzamos la actualización del token para asegurar que los claims estén vigentes
+          // EXPLICACIÓN: Forzamos la actualización del token (true) para asegurar que 
+          // los Custom Claims (isSuperAdmin) se carguen inmediatamente si fueron asignados recientemente.
           const tokenResult = await getIdTokenResult(user, true);
           const claims = tokenResult.claims;
           
-          if (claims.isSuperAdmin === true || user.email === 'allseosoporte@gmail.com') {
+          if (claims.isSuperAdmin === true) {
             setIsSuperAdmin(true);
             setAuthError(null);
           } else {
             setIsSuperAdmin(false);
-            setAuthError("No tienes el rol de Super Administrador activo en tu sesión.");
+            setAuthError("Tu cuenta no tiene el rol de Super Administrador activo. Verifica tu configuración o reinicia sesión.");
           }
         } catch (error: any) {
           console.error("Error fetching token claims:", error);
@@ -118,8 +119,9 @@ export default function SubscriptionPlansPage() {
       toast({ title: 'Plan eliminado', description: 'El plan ha sido eliminado exitosamente.' });
     } catch (error: any) {
       console.error(error);
+      // EXPLICACIÓN: Manejo explícito de errores de permisos de Firestore
       const message = error.code === 'permission-denied' 
-        ? "Permisos insuficientes en la base de datos." 
+        ? "Seguridad de base de datos: No tienes permisos para eliminar este plan." 
         : error.message;
       toast({ variant: 'destructive', title: 'Error al eliminar', description: message });
     } finally {
@@ -146,8 +148,9 @@ export default function SubscriptionPlansPage() {
       setIsModalOpen(false);
     } catch (error: any) {
        console.error("Error saving plan:", error);
+       // EXPLICACIÓN: Informar al usuario si Firestore rechazó la escritura por reglas de seguridad
        const message = error.code === 'permission-denied' 
-        ? "No tienes permiso para escribir en la base de datos. Verifica tu rol de admin." 
+        ? "Permisos insuficientes: Solo los Super Administradores pueden guardar cambios en los planes." 
         : error.message;
        toast({ variant: 'destructive', title: 'Error al guardar', description: message });
     }
@@ -205,12 +208,13 @@ export default function SubscriptionPlansPage() {
           </Button>
         </div>
 
+        {/* ALERTA DE PERMISOS: Solo visible si hay un error de autorización */}
         {authError && !showLoading && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="bg-red-50">
             <ShieldAlert className="h-4 w-4" />
-            <AlertTitle>Error de Autorización</AlertTitle>
+            <AlertTitle>Falta de Permisos de Administrador</AlertTitle>
             <AlertDescription>
-              {authError} Intenta cerrar sesión y volver a entrar para refrescar tus credenciales de administrador.
+              {authError} Para solucionar esto, asegúrate de que tu usuario tiene el rol asignado en la base de datos y vuelve a iniciar sesión.
             </AlertDescription>
           </Alert>
         )}
@@ -252,7 +256,26 @@ export default function SubscriptionPlansPage() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {showLoading && Array.from({length: 4}).map((_, i) => <Card key={i} className="h-[450px] flex flex-col"><CardHeader><Skeleton className="h-5 w-2/4" /><Skeleton className="h-4 w-full mt-2" /></CardHeader><CardContent className="flex-grow"><Skeleton className="h-8 w-1/3 mb-4" /><Skeleton className="h-px w-full" /><div className="space-y-2 mt-4"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /><Skeleton className="h-4 w-3/4" /></div></CardContent><CardFooter><Skeleton className="h-10 w-full" /></CardFooter></Card>)}
+          {showLoading && Array.from({length: 4}).map((_, i) => (
+            <Card key={i} className="h-[450px] flex flex-col">
+              <CardHeader>
+                <Skeleton className="h-5 w-2/4" />
+                <Skeleton className="h-4 w-full mt-2" />
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <Skeleton className="h-8 w-1/3 mb-4" />
+                <Skeleton className="h-px w-full" />
+                <div className="space-y-2 mt-4">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Skeleton className="h-10 w-full" />
+              </CardFooter>
+            </Card>
+          ))}
           {!showLoading && isSuperAdmin && plans?.map((plan) => (
             <PlanCard 
               key={plan.id} 
@@ -263,9 +286,10 @@ export default function SubscriptionPlansPage() {
             />
           ))}
         </div>
-        {!showLoading && (!isSuperAdmin || plans?.length === 0) && !authError && (
+        
+        {!showLoading && (!isSuperAdmin || (plans?.length === 0)) && !authError && (
             <div className="col-span-full text-center py-12 text-muted-foreground">
-              <p>No se encontraron planes en la base de datos.</p>
+              <p>No se encontraron planes para mostrar. Crea tu primer plan usando el botón superior.</p>
             </div>
           )}
       </div>
