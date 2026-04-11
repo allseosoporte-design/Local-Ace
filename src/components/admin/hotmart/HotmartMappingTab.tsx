@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { PlusCircle, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2 } from 'lucide-react';
 import type { HotmartPlanMapping } from '@/types/hotmart';
 import type { SubscriptionPlan } from '@/types/subscription-plan';
 import { v4 as uuidv4 } from 'uuid';
@@ -22,8 +22,15 @@ export function HotmartMappingTab() {
   const [isSaving, setIsSaving] = useState(false);
 
   // Queries
-  const mappingQuery = useMemo(() => query(collection(firestore, 'hotmartPlanMappings')), [firestore]);
-  const plansQuery = useMemo(() => query(collection(firestore, 'subscriptionPlans')), [firestore]);
+  const mappingQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'hotmartPlanMappings'));
+  }, [firestore]);
+
+  const plansQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'subscriptionPlans'));
+  }, [firestore]);
 
   const { data: mappings, isLoading: isLoadingMappings } = useCollection<HotmartPlanMapping>(mappingQuery);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<SubscriptionPlan>(plansQuery);
@@ -36,6 +43,7 @@ export function HotmartMappingTab() {
   });
 
   const handleAddMapping = async () => {
+    if (!firestore) return;
     if (!newMapping.offerId || !newMapping.internalPlanId) {
       toast({ variant: 'destructive', title: 'Faltan campos', description: 'El OfferId y el Plan SaaS son obligatorios.' });
       return;
@@ -59,6 +67,7 @@ export function HotmartMappingTab() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!firestore) return;
     try {
       await deleteDoc(doc(firestore, 'hotmartPlanMappings', id));
       toast({ title: 'Mapeo eliminado' });
@@ -82,7 +91,7 @@ export function HotmartMappingTab() {
               <Label>Offer ID (Hotmart)</Label>
               <Input 
                 value={newMapping.offerId} 
-                onChange={(e) => setNewMapping(p => ({ ...prev, offerId: e.target.value }))}
+                onChange={(e) => setNewMapping(prev => ({ ...prev, offerId: e.target.value }))}
                 placeholder="Ej: OFF-123" 
               />
             </div>
@@ -90,7 +99,7 @@ export function HotmartMappingTab() {
               <Label>Nombre Descriptivo</Label>
               <Input 
                 value={newMapping.offerName} 
-                onChange={(e) => setNewMapping(p => ({ ...prev, offerName: e.target.value }))}
+                onChange={(e) => setNewMapping(prev => ({ ...prev, offerName: e.target.value }))}
                 placeholder="Ej: Plan Anual Promo" 
               />
             </div>
@@ -98,7 +107,7 @@ export function HotmartMappingTab() {
               <Label>Plan SaaS</Label>
               <Select 
                 value={newMapping.internalPlanId} 
-                onValueChange={(val) => setNewMapping(p => ({ ...prev, internalPlanId: val }))}
+                onValueChange={(val) => setNewMapping(prev => ({ ...prev, internalPlanId: val }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar plan..." />
@@ -130,10 +139,10 @@ export function HotmartMappingTab() {
               <TableBody>
                 {isLoading ? (
                   <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-                ) : mappings?.length === 0 ? (
+                ) : !mappings || mappings.length === 0 ? (
                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No hay mapeos configurados.</TableCell></TableRow>
                 ) : (
-                  mappings?.map((m) => (
+                  mappings.map((m) => (
                     <TableRow key={m.id}>
                       <TableCell className="font-mono text-xs">{m.offerId}</TableCell>
                       <TableCell>{m.offerName}</TableCell>
