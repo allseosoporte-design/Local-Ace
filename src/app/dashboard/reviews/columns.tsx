@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Sparkles, Star, Trash2, Eye } from "lucide-react";
+import { MoreHorizontal, Sparkles, Star, Trash2, Eye, Copy, Link as LinkIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { generateReviewResponse } from "@/ai/flows/generate-review-response";
@@ -74,7 +74,7 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
         reviewText: reviewText,
         businessName: user.displayName || "nuestro negocio",
         customerName: customerName,
-        industry: "Servicio al cliente", // Puedes hacer esto dinámico en el futuro
+        industry: "Servicio al cliente",
         customerSentiment: review.rating >= 4 ? "positive" : (review.rating === 3 ? "neutral" : "negative"),
       });
       setDraftResponse(result.draftResponse);
@@ -90,26 +90,33 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
     }
   };
 
+  const handleCopyFollowUpLink = () => {
+    if (!user) return;
+    const funnelUrl = `${window.location.origin}/funnel/${user.uid}`;
+    navigator.clipboard.writeText(funnelUrl);
+    toast({
+      title: "¡Enlace Copiado!",
+      description: "Envía este enlace al cliente para que actualice su calificación.",
+    });
+  };
+
   const handleSendResponse = () => {
     toast({
       title: "¡Respuesta Enviada!",
       description: "Tu respuesta ha sido enviada al cliente (simulación).",
     });
-    // Aquí iría la lógica para actualizar el estado de la reseña a "Responded"
     setIsAiDialogOpen(false);
   };
   
   const handleDelete = async () => {
     if (!firestore || !user) return;
     
-    // Determinar si es feedback interno o una reseña pública para saber de dónde borrar
     const isInternalFeedback = !!review.businessId;
     
     let docRef;
     if (isInternalFeedback) {
       docRef = doc(firestore, "internalFeedback", review.id);
     } else if (review.googleMyBusinessProfileId) {
-      // Asumimos que el GMB Profile ID es el UID del usuario para simplificar
       docRef = doc(firestore, `googleMyBusinessProfiles/${user.uid}/reviews`, review.id);
     } else {
         toast({ variant: 'destructive', title: 'Error', description: 'No se puede identificar el tipo de reseña.' });
@@ -153,6 +160,9 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
           <DropdownMenuItem onClick={handleGenerateResponse} disabled={isGenerating}>
             <Sparkles className="mr-2 h-4 w-4" />
             {isGenerating ? "Generando..." : "Generar Respuesta con IA"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleCopyFollowUpLink}>
+            <LinkIcon className="mr-2 h-4 w-4" /> Copiar Link de Seguimiento
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-destructive" onClick={() => setIsDeleteDialogOpen(true)}>
