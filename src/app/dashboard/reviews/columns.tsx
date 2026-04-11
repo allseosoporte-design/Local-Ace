@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Sparkles, Star, Trash2, Eye, Copy, Link as LinkIcon } from "lucide-react";
+import { MoreHorizontal, Sparkles, Star, Trash2, Eye, Copy, Link as LinkIcon, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { generateReviewResponse } from "@/ai/flows/generate-review-response";
@@ -26,7 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Timestamp, doc, deleteDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
@@ -57,6 +56,7 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
   const { user } = useUser();
 
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
+  const [isManualDialogOpen, setIsManualDialogOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [draftResponse, setDraftResponse] = useState("");
@@ -107,6 +107,7 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
       description: "Tu respuesta ha sido enviada al cliente (simulación).",
     });
     setIsAiDialogOpen(false);
+    setIsManualDialogOpen(false);
   };
   
   const handleDelete = async () => {
@@ -161,6 +162,9 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
           <DropdownMenuItem onClick={handleGenerateResponse} disabled={isGenerating}>
             <Sparkles className="mr-2 h-4 w-4" />
             {isGenerating ? "Generando..." : "Generar Respuesta con IA"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => { setDraftResponse(""); setIsManualDialogOpen(true); }}>
+            <MessageSquare className="mr-2 h-4 w-4" /> Generar Respuesta Sin IA
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleCopyFollowUpLink}>
             <LinkIcon className="mr-2 h-4 w-4" /> Copiar Link de Seguimiento
@@ -222,6 +226,7 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
         </DialogContent>
       </Dialog>
       
+      {/* Modal para respuesta con IA */}
       <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
@@ -238,6 +243,29 @@ const ActionsCell: ColumnDef<Review>['cell'] = ({ row }) => {
           </div>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setIsAiDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSendResponse}>Enviar Respuesta</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para respuesta manual (Sin IA) */}
+      <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Redactar respuesta para {customerName}</DialogTitle>
+            <DialogDescription>
+              Escribe una respuesta personalizada para el cliente. Puedes usar el editor para dar formato al texto.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <RichTextEditor 
+              value={draftResponse}
+              onChange={setDraftResponse}
+              placeholder="Escribe tu respuesta aquí..."
+            />
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => setIsManualDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSendResponse}>Enviar Respuesta</Button>
           </DialogFooter>
         </DialogContent>
