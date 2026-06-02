@@ -17,7 +17,7 @@ import { useUser, useFirestore, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { uploadImage } from '@/ai/flows/upload-image';
-import { Loader2, UploadCloud, Save, RotateCcw, Trash2, Pencil } from 'lucide-react';
+import { Loader2, UploadCloud, Save, RotateCcw, Trash2, Pencil, Youtube } from 'lucide-react';
 import type { CatalogHeaderConfigData, SocialLinks, CarouselItemData } from '@/types/catalog';
 import {
   Twitter,
@@ -38,6 +38,7 @@ const socialIcons = {
   facebook: <Facebook />,
   whatsapp: <MessageCircle />,
   twitter: <Twitter />,
+  youtube: <Youtube />,
 };
 
 const defaultValues: CatalogHeaderConfigData = {
@@ -52,6 +53,7 @@ const defaultValues: CatalogHeaderConfigData = {
     facebook: '',
     whatsapp: '',
     twitter: '',
+    youtube: '',
   },
   carouselItems: [],
 };
@@ -305,7 +307,7 @@ const removeCarouselItem = (index: number) => {
         </div>
         <div className="space-y-2">
             <Label>Redes Sociales</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {Object.entries(socialIcons).map(([key, icon]) => (
                     <div className="relative" key={key}>
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">{icon}</div>

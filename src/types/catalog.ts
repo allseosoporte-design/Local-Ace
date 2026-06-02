@@ -5,6 +5,7 @@ export interface SocialLinks {
     facebook: string;
     whatsapp: string;
     twitter: string;
+    youtube: string;
 }
 
 export interface CarouselItemData {

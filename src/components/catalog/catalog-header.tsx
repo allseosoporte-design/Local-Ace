@@ -7,6 +7,7 @@ import {
   Instagram,
   Facebook,
   MessageCircle,
+  Youtube,
 } from 'lucide-react';
 import type { CatalogHeaderConfigData, CarouselItemData } from '@/types/catalog';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -23,6 +24,7 @@ const socialIconMap = {
   facebook: <Facebook className="h-5 w-5" />,
   whatsapp: <MessageCircle className="h-5 w-5" />,
   twitter: <Twitter className="h-5 w-5" />,
+  youtube: <Youtube className="h-5 w-5" />,
 };
 
 const defaultCarouselItems: CarouselItemData[] = [
