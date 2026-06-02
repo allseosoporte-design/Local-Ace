@@ -56,6 +56,8 @@ const defaultValues: CatalogHeaderConfigData = {
     youtube: '',
   },
   carouselItems: [],
+  customSlug: '',
+  isCustomSlugEnabled: false,
 };
 
 export function CatalogHeaderConfig() {

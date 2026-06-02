@@ -22,4 +22,6 @@ export interface CatalogHeaderConfigData {
   email: string;
   socialLinks: SocialLinks;
   carouselItems?: CarouselItemData[];
+  customSlug?: string;
+  isCustomSlugEnabled?: boolean;
 }
