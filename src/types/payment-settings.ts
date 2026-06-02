@@ -1,10 +1,20 @@
 
 import type { QRFormData } from "@/components/qr-form";
 
+export interface PaymentLink {
+    id: string;
+    name: string;
+    amount: number;
+    currency: string;
+    url: string;
+    isActive: boolean;
+}
+
 export interface StripeData {
     enabled: boolean;
     publicKey: string;
     secretKey: string;
+    paymentLinks?: PaymentLink[];
 }
 
 export interface MercadoPagoData {
@@ -13,6 +23,7 @@ export interface MercadoPagoData {
     publicKey: string;
     mode: 'production' | 'sandbox';
     instructions: string;
+    paymentLinks?: PaymentLink[];
 }
 
 export interface PayPalData {
@@ -20,6 +31,7 @@ export interface PayPalData {
     clientId: string;
     clientSecret: string;
     mode: 'production' | 'sandbox';
+    paymentLinks?: PaymentLink[];
 }
 
 export interface WompiData {
@@ -27,6 +39,7 @@ export interface WompiData {
     publicKey: string;
     privateKey: string;
     mode: 'production' | 'sandbox';
+    paymentLinks?: PaymentLink[];
 }
 
 export interface PlanPaymentSettings {

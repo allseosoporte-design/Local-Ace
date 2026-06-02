@@ -39,13 +39,13 @@ const initialQRData = {
   instructions: '',
 };
 
-const initialStripeData = { enabled: false, publicKey: '', secretKey: '' };
+const initialStripeData = { enabled: false, publicKey: '', secretKey: '', paymentLinks: [] };
 
-const initialMercadoPagoData = { enabled: false, accessToken: '', publicKey: '', mode: 'production' as 'production' | 'sandbox', instructions: '' };
+const initialMercadoPagoData = { enabled: false, accessToken: '', publicKey: '', mode: 'production' as 'production' | 'sandbox', instructions: '', paymentLinks: [] };
 
-const initialPayPalData = { enabled: false, clientId: '', clientSecret: '', mode: 'sandbox' as 'production' | 'sandbox'};
+const initialPayPalData = { enabled: false, clientId: '', clientSecret: '', mode: 'sandbox' as 'production' | 'sandbox', paymentLinks: [] };
 
-const initialWompiData = { enabled: false, publicKey: '', privateKey: '', mode: 'sandbox' as 'production' | 'sandbox'};
+const initialWompiData = { enabled: false, publicKey: '', privateKey: '', mode: 'sandbox' as 'production' | 'sandbox', paymentLinks: [] };
 
 const initialPlanSettings: PlanPaymentSettings = {
     nequi: initialQRData,
@@ -248,7 +248,7 @@ export default function AdminPaymentSettingsPage() {
               style={{ gridTemplateColumns: `repeat(${plans?.length || 1}, 1fr)` }}
             >
               {plans?.map(plan => (
-                <TabsTrigger key={plan.id} value={plan.id} className="h-full">{plan.name}</TabsTrigger>
+                <TabsTrigger key={plan.id} value={plan.id} className="h-full uppercase font-bold text-xs">{plan.name}</TabsTrigger>
               ))}
             </TabsList>
             {plans?.map(plan => (
